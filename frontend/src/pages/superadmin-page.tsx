@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Swal from 'sweetalert2';
 import { api } from '../lib/api';
 import { useAuth } from '../modules/auth/auth-context';
 import type { CreateUserPayload, Region, User } from '../types';
@@ -247,20 +248,49 @@ export function SuperAdminPage() {
           className="primary-button"
           type="button"
           onClick={async () => {
-            await api.createUser(
-              {
-                ...draftUser,
-                firstName: normalizeUpper(draftUser.firstName),
-                lastName: normalizeUpper(draftUser.lastName),
-                grade: normalizeUpper(draftUser.grade),
-                phone: normalizeText(draftUser.phone),
-                email: normalizeEmail(draftUser.email),
-                password: normalizeText(draftUser.password),
-              },
-              session.accessToken,
-            );
-            setDraftUser(emptyUser);
-            setUsers(await api.getUsers(session.accessToken));
+            const confirmation = await Swal.fire({
+              icon: 'question',
+              title: 'Confirmar alta de usuario',
+              text: 'Se creará una nueva cuenta con los datos capturados.',
+              showCancelButton: true,
+              confirmButtonText: 'Crear usuario',
+              cancelButtonText: 'Cancelar',
+            });
+
+            if (!confirmation.isConfirmed) {
+              return;
+            }
+
+            try {
+              await api.createUser(
+                {
+                  ...draftUser,
+                  firstName: normalizeUpper(draftUser.firstName),
+                  lastName: normalizeUpper(draftUser.lastName),
+                  grade: normalizeUpper(draftUser.grade),
+                  phone: normalizeText(draftUser.phone),
+                  email: normalizeEmail(draftUser.email),
+                  password: normalizeText(draftUser.password),
+                },
+                session.accessToken,
+              );
+              setDraftUser(emptyUser);
+              setUsers(await api.getUsers(session.accessToken));
+
+              await Swal.fire({
+                icon: 'success',
+                title: 'Usuario creado',
+                text: 'La cuenta se registró correctamente.',
+                confirmButtonText: 'Entendido',
+              });
+            } catch (requestError) {
+              await Swal.fire({
+                icon: 'error',
+                title: 'No se pudo crear el usuario',
+                text: (requestError as Error).message,
+                confirmButtonText: 'Entendido',
+              });
+            }
           }}
         >
           Guardar usuario

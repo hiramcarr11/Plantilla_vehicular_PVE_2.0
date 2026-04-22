@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Swal from 'sweetalert2';
 import { api } from '../../lib/api';
 import { socket } from '../../lib/socket';
 import { useAuth } from '../auth/auth-context';
@@ -56,8 +57,37 @@ export function useCapturistData() {
       return;
     }
 
-    const record = await api.createRecord(values, session.accessToken);
-    setRecords((current) => [record, ...current]);
+    const confirmation = await Swal.fire({
+      icon: 'question',
+      title: 'Confirmar guardado',
+      text: 'Se registrará una nueva captura vehicular.',
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!confirmation.isConfirmed) {
+      return;
+    }
+
+    try {
+      const record = await api.createRecord(values, session.accessToken);
+      setRecords((current) => [record, ...current]);
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Captura guardada',
+        text: 'El registro se guardó correctamente.',
+        confirmButtonText: 'Entendido',
+      });
+    } catch (requestError) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'No se pudo guardar la captura',
+        text: (requestError as Error).message,
+        confirmButtonText: 'Entendido',
+      });
+    }
   };
 
   return {

@@ -93,4 +93,13 @@ export const REGION_CATALOG = [
       { name: 'COSOLAPA', sortOrder: 3 },
     ],
   },
+  {
+    code: 'REGION_CENTRO',
+    name: 'CENTRO',
+    sortOrder: 9,
+    delegations: [
+      { name: 'JEFE OPERATIVO', sortOrder: 1 },
+      { name: 'COORDINACION', sortOrder: 2 },
+    ],
+  },
 ] as const;

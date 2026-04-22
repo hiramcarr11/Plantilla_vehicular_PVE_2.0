@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { useAuth } from '../modules/auth/auth-context';
 
 export function LoginPage() {
   const { session, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
 
   if (session) {
     return <Navigate to="/" replace />;
@@ -18,12 +18,22 @@ export function LoginPage() {
         className="login-card"
         onSubmit={async (event) => {
           event.preventDefault();
-          setError('');
 
           try {
             await login(email.trim(), password);
+            await Swal.fire({
+              icon: 'success',
+              title: 'Acceso correcto',
+              text: 'Bienvenido al sistema.',
+              confirmButtonText: 'Continuar',
+            });
           } catch (requestError) {
-            setError((requestError as Error).message);
+            await Swal.fire({
+              icon: 'error',
+              title: 'No se pudo iniciar sesión',
+              text: (requestError as Error).message,
+              confirmButtonText: 'Entendido',
+            });
           }
         }}
       >
@@ -45,9 +55,8 @@ export function LoginPage() {
           />
         </label>
 
-        {error && <p className="error-text">{error}</p>}
-
         <button className="primary-button" type="submit">
+
           Entrar
         </button>
       </form>
