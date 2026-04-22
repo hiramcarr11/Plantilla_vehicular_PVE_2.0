@@ -1,0 +1,23 @@
+# Dependencies
+backend/node_modules/
+frontend/node_modules/
+
+# Build outputs
+backend/dist/
+frontend/dist/
+
+# Environment files
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+backend/*.log
+frontend/*.log
+
+# TypeScript cache
+frontend/tsconfig.tsbuildinfo
+
+# OS/editor files
+.DS_Store
+Thumbs.db

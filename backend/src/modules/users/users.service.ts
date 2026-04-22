@@ -1,0 +1,235 @@
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcryptjs';
+import { Repository } from 'typeorm';
+import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
+import { RegionEntity } from 'src/modules/catalog/entities/region.entity';
+import { AuditLogsService } from 'src/modules/audit-logs/audit-logs.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserEntity } from './entities/user.entity';
+
+function normalizeText(value: string) {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function normalizeEmail(value: string) {
+  return normalizeText(value).toLowerCase();
+}
+
+export type SafeUser = Omit<UserEntity, 'passwordHash'> & {
+  fullName: string;
+};
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(RegionEntity)
+    private readonly regionRepository: Repository<RegionEntity>,
+    @InjectRepository(DelegationEntity)
+    private readonly delegationRepository: Repository<DelegationEntity>,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
+
+  async create(dto: CreateUserDto, actorId?: string) {
+    const normalizedEmail = normalizeEmail(dto.email);
+    const existingUser = await this.userRepository.findOne({
+      where: { email: normalizedEmail },
+      withDeleted: true,
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email is already registered.');
+    }
+
+    const region = dto.regionId
+      ? await this.regionRepository.findOneBy({ id: dto.regionId })
+      : null;
+    const delegation = dto.delegationId
+      ? await this.delegationRepository.findOne({
+          where: { id: dto.delegationId },
+          relations: { region: true },
+        })
+      : null;
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    const user = await this.userRepository.save(
+      this.userRepository.create({
+        firstName: normalizeText(dto.firstName).toUpperCase(),
+        lastName: normalizeText(dto.lastName).toUpperCase(),
+        grade: normalizeText(dto.grade).toUpperCase(),
+        phone: normalizeText(dto.phone),
+        email: normalizedEmail,
+        passwordHash,
+        role: dto.role,
+        region,
+        delegation,
+      }),
+    );
+
+    await this.auditLogsService.register({
+      actorId,
+      action: 'USER_CREATED',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: {
+        role: user.role,
+        email: user.email,
+      },
+    });
+
+    return this.findOne(user.id);
+  }
+
+  async findAll() {
+    const users = await this.userRepository.find({
+      relations: {
+        region: true,
+        delegation: {
+          region: true,
+        },
+      },
+      order: {
+        firstName: 'ASC',
+        lastName: 'ASC',
+      },
+    });
+
+    return users.map((user) => this.toSafeUser(user));
+  }
+
+  async findOne(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: {
+        region: true,
+        delegation: {
+          region: true,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return this.toSafeUser(user);
+  }
+
+  async findOneEntity(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: {
+        region: true,
+        delegation: {
+          region: true,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return user;
+  }
+
+  findByEmail(email: string) {
+    return this.userRepository.findOne({
+      where: { email: email.toLowerCase() },
+      relations: {
+        region: true,
+        delegation: {
+          region: true,
+        },
+      },
+    });
+  }
+
+  async update(id: string, dto: UpdateUserDto, actorId?: string) {
+    const user = await this.findOneEntity(id);
+
+    if (dto.password) {
+      user.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    if (dto.firstName) {
+      user.firstName = normalizeText(dto.firstName).toUpperCase();
+    }
+
+    if (dto.lastName) {
+      user.lastName = normalizeText(dto.lastName).toUpperCase();
+    }
+
+    if (dto.grade) {
+      user.grade = normalizeText(dto.grade).toUpperCase();
+    }
+
+    if (dto.phone) {
+      user.phone = normalizeText(dto.phone);
+    }
+
+    if (dto.email) {
+      user.email = normalizeEmail(dto.email);
+    }
+
+    if (dto.role) {
+      user.role = dto.role;
+    }
+
+    if (dto.regionId !== undefined) {
+      user.region = dto.regionId
+        ? await this.regionRepository.findOneBy({ id: dto.regionId })
+        : null;
+    }
+
+    if (dto.delegationId !== undefined) {
+      user.delegation = dto.delegationId
+        ? await this.delegationRepository.findOneBy({ id: dto.delegationId })
+        : null;
+    }
+
+    await this.userRepository.save(user);
+
+    await this.auditLogsService.register({
+      actorId,
+      action: 'USER_UPDATED',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: { ...dto },
+    });
+
+    return this.findOne(id);
+  }
+
+  async softDelete(id: string, actorId?: string) {
+    const user = await this.findOneEntity(id);
+    await this.userRepository.softDelete(id);
+
+    await this.auditLogsService.register({
+      actorId,
+      action: 'USER_SOFT_DELETED',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: {
+        email: user.email,
+      },
+    });
+  }
+
+  private toSafeUser(user: UserEntity): SafeUser {
+    const { passwordHash: _passwordHash, ...safeUser } = user;
+
+    return {
+      ...safeUser,
+      fullName: `${user.firstName} ${user.lastName}`.trim(),
+    };
+  }
+}

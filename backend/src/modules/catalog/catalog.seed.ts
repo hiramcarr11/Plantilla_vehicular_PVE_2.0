@@ -1,0 +1,96 @@
+export const REGION_CATALOG = [
+  {
+    code: 'REGION_DE_VALLES_CENTRALES_ZONA_NORTE',
+    name: 'REGI\u00d3N DE VALLES CENTRALES ZONA NORTE',
+    sortOrder: 1,
+    delegations: [
+      { name: 'TLACOLULA', sortOrder: 1 },
+      { name: 'MITLA', sortOrder: 2 },
+      { name: 'EL RETIRO', sortOrder: 3 },
+      { name: 'IXTL\u00c1N DE JU\u00c1REZ', sortOrder: 4 },
+      { name: 'ETLA', sortOrder: 5 },
+    ],
+  },
+  {
+    code: 'REGION_DE_VALLES_CENTRALES_ZONA_SUR',
+    name: 'REGI\u00d3N DE VALLES CENTRALES ZONA SUR',
+    sortOrder: 2,
+    delegations: [
+      { name: 'MIAHUATL\u00c1N DE P.D.', sortOrder: 1 },
+      { name: 'ZAACHILA', sortOrder: 2 },
+      { name: 'OCOTL\u00c1N', sortOrder: 3 },
+      { name: 'EJUTLA DE CRESPO', sortOrder: 4 },
+      { name: 'ZIMATL\u00c1N', sortOrder: 5 },
+      { name: 'SOLA DE VEGA', sortOrder: 6 },
+    ],
+  },
+  {
+    code: 'REGION_COSTA_ZONA_ORIENTE',
+    name: 'REGI\u00d3N COSTA ZONA ORIENTE',
+    sortOrder: 3,
+    delegations: [
+      { name: 'HUATULCO', sortOrder: 1 },
+      { name: 'PUERTO ESCONDIDO', sortOrder: 2 },
+      { name: 'POCHUTLA', sortOrder: 3 },
+      { name: 'SANTOS REYES NOPALA', sortOrder: 4 },
+    ],
+  },
+  {
+    code: 'REGION_COSTA_ZONA_PONIENTE',
+    name: 'REGI\u00d3N COSTA ZONA PONIENTE',
+    sortOrder: 4,
+    delegations: [
+      { name: 'PINOTEPA NACIONAL', sortOrder: 1 },
+      { name: 'JUQUILA', sortOrder: 2 },
+      { name: 'R\u00cdO GRANDE', sortOrder: 3 },
+      { name: 'JAMILTEPEC', sortOrder: 4 },
+      { name: 'CACAHUATEPEC', sortOrder: 5 },
+    ],
+  },
+  {
+    code: 'REGION_DEL_ISTMO_ZONA_NORTE',
+    name: 'REGI\u00d3N DEL ISTMO ZONA NORTE',
+    sortOrder: 5,
+    delegations: [
+      { name: 'MATIAS ROMERO', sortOrder: 1 },
+      { name: 'TAPANATEPEC', sortOrder: 2 },
+      { name: 'MA. LOMBARDO', sortOrder: 3 },
+      { name: 'SAN JUAN GUICHICOVI', sortOrder: 4 },
+    ],
+  },
+  {
+    code: 'REGION_DEL_ISTMO_ZONA_SUR',
+    name: 'REGI\u00d3N DEL ISTMO ZONA SUR',
+    sortOrder: 6,
+    delegations: [
+      { name: 'SALINA CRUZ', sortOrder: 1 },
+      { name: 'CIUDAD IXTEPEC', sortOrder: 2 },
+      { name: 'JUCHIT\u00c1N', sortOrder: 3 },
+      { name: 'TEHUANTEPEC', sortOrder: 4 },
+    ],
+  },
+  {
+    code: 'REGION_DE_LA_MIXTECA',
+    name: 'REGI\u00d3N DE LA MIXTECA',
+    sortOrder: 7,
+    delegations: [
+      { name: 'HUAJUAPAN DE LE\u00d3N', sortOrder: 1 },
+      { name: 'NOCHIXTL\u00c1N', sortOrder: 2 },
+      { name: 'TAMAZULAPAN', sortOrder: 3 },
+      { name: 'TLAXIACO', sortOrder: 4 },
+      { name: 'S.P. Y S.P. TEPOSCOLULA', sortOrder: 5 },
+      { name: 'PUTLA DE GRO.', sortOrder: 6 },
+      { name: 'JUXTLAHUACA', sortOrder: 7 },
+    ],
+  },
+  {
+    code: 'REGION_DE_LA_CUENCA',
+    name: 'REGI\u00d3N DE LA CUENCA',
+    sortOrder: 8,
+    delegations: [
+      { name: 'TUXTEPEC', sortOrder: 1 },
+      { name: 'TEMASCAL', sortOrder: 2 },
+      { name: 'COSOLAPA', sortOrder: 3 },
+    ],
+  },
+] as const;
