@@ -1,9 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { EmptyState } from './empty-state';
 import { getDelegationLatLng, OAXACA_MAP_BOUNDS } from '../modules/director/oaxaca-map-layout';
 import type { DirectorOverview } from '../types';
+
+function CustomMarker({ icon, children, ...props }: React.ComponentProps<typeof Marker> & { icon: L.DivIcon }) {
+  const markerRef = useRef<L.Marker>(null);
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setIcon(icon);
+    }
+  }, [icon]);
+
+  return <Marker ref={markerRef} {...props}>{children}</Marker>;
+}
 
 type DirectorOaxacaMapProps = {
   overview: DirectorOverview;
@@ -173,11 +185,10 @@ export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
           <MapContainer
             bounds={OAXACA_MAP_BOUNDS}
             className="director-live-map"
-            scrollWheelZoom
+            scrollWheelZoom={true}
             minZoom={8}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
@@ -194,7 +205,7 @@ export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
               const isSelected = delegation.delegationId === selectedDelegation?.delegationId;
 
               return (
-                <Marker
+                <CustomMarker
                   key={delegation.delegationId}
                   eventHandlers={{
                     click: () => setSelectedDelegationId(delegation.delegationId),
@@ -222,7 +233,7 @@ export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
                       </div>
                     </div>
                   </Popup>
-                </Marker>
+                </CustomMarker>
               );
             })}
           </MapContainer>
