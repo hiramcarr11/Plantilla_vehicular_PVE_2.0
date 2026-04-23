@@ -430,6 +430,14 @@ export function SuperAdminPage() {
                           type="button"
                           disabled={isProtectedSuperadmin}
                           onClick={() => {
+                            const resolvedRegionId =
+                              user.region?.id ??
+                              regions.find((region) =>
+                                region.delegations.some(
+                                  (delegation) => delegation.id === user.delegation?.id,
+                                ),
+                              )?.id;
+
                             setEditingUserId(user.id);
                             setDraftUser({
                               firstName: user.firstName,
@@ -439,7 +447,7 @@ export function SuperAdminPage() {
                               password: '',
                               role: user.role,
                               phone: user.phone,
-                              regionId: user.region?.id,
+                              regionId: resolvedRegionId,
                               delegationId: user.delegation?.id,
                             });
                             window.scrollTo({ top: 0, behavior: 'smooth' });

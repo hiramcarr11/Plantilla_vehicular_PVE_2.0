@@ -10,6 +10,7 @@ import { AdminPage } from './pages/admin-page';
 import { SuperAdminPage } from './pages/superadmin-page';
 import { SuperAdminAuditPage } from './pages/superadmin-audit-page';
 import { DirectorPage } from './pages/director-page';
+import { DirectorMapPage } from './pages/director-map-page';
 import { APP_ROUTES, LEGACY_ROUTE_REDIRECTS } from './lib/routes';
 
 export function App() {
@@ -72,6 +73,14 @@ export function App() {
           element={
             <ProtectedRoute allowedRoles={['director', 'admin', 'superadmin']}>
               <DirectorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={APP_ROUTES.insightsMap.slice(1)}
+          element={
+            <ProtectedRoute allowedRoles={['director', 'admin', 'superadmin']}>
+              <DirectorMapPage />
             </ProtectedRoute>
           }
         />

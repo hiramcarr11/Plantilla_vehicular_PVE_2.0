@@ -31,7 +31,7 @@ export class RecordsController {
   @Get('my')
   @RequireRoles(Role.Capturist)
   findMine(@CurrentUser() user: AuthUser) {
-    return this.recordsService.findMine(user.sub);
+    return this.recordsService.findMine(user);
   }
 
   @Get('reports/my')
@@ -40,22 +40,45 @@ export class RecordsController {
     return this.recordsService.findMyRosterReports(user);
   }
 
+  @Get('reports/region/my')
+  @RequireRoles(Role.RegionalManager)
+  findMyRegionalRosterReports(@CurrentUser() user: AuthUser) {
+    return this.recordsService.findMyRegionalRosterReports(user);
+  }
+
   @Post('reports')
   @RequireRoles(Role.Capturist)
   submitRosterReport(@Body() dto: SubmitRosterReportDto, @CurrentUser() user: AuthUser) {
     return this.recordsService.submitRosterReport(dto, user);
   }
 
+  @Post('reports/region')
+  @RequireRoles(Role.RegionalManager)
+  submitRegionalRosterReport(@Body() dto: SubmitRosterReportDto, @CurrentUser() user: AuthUser) {
+    return this.recordsService.submitRegionalRosterReport(dto, user);
+  }
+
   @Get('reports/overview')
   @RequireRoles(Role.Admin, Role.SuperAdmin, Role.Director)
-  findRosterReportOverview() {
-    return this.recordsService.findRosterReportOverview();
+  findRosterReportOverview(
+    @Query('regionId') regionId?: string,
+  ) {
+    return this.recordsService.findRosterReportOverview(regionId);
+  }
+
+  @Get('reports/region/overview')
+  @RequireRoles(Role.RegionalManager)
+  findRegionalRosterReportOverview(
+    @CurrentUser() user: AuthUser,
+    @Query('delegationId') delegationId?: string,
+  ) {
+    return this.recordsService.findRegionalRosterReportOverview(user, delegationId);
   }
 
   @Get('region/live')
   @RequireRoles(Role.RegionalManager)
   findRegionalView(@CurrentUser() user: AuthUser) {
-    return this.recordsService.findRegionalView(user.regionId ?? '');
+    return this.recordsService.findRegionalView(user);
   }
 
   @Get('admin/overview')
@@ -97,7 +120,7 @@ export class RecordsController {
   }
 
   @Post(':id/transfer')
-  @RequireRoles(Role.Admin, Role.SuperAdmin)
+  @RequireRoles(Role.Capturist, Role.RegionalManager, Role.Admin, Role.SuperAdmin)
   transfer(
     @Param('id') id: string,
     @Body() dto: TransferRecordDto,

@@ -3,6 +3,7 @@ import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
+import { getRecordActivitySummary, openRecordDetails } from '../modules/records/record-activity';
 import { useCapturistData } from '../modules/records/use-capturist-data';
 import type { VehicleRecord } from '../types';
 
@@ -16,6 +17,8 @@ export function CapturistRecordsPage() {
     availableDelegations,
     fieldCatalogs,
     updateRecord,
+    transferRecord,
+    submitRosterReport,
   } = useCapturistData();
   const [editingRecord, setEditingRecord] = useState<VehicleRecord | null>(null);
 
@@ -53,13 +56,13 @@ export function CapturistRecordsPage() {
         <PageIntro
           eyebrow="Seguimiento"
           title="Mi plantilla vehicular"
-          description="Consulta y edita las capturas vigentes de tu delegacion."
+          description="Consulta, edita y traslada los registros visibles para tu delegacion."
         />
 
         <StatsGrid
           items={[
             { label: 'Delegacion asignada', value: session.user.delegation?.name ?? '-' },
-            { label: 'Vehiculos vigentes', value: records.length },
+            { label: 'Vehiculos visibles', value: records.length },
             {
               label: 'Ultima captura',
               value: latestRecord ? new Date(latestRecord.createdAt).toLocaleDateString() : '-',
@@ -100,7 +103,12 @@ export function CapturistRecordsPage() {
             <p className="eyebrow">Plantilla</p>
             <h2>Vehiculos registrados</h2>
           </div>
-          <div className="panel-meta">{records.length} registros</div>
+          <div className="panel-actions">
+            <div className="panel-meta">{records.length} registros</div>
+            <button className="primary-button" type="button" onClick={submitRosterReport}>
+              Enviar reporte de plantilla
+            </button>
+          </div>
         </div>
 
         {records.length === 0 ? (
@@ -117,15 +125,20 @@ export function CapturistRecordsPage() {
                   <th>Placas</th>
                   <th>Marca</th>
                   <th>Tipo</th>
-                  <th>Delegacion</th>
+                  <th>Delegacion actual</th>
                   <th>Resguardante</th>
                   <th>Estatus</th>
+                  <th>Actividad</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((record) => (
-                  <tr key={record.id}>
+                  <tr
+                    key={`${record.viewDelegation.id}-${record.id}`}
+                    onClick={() => void openRecordDetails(record)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <td>{new Date(record.createdAt).toLocaleString()}</td>
                     <td>{record.plates}</td>
                     <td>{record.brand}</td>
@@ -134,13 +147,46 @@ export function CapturistRecordsPage() {
                     <td>{record.custodian}</td>
                     <td>{record.status}</td>
                     <td>
-                      <button
-                        className="inline-button"
-                        type="button"
-                        onClick={() => setEditingRecord(record)}
-                      >
-                        Editar
-                      </button>
+                      <div className="record-activity-cell">
+                        {record.recordState === 'TRANSFERRED_OUT' && (
+                          <span className="record-chip is-muted">Trasladado</span>
+                        )}
+                        {record.latestEdit && (
+                          <span className="record-chip is-info">Editado</span>
+                        )}
+                        <span className="record-activity-text">
+                          {getRecordActivitySummary(record)}
+                        </span>
+                      </div>
+                    </td>
+                    <td onClick={(event) => event.stopPropagation()}>
+                      <div className="table-actions">
+                        {record.recordState === 'CURRENT' && (
+                          <>
+                            <button
+                              className="inline-button"
+                              type="button"
+                              onClick={() => setEditingRecord(record)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="inline-button"
+                              type="button"
+                              onClick={() => void transferRecord(record)}
+                            >
+                              Trasladar
+                            </button>
+                          </>
+                        )}
+                        <button
+                          className="inline-button"
+                          type="button"
+                          onClick={() => void openRecordDetails(record)}
+                        >
+                          Detalle
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

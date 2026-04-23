@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { api } from '../lib/api';
+import { formatUserName } from '../lib/format-user-name';
 import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
 import type { VehicleRecord } from '../types';
@@ -77,7 +78,7 @@ export function HomePage() {
       <section className="panel">
         <PageIntro
           eyebrow="Bienvenido"
-          title={session.user.fullName}
+          title={formatUserName(session.user)}
           description={roleDescriptions[session.user.role]}
         />
 

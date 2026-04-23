@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
-import { api } from '../lib/api';
 import { useAuth } from '../modules/auth/auth-context';
-import type { DirectorOverview } from '../types';
+import { useDirectorOverview } from '../modules/director/use-director-overview';
 
 function formatReportDate(value: string) {
   return new Date(value).toLocaleDateString('es-MX', {
@@ -20,66 +18,20 @@ function formatReportCell(value: number) {
 
 export function DirectorPage() {
   const { session } = useAuth();
-  const [overview, setOverview] = useState<DirectorOverview | null>(null);
-  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
-  const [selectedDelegationId, setSelectedDelegationId] = useState<string>('');
-  const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
-
-  useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    const loadOverview = async () => {
-      const loaded = await api.getDirectorOverview(
-        session.accessToken,
-        selectedRegionId || undefined,
-        selectedDelegationId || undefined,
-        dateFrom || undefined,
-        dateTo || undefined,
-      );
-      setOverview(loaded);
-    };
-
-    void loadOverview();
-  }, [dateFrom, dateTo, selectedDelegationId, selectedRegionId, session]);
-
-  const availableDelegations = useMemo(() => {
-    if (!overview) {
-      return [];
-    }
-
-    if (!selectedRegionId) {
-      return overview.filters.regions.flatMap((region) => region.delegations);
-    }
-
-    return (
-      overview.filters.regions.find((region) => region.regionId === selectedRegionId)?.delegations ?? []
-    );
-  }, [overview, selectedRegionId]);
-
-  const selectedRegionName = useMemo(() => {
-    if (!overview || !selectedRegionId) {
-      return 'Todas las regiones';
-    }
-
-    return (
-      overview.filters.regions.find((region) => region.regionId === selectedRegionId)?.regionName ??
-      'Todas las regiones'
-    );
-  }, [overview, selectedRegionId]);
-
-  const selectedDelegationName = useMemo(() => {
-    if (!selectedDelegationId) {
-      return 'Todas las delegaciones';
-    }
-
-    return (
-      availableDelegations.find((delegation) => delegation.id === selectedDelegationId)?.name ??
-      'Todas las delegaciones'
-    );
-  }, [availableDelegations, selectedDelegationId]);
+  const {
+    overview,
+    selectedRegionId,
+    setSelectedRegionId,
+    selectedDelegationId,
+    setSelectedDelegationId,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    availableDelegations,
+    selectedRegionName,
+    selectedDelegationName,
+  } = useDirectorOverview({ accessToken: session?.accessToken });
 
   if (!session) {
     return null;
@@ -163,6 +115,17 @@ export function DirectorPage() {
             { label: 'Regiones con registros', value: kpis.totalRegions },
             { label: 'Delegaciones con registros', value: kpis.totalDelegations },
             { label: 'Total activos', value: kpis.totalActive },
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <StatsGrid
+          items={[
+            { label: 'Regiones sin reporte', value: kpis.notReported },
+            { label: 'Regiones con reportes pendientes', value: kpis.pendingChanges },
+            { label: 'Regiones sin cambios', value: kpis.reportedWithoutChanges },
+            { label: 'Regiones con cambios', value: kpis.reportedWithChanges },
           ]}
         />
       </section>

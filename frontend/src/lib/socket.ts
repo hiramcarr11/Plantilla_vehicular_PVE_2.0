@@ -1,8 +1,9 @@
 import { io } from 'socket.io-client';
 import { readStoredAccessToken } from '../modules/auth/auth-storage';
+import { resolveConfiguredNetworkUrl } from './resolve-network-url';
 
 function resolveSocketUrl() {
-  const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL;
+  const configuredSocketUrl = resolveConfiguredNetworkUrl(import.meta.env.VITE_SOCKET_URL, '/');
 
   if (configuredSocketUrl) {
     return configuredSocketUrl;

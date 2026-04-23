@@ -13,7 +13,6 @@ export function CapturistPage() {
     availableDelegations,
     fieldCatalogs,
     createRecord,
-    submitRosterReport,
   } = useCapturistData();
 
   if (!session) {
@@ -52,11 +51,6 @@ export function CapturistPage() {
           ]}
         />
 
-        <div className="panel-actions">
-          <button className="primary-button" type="button" onClick={submitRosterReport}>
-            Enviar reporte de plantilla
-          </button>
-        </div>
       </section>
 
       {fieldCatalogs ? (

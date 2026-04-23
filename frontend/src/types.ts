@@ -35,7 +35,7 @@ export type User = {
   id: string;
   firstName: string;
   lastName: string;
-  fullName: string;
+  fullName?: string;
   grade: string;
   phone: string;
   email: string;
@@ -80,6 +80,7 @@ export type VehicleRecord = RecordFormValues & {
   id: string;
   createdAt: string;
   updatedAt: string;
+  recordState: 'CURRENT' | 'TRANSFERRED_OUT';
   delegation: {
     id: string;
     name: string;
@@ -88,13 +89,59 @@ export type VehicleRecord = RecordFormValues & {
       name: string;
     };
   };
+  viewDelegation: {
+    id: string;
+    name: string;
+    region: {
+      id: string;
+      name: string;
+    };
+  };
   createdBy: User;
+  latestTransfer: VehicleTransferEvent | null;
+  latestEdit: VehicleEditEvent | null;
+  transferHistory: VehicleTransferEvent[];
+  editHistory: VehicleEditEvent[];
+};
+
+export type VehicleTransferEvent = {
+  id: string;
+  movedAt: string;
+  reason: string;
+  fromDelegation: {
+    id: string;
+    name: string;
+    region: {
+      id: string;
+      name: string;
+    };
+  };
+  toDelegation: {
+    id: string;
+    name: string;
+    region: {
+      id: string;
+      name: string;
+    };
+  };
+  movedBy: User;
+};
+
+export type VehicleEditEvent = {
+  id: string;
+  editedAt: string;
+  changedFields: string[];
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  actor: User | null;
 };
 
 export type VehicleRosterReport = {
   id: string;
+  reportScope: 'DELEGATION' | 'REGION';
   hasChanges: boolean;
   changesSinceLastReport: number;
+  confirmedDelegationReports: number;
   notes: string;
   submittedAt: string;
   createdAt: string;
@@ -105,7 +152,11 @@ export type VehicleRosterReport = {
       id: string;
       name: string;
     };
-  };
+  } | null;
+  region: {
+    id: string;
+    name: string;
+  } | null;
   submittedBy: User;
 };
 
@@ -120,6 +171,18 @@ export type RosterReportOverviewRow = {
     | 'REPORTED_WITH_CHANGES'
     | 'REPORTED_WITHOUT_CHANGES';
   pendingChanges: number;
+  lastReport: VehicleRosterReport | null;
+};
+
+export type RegionRosterReportOverviewRow = {
+  regionId: string;
+  regionName: string;
+  status:
+    | 'NOT_REPORTED'
+    | 'PENDING_CHANGES'
+    | 'REPORTED_WITH_CHANGES'
+    | 'REPORTED_WITHOUT_CHANGES';
+  pendingDelegationReports: number;
   lastReport: VehicleRosterReport | null;
 };
 
@@ -149,6 +212,10 @@ export type DirectorOverview = {
     totalRegions: number;
     totalDelegations: number;
     totalActive: number;
+    notReported: number;
+    pendingChanges: number;
+    reportedWithoutChanges: number;
+    reportedWithChanges: number;
   };
   table: {
     date: string;
@@ -169,6 +236,22 @@ export type DirectorOverview = {
     };
     customStatusDescriptions: string[];
     observations: string[];
+  };
+  map: {
+    delegations: {
+      delegationId: string;
+      delegationName: string;
+      regionId: string;
+      regionName: string;
+      totalUnits: number;
+      totalActive: number;
+      dominantVehicleClass: string | null;
+      vehicleClasses: {
+        vehicleClass: string;
+        totalUnits: number;
+        totalActive: number;
+      }[];
+    }[];
   };
   filters: {
     selectedRegionId: string | null;

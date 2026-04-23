@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { GroupedRecords } from '../components/grouped-records';
 import { api } from '../lib/api';
+import { formatUserName } from '../lib/format-user-name';
 import { connectSocketWithAuth, socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
+import { openRecordDetails, openTransferDialog } from '../modules/records/record-activity';
 import type {
   GroupedRegionRecords,
   RecordFieldCatalogMap,
   Region,
-  RosterReportOverviewRow,
+  RegionRosterReportOverviewRow,
   VehicleRecord,
 } from '../types';
 
@@ -17,7 +19,7 @@ export function AdminPage() {
   const [regions, setRegions] = useState<GroupedRegionRecords[]>([]);
   const [catalogRegions, setCatalogRegions] = useState<Region[]>([]);
   const [fieldCatalogs, setFieldCatalogs] = useState<RecordFieldCatalogMap | null>(null);
-  const [reportOverview, setReportOverview] = useState<RosterReportOverviewRow[]>([]);
+  const [reportOverview, setReportOverview] = useState<RegionRosterReportOverviewRow[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
   const [selectedDelegationId, setSelectedDelegationId] = useState<string>('');
   const [dateFrom, setDateFrom] = useState<string>('');
@@ -44,7 +46,10 @@ export function AdminPage() {
         ),
         api.getRecordFieldCatalog(session.accessToken),
         api.getRegions(session.accessToken),
-        api.getRosterReportOverview(session.accessToken),
+        api.getRosterReportOverview(
+          session.accessToken,
+          selectedRegionId || undefined,
+        ),
       ]);
 
       setRegions(loadedRegions);
@@ -94,70 +99,34 @@ export function AdminPage() {
       return;
     }
 
-    const delegationOptions = Object.fromEntries(
-      catalogRegions
-        .flatMap((region) =>
-          region.delegations.map((delegation) => [
-            delegation.id,
-            `${region.name} - ${delegation.name}`,
-          ]),
-        )
-        .filter(([delegationId]) => delegationId !== record.delegation.id),
-    );
-
-    const targetConfirmation = await Swal.fire({
-      icon: 'question',
-      title: 'Trasladar vehiculo',
-      text: `Selecciona la nueva delegacion para ${record.plates}.`,
-      input: 'select',
-      inputOptions: delegationOptions,
-      inputPlaceholder: 'Selecciona una delegacion',
-      showCancelButton: true,
-      confirmButtonText: 'Continuar',
-      cancelButtonText: 'Cancelar',
-      inputValidator: (value) => (!value ? 'Selecciona una delegacion.' : null),
-    });
-
-    if (!targetConfirmation.isConfirmed || typeof targetConfirmation.value !== 'string') {
-      return;
-    }
-
-    const reasonConfirmation = await Swal.fire({
-      icon: 'question',
-      title: 'Motivo del traslado',
-      input: 'textarea',
-      inputPlaceholder: 'Captura el motivo del traslado',
-      showCancelButton: true,
-      confirmButtonText: 'Registrar traslado',
-      cancelButtonText: 'Cancelar',
-      inputValidator: (value) => (!value.trim() ? 'Captura el motivo.' : null),
-    });
-
-    if (!reasonConfirmation.isConfirmed || typeof reasonConfirmation.value !== 'string') {
-      return;
-    }
-
     try {
-      await api.transferRecord(
-        record.id,
-        targetConfirmation.value,
-        reasonConfirmation.value,
-        session.accessToken,
-      );
+      const transferred = await openTransferDialog({
+        record,
+        regions: catalogRegions,
+        token: session.accessToken,
+        onTransferred: async () => {
+          const [loadedRegions, loadedReportOverview] = await Promise.all([
+            api.getAdminOverview(
+              session.accessToken,
+              selectedRegionId || undefined,
+              selectedDelegationId || undefined,
+              dateFrom || undefined,
+              dateTo || undefined,
+            ),
+            api.getRosterReportOverview(
+              session.accessToken,
+              selectedRegionId || undefined,
+            ),
+          ]);
 
-      const [loadedRegions, loadedReportOverview] = await Promise.all([
-        api.getAdminOverview(
-          session.accessToken,
-          selectedRegionId || undefined,
-          selectedDelegationId || undefined,
-          dateFrom || undefined,
-          dateTo || undefined,
-        ),
-        api.getRosterReportOverview(session.accessToken),
-      ]);
+          setRegions(loadedRegions);
+          setReportOverview(loadedReportOverview);
+        },
+      });
 
-      setRegions(loadedRegions);
-      setReportOverview(loadedReportOverview);
+      if (!transferred) {
+        return;
+      }
 
       await Swal.fire({
         icon: 'success',
@@ -189,13 +158,16 @@ export function AdminPage() {
       fieldCatalogs={fieldCatalogs}
       eyebrow="Vista global"
       title="Operacion completa del sistema"
-      description="Supervisa la captura de todas las regiones y el estado de reportes por delegacion."
+      description="Supervisa la captura de todas las regiones y el estado de reportes regionales."
       vehicleClassAfterDate
-      renderRecordActions={(record) => (
-        <button className="inline-button" type="button" onClick={() => transferRecord(record)}>
-          Trasladar
-        </button>
-      )}
+      onRecordSelect={(record) => void openRecordDetails(record)}
+      renderRecordActions={(record) =>
+        record.recordState === 'CURRENT' ? (
+          <button className="inline-button" type="button" onClick={() => transferRecord(record)}>
+            Trasladar
+          </button>
+        ) : null
+      }
       headerFilters={
         <>
           <div className="report-status-grid">
@@ -208,13 +180,42 @@ export function AdminPage() {
               <strong>{reportStatusTotals.pendingChanges}</strong>
             </div>
             <div className="report-status-card">
-              <span>Reportado sin cambios</span>
+              <span>Regiones sin cambios</span>
               <strong>{reportStatusTotals.reportedWithoutChanges}</strong>
             </div>
             <div className="report-status-card">
-              <span>Reportado con cambios</span>
+              <span>Regiones con cambios</span>
               <strong>{reportStatusTotals.reportedWithChanges}</strong>
             </div>
+          </div>
+
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Region</th>
+                  <th>Estado</th>
+                  <th>Reportes de delegacion pendientes</th>
+                  <th>Ultimo envio regional</th>
+                  <th>Encargado regional</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportOverview.map((row) => (
+                  <tr key={row.regionId}>
+                    <td>{row.regionName}</td>
+                    <td>{row.status}</td>
+                    <td>{row.pendingDelegationReports}</td>
+                    <td>
+                      {row.lastReport
+                        ? new Date(row.lastReport.submittedAt).toLocaleString()
+                        : 'Sin reporte'}
+                    </td>
+                    <td>{formatUserName(row.lastReport?.submittedBy)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <div className="form-grid director-filter-grid">

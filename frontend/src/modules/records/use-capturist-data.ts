@@ -2,63 +2,62 @@ import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { api } from '../../lib/api';
 import { connectSocketWithAuth, socket } from '../../lib/socket';
-import { useAuth } from '../auth/auth-context';
 import type {
   RecordFieldCatalogMap,
-  Region,
   RecordFormValues,
+  Region,
+  User,
   VehicleRecord,
   VehicleRosterReport,
 } from '../../types';
+import { useAuth } from '../auth/auth-context';
+import { openTransferDialog } from './record-activity';
 
 export function useCapturistData() {
   const { session } = useAuth();
   const [regions, setRegions] = useState<Region[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [records, setRecords] = useState<VehicleRecord[]>([]);
   const [rosterReports, setRosterReports] = useState<VehicleRosterReport[]>([]);
   const [fieldCatalogs, setFieldCatalogs] = useState<RecordFieldCatalogMap | null>(null);
+
+  const loadSnapshot = async () => {
+    if (!session) {
+      return;
+    }
+
+    const [loadedCurrentUser, loadedRegions, loadedRecords, loadedRosterReports, loadedFieldCatalogs] =
+      await Promise.all([
+        api.getCurrentUser(session.accessToken),
+        api.getRegions(session.accessToken),
+        api.getMyRecords(session.accessToken),
+        api.getMyRosterReports(session.accessToken),
+        api.getRecordFieldCatalog(session.accessToken),
+      ]);
+
+    setCurrentUser(loadedCurrentUser);
+    setRegions(loadedRegions);
+    setRecords(loadedRecords);
+    setRosterReports(loadedRosterReports);
+    setFieldCatalogs(loadedFieldCatalogs);
+  };
 
   useEffect(() => {
     if (!session) {
       return;
     }
 
-    void Promise.all([
-      api.getRegions(session.accessToken),
-      api.getMyRecords(session.accessToken),
-      api.getMyRosterReports(session.accessToken),
-      api.getRecordFieldCatalog(session.accessToken),
-    ]).then(([loadedRegions, loadedRecords, loadedRosterReports, loadedFieldCatalogs]) => {
-      setRegions(loadedRegions);
-      setRecords(loadedRecords);
-      setRosterReports(loadedRosterReports);
-      setFieldCatalogs(loadedFieldCatalogs);
-    });
+    void loadSnapshot();
 
     connectSocketWithAuth();
-
-    const onCreated = (record: VehicleRecord) => {
-      if (record.createdBy.id === session.user.id) {
-        setRecords((current) =>
-          current.some((currentRecord) => currentRecord.id === record.id)
-            ? current
-            : [record, ...current],
-        );
-      }
-    };
-
-    const onChanged = (record: VehicleRecord) => {
-      setRecords((current) =>
-        current.map((currentRecord) => (currentRecord.id === record.id ? record : currentRecord)),
-      );
-    };
-
-    socket.on('records.created', onCreated);
-    socket.on('records.changed', onChanged);
+    socket.on('records.created', loadSnapshot);
+    socket.on('records.changed', loadSnapshot);
+    socket.on('reports.submitted', loadSnapshot);
 
     return () => {
-      socket.off('records.created', onCreated);
-      socket.off('records.changed', onChanged);
+      socket.off('records.created', loadSnapshot);
+      socket.off('records.changed', loadSnapshot);
+      socket.off('reports.submitted', loadSnapshot);
       socket.disconnect();
     };
   }, [session]);
@@ -67,8 +66,8 @@ export function useCapturistData() {
     () =>
       regions
         .flatMap((region) => region.delegations)
-        .filter((delegation) => delegation.id === session?.user.delegation?.id) ?? [],
-    [regions, session],
+        .filter((delegation) => delegation.id === currentUser?.delegation?.id) ?? [],
+    [currentUser, regions],
   );
 
   const latestRecord = records[0];
@@ -82,7 +81,7 @@ export function useCapturistData() {
     const confirmation = await Swal.fire({
       icon: 'question',
       title: 'Confirmar guardado',
-      text: 'Se registrará una nueva captura vehicular.',
+      text: 'Se registrara una nueva captura vehicular.',
       showCancelButton: true,
       confirmButtonText: 'Guardar',
       cancelButtonText: 'Cancelar',
@@ -93,13 +92,13 @@ export function useCapturistData() {
     }
 
     try {
-      const record = await api.createRecord(values, session.accessToken);
-      setRecords((current) => [record, ...current]);
+      await api.createRecord(values, session.accessToken);
+      await loadSnapshot();
 
       await Swal.fire({
         icon: 'success',
         title: 'Captura guardada',
-        text: 'El registro se guardó correctamente.',
+        text: 'El registro se guardo correctamente.',
         confirmButtonText: 'Entendido',
       });
     } catch (requestError) {
@@ -119,8 +118,8 @@ export function useCapturistData() {
 
     const confirmation = await Swal.fire({
       icon: 'question',
-      title: 'Confirmar ediciÃ³n',
-      text: 'Se guardarÃ¡n los cambios y quedarÃ¡ marca en bitÃ¡cora.',
+      title: 'Confirmar edicion',
+      text: 'Se guardaran los cambios y quedara marca en bitacora.',
       showCancelButton: true,
       confirmButtonText: 'Guardar cambios',
       cancelButtonText: 'Cancelar',
@@ -131,10 +130,8 @@ export function useCapturistData() {
     }
 
     try {
-      const record = await api.updateRecord(recordId, values, session.accessToken);
-      setRecords((current) =>
-        current.map((currentRecord) => (currentRecord.id === record.id ? record : currentRecord)),
-      );
+      await api.updateRecord(recordId, values, session.accessToken);
+      await loadSnapshot();
 
       await Swal.fire({
         icon: 'success',
@@ -152,6 +149,39 @@ export function useCapturistData() {
     }
   };
 
+  const transferRecord = async (record: VehicleRecord) => {
+    if (!session) {
+      return;
+    }
+
+    try {
+      const transferred = await openTransferDialog({
+        record,
+        regions,
+        token: session.accessToken,
+        onTransferred: loadSnapshot,
+      });
+
+      if (!transferred) {
+        return;
+      }
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Traslado registrado',
+        text: 'El movimiento quedo registrado en la bitacora.',
+        confirmButtonText: 'Entendido',
+      });
+    } catch (requestError) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'No se pudo trasladar el vehiculo',
+        text: (requestError as Error).message,
+        confirmButtonText: 'Entendido',
+      });
+    }
+  };
+
   const submitRosterReport = async () => {
     if (!session) {
       return;
@@ -160,7 +190,7 @@ export function useCapturistData() {
     const confirmation = await Swal.fire({
       icon: 'question',
       title: 'Enviar reporte de plantilla',
-      text: 'Se confirmarÃ¡ el estado actual de la plantilla vehicular de tu delegaciÃ³n.',
+      text: 'Se confirmara el estado actual de la plantilla vehicular de tu delegacion.',
       input: 'textarea',
       inputPlaceholder: 'Observaciones opcionales',
       showCancelButton: true,
@@ -183,7 +213,7 @@ export function useCapturistData() {
       await Swal.fire({
         icon: 'success',
         title: report.hasChanges ? 'Reporte enviado con cambios' : 'Reporte enviado sin cambios',
-        text: `Movimientos detectados desde el Ãºltimo reporte: ${report.changesSinceLastReport}.`,
+        text: `Movimientos detectados desde el ultimo reporte: ${report.changesSinceLastReport}.`,
         confirmButtonText: 'Entendido',
       });
     } catch (requestError) {
@@ -198,6 +228,7 @@ export function useCapturistData() {
 
   return {
     session,
+    regions,
     records,
     rosterReports,
     latestRecord,
@@ -206,6 +237,8 @@ export function useCapturistData() {
     fieldCatalogs,
     createRecord,
     updateRecord,
+    transferRecord,
     submitRosterReport,
+    refresh: loadSnapshot,
   };
 }

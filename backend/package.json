@@ -11,6 +11,7 @@
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
     "migration:show": "npm run typeorm -- migration:show",
+    "seed:users": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-users.ts",
     "seed:vehicles": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-vehicles.ts"
   },
   "dependencies": {

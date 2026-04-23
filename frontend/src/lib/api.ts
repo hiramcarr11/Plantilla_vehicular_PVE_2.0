@@ -4,6 +4,7 @@ import {
   CreateUserPayload,
   DirectorOverview,
   GroupedRegionRecords,
+  RegionRosterReportOverviewRow,
   RecordFieldCatalogMap,
   RecordFormValues,
   Region,
@@ -13,9 +14,10 @@ import {
   VehicleRecord,
   VehicleRosterReport,
 } from '../types';
+import { resolveConfiguredNetworkUrl } from './resolve-network-url';
 
 function resolveApiUrl() {
-  const configuredApiUrl = import.meta.env.VITE_API_URL;
+  const configuredApiUrl = resolveConfiguredNetworkUrl(import.meta.env.VITE_API_URL, '/api');
 
   if (configuredApiUrl) {
     return configuredApiUrl;
@@ -146,11 +148,43 @@ export const api = {
       body: JSON.stringify({ notes }),
     }, token);
   },
+  submitRegionalRosterReport(notes: string, token: string) {
+    return request<VehicleRosterReport>('/records/reports/region', {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    }, token);
+  },
   getMyRosterReports(token: string) {
     return request<VehicleRosterReport[]>('/records/reports/my', undefined, token);
   },
-  getRosterReportOverview(token: string) {
-    return request<RosterReportOverviewRow[]>('/records/reports/overview', undefined, token);
+  getMyRegionalRosterReports(token: string) {
+    return request<VehicleRosterReport[]>('/records/reports/region/my', undefined, token);
+  },
+  getRosterReportOverview(token: string, regionId?: string) {
+    const params = new URLSearchParams();
+
+    if (regionId) {
+      params.set('regionId', regionId);
+    }
+
+    const query = params.toString();
+    const path = query ? `/records/reports/overview?${query}` : '/records/reports/overview';
+
+    return request<RegionRosterReportOverviewRow[]>(path, undefined, token);
+  },
+  getRegionalRosterReportOverview(token: string, delegationId?: string) {
+    const params = new URLSearchParams();
+
+    if (delegationId) {
+      params.set('delegationId', delegationId);
+    }
+
+    const query = params.toString();
+    const path = query
+      ? `/records/reports/region/overview?${query}`
+      : '/records/reports/region/overview';
+
+    return request<RosterReportOverviewRow[]>(path, undefined, token);
   },
   getMyRecords(token: string) {
     return request<VehicleRecord[]>('/records/my', undefined, token);

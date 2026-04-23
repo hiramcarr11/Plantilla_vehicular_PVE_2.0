@@ -12,6 +12,22 @@ const SECURITY_HEADERS = {
   'X-Permitted-Cross-Domain-Policies': 'none',
 };
 
+function isLocalDevelopmentOrigin(origin: string) {
+  try {
+    const parsedOrigin = new URL(origin);
+    const hostname = parsedOrigin.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isPrivateIpv4 =
+      /^10\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+
+    return parsedOrigin.protocol === 'http:' && parsedOrigin.port === '5173' && (isLocalhost || isPrivateIpv4);
+  } catch {
+    return false;
+  }
+}
+
 function buildCorsOriginChecker() {
   const configuredOrigins = (process.env.FRONTEND_ORIGINS ?? process.env.FRONTEND_ORIGIN ?? '')
     .split(',')
@@ -22,7 +38,7 @@ function buildCorsOriginChecker() {
   const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
 
   return (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-    if (!origin || allowedOrigins.has(origin)) {
+    if (!origin || allowedOrigins.has(origin) || isLocalDevelopmentOrigin(origin)) {
       callback(null, true);
       return;
     }

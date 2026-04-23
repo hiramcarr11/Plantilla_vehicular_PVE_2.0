@@ -3,6 +3,7 @@ import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { api } from '../lib/api';
+import { formatUserName } from '../lib/format-user-name';
 import { connectSocketWithAuth, socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
 import type { AuditLog } from '../types';
@@ -53,7 +54,7 @@ export function SuperAdminAuditPage() {
             },
             {
               label: 'Último actor',
-              value: auditLogs[0]?.actor?.fullName ?? 'Sistema',
+              value: auditLogs[0]?.actor ? formatUserName(auditLogs[0].actor) : 'Sistema',
             },
             {
               label: 'Entidad reciente',
@@ -85,7 +86,7 @@ export function SuperAdminAuditPage() {
                   <strong>{auditLog.action}</strong>
                   <span>{new Date(auditLog.createdAt).toLocaleString()}</span>
                 </div>
-                <p>{auditLog.actor?.fullName ?? 'Sistema'}</p>
+                <p>{auditLog.actor ? formatUserName(auditLog.actor) : 'Sistema'}</p>
                 <span>
                   {auditLog.entityType} #{auditLog.entityId}
                 </span>

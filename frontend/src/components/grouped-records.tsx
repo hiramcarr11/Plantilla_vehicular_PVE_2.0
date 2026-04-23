@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { getRecordActivitySummary } from '../modules/records/record-activity';
 import type { GroupedRegionRecords, RecordFieldCatalogMap, VehicleRecord } from '../types';
 import { EmptyState } from './empty-state';
 import { PageIntro } from './page-intro';
@@ -14,6 +15,7 @@ type GroupedRecordsProps = {
   headerFilters?: ReactNode;
   vehicleClassAfterDate?: boolean;
   renderRecordActions?: (record: VehicleRecord) => ReactNode;
+  onRecordSelect?: (record: VehicleRecord) => void;
 };
 
 type FiltersState = {
@@ -67,6 +69,7 @@ export function GroupedRecords({
   headerFilters,
   vehicleClassAfterDate = false,
   renderRecordActions,
+  onRecordSelect,
 }: GroupedRecordsProps) {
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
 
@@ -93,6 +96,7 @@ export function GroupedRecords({
                   record.model,
                   record.custodian,
                   record.status,
+                  getRecordActivitySummary(record),
                 ]
                   .join(' ')
                   .toLowerCase()
@@ -123,7 +127,7 @@ export function GroupedRecords({
           .filter((delegation) => delegation.records.length > 0),
       }))
       .filter((region) => region.delegations.length > 0);
-  }, [filters, regions]);
+  }, [fieldCatalogs, filters, regions]);
 
   const totalDelegations = filteredRegions.reduce(
     (total, region) => total + region.delegations.length,
@@ -156,7 +160,7 @@ export function GroupedRecords({
             <label className="toolbar-search">
               <span>Buscar</span>
               <input
-                placeholder="Delegación, placas, marca o estatus"
+                placeholder="Delegacion, placas, marca o movimiento"
                 value={filters.search}
                 onChange={(event) =>
                   setFilters((current) => ({ ...current, search: event.target.value }))
@@ -264,7 +268,7 @@ export function GroupedRecords({
             { label: 'Delegaciones activas', value: totalDelegations },
             { label: 'Capturas listadas', value: totalRecords },
             {
-              label: 'Última captura',
+              label: 'Ultima captura',
               value: latestRecord ? new Date(latestRecord.createdAt).toLocaleTimeString() : '-',
               helper: latestRecord ? latestRecord.delegation.name : 'Sin actividad',
             },
@@ -275,14 +279,14 @@ export function GroupedRecords({
       {filteredRegions.length === 0 ? (
         <EmptyState
           title="No hay resultados para los filtros actuales"
-          description="Ajusta la búsqueda o limpia los catálogos seleccionados."
+          description="Ajusta la busqueda o limpia los catalogos seleccionados."
         />
       ) : (
         filteredRegions.map((region) => (
           <section className="panel" key={region.regionId}>
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Región</p>
+                <p className="eyebrow">Region</p>
                 <h2>{region.regionName}</h2>
               </div>
               <div className="panel-meta">
@@ -316,17 +320,22 @@ export function GroupedRecords({
                           <th>Tipo</th>
                           <th>Uso</th>
                           {!vehicleClassAfterDate && <th>Clase</th>}
-                          <th>Estado físico</th>
+                          <th>Estado fisico</th>
                           <th>Estatus</th>
-                          <th>Clasificación</th>
+                          <th>Clasificacion</th>
                           <th>Modelo</th>
                           <th>Resguardante</th>
+                          <th>Actividad</th>
                           {renderRecordActions && <th>Acciones</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {delegation.records.map((record) => (
-                          <tr key={record.id}>
+                          <tr
+                            key={`${delegation.delegationId}-${record.id}`}
+                            onClick={() => onRecordSelect?.(record)}
+                            style={onRecordSelect ? { cursor: 'pointer' } : undefined}
+                          >
                             <td>{new Date(record.createdAt).toLocaleString()}</td>
                             {vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
                             <td>{record.plates}</td>
@@ -339,7 +348,24 @@ export function GroupedRecords({
                             <td>{record.assetClassification}</td>
                             <td>{record.model}</td>
                             <td>{record.custodian}</td>
-                            {renderRecordActions && <td>{renderRecordActions(record)}</td>}
+                            <td>
+                              <div className="record-activity-cell">
+                                {record.recordState === 'TRANSFERRED_OUT' && (
+                                  <span className="record-chip is-muted">Trasladado</span>
+                                )}
+                                {record.latestEdit && (
+                                  <span className="record-chip is-info">Editado</span>
+                                )}
+                                <span className="record-activity-text">
+                                  {getRecordActivitySummary(record)}
+                                </span>
+                              </div>
+                            </td>
+                            {renderRecordActions && (
+                              <td onClick={(event) => event.stopPropagation()}>
+                                {renderRecordActions(record)}
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>

@@ -241,11 +241,14 @@ export class InitSchema1761140000000 implements MigrationInterface {
             { name: 'createdAt', type: 'timestamp', default: 'now()' },
             { name: 'updatedAt', type: 'timestamp', default: 'now()' },
             { name: 'deletedAt', type: 'timestamp', isNullable: true },
+            { name: 'reportScope', type: 'varchar', default: "'DELEGATION'" },
             { name: 'hasChanges', type: 'boolean', default: false },
             { name: 'changesSinceLastReport', type: 'int', default: 0 },
+            { name: 'confirmedDelegationReports', type: 'int', default: 0 },
             { name: 'notes', type: 'text', default: "''" },
             { name: 'submittedAt', type: 'timestamp' },
-            { name: 'delegationId', type: 'uuid' },
+            { name: 'delegationId', type: 'uuid', isNullable: true },
+            { name: 'regionId', type: 'uuid', isNullable: true },
             { name: 'submittedById', type: 'uuid' },
           ],
         }),
@@ -323,6 +326,23 @@ export class InitSchema1761140000000 implements MigrationInterface {
     if (hasFullName) {
       await queryRunner.dropColumn('users', 'fullName');
     }
+
+    await ensureColumn(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableColumn({ name: 'reportScope', type: 'varchar', default: "'DELEGATION'" }),
+    );
+    await ensureColumn(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableColumn({ name: 'confirmedDelegationReports', type: 'int', default: 0 }),
+    );
+    await ensureColumn(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableColumn({ name: 'regionId', type: 'uuid', isNullable: true }),
+    );
+    await queryRunner.query(`ALTER TABLE "vehicle_roster_reports" ALTER COLUMN "delegationId" DROP NOT NULL`);
 
     await ensureIndex(
       queryRunner,
@@ -416,6 +436,17 @@ export class InitSchema1761140000000 implements MigrationInterface {
       queryRunner,
       'vehicle_roster_reports',
       new TableForeignKey({
+        name: 'FK_vehicle_roster_reports_region',
+        columnNames: ['regionId'],
+        referencedTableName: 'regions',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }),
+    );
+    await ensureForeignKey(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableForeignKey({
         name: 'FK_vehicle_roster_reports_submitted_by',
         columnNames: ['submittedById'],
         referencedTableName: 'users',
@@ -474,6 +505,14 @@ export class InitSchema1761140000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_vehicle_roster_reports_delegation_submitted',
         columnNames: ['delegationId', 'submittedAt'],
+      }),
+    );
+    await ensureIndex(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableIndex({
+        name: 'IDX_vehicle_roster_reports_region_submitted',
+        columnNames: ['regionId', 'submittedAt'],
       }),
     );
     await ensureIndex(

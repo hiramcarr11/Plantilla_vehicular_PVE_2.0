@@ -1,12 +1,13 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { Role } from 'src/common/enums/role.enum';
 import { AuditLogsService } from 'src/modules/audit-logs/audit-logs.service';
 import { AuditLogEntity } from 'src/modules/audit-logs/entities/audit-log.entity';
 import { RECORD_FIELD_CATALOG } from 'src/modules/catalog/record-field-catalog';
 import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
+import { RegionEntity } from 'src/modules/catalog/entities/region.entity';
 import { RealtimeGateway } from 'src/modules/realtime/realtime.gateway';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
@@ -14,7 +15,10 @@ import { SubmitRosterReportDto } from './dto/submit-roster-report.dto';
 import { TransferRecordDto } from './dto/transfer-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { RecordEntity } from './entities/record.entity';
-import { VehicleRosterReportEntity } from './entities/vehicle-roster-report.entity';
+import {
+  VehicleRosterReportEntity,
+  type VehicleRosterReportScope,
+} from './entities/vehicle-roster-report.entity';
 import { VehicleTransferEntity } from './entities/vehicle-transfer.entity';
 
 function normalizeText(value: string) {
@@ -32,6 +36,12 @@ function calculateNetActive(totalUnits: number, statusBreakdown: Record<string, 
 }
 
 type AuthUser = {
+  sub: string;
+  role: Role;
+  regionId: string | null;
+  delegationId: string | null;
+};
+type LiveAuthUser = {
   sub: string;
   role: Role;
   regionId: string | null;
@@ -64,6 +74,61 @@ const editableRecordFields = [
 
 type EditableRecordField = (typeof editableRecordFields)[number];
 type NormalizedRecordValues = Pick<RecordEntity, EditableRecordField>;
+type ScopedRecordFilters = {
+  scopeDelegationIds: string[];
+  dateFrom?: string;
+  dateTo?: string;
+};
+type ViewDelegation = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  region: {
+    id: string;
+    name: string;
+    sortOrder: number;
+  };
+};
+type RecordTransferView = {
+  id: string;
+  movedAt: string;
+  reason: string;
+  fromDelegation: ViewDelegation;
+  toDelegation: ViewDelegation;
+  movedBy: UserEntity;
+};
+type RecordEditView = {
+  id: string;
+  editedAt: string;
+  changedFields: string[];
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  actor: UserEntity | null;
+};
+type RecordView = RecordEntity & {
+  viewDelegation: ViewDelegation;
+  recordState: 'CURRENT' | 'TRANSFERRED_OUT';
+  latestTransfer: RecordTransferView | null;
+  latestEdit: RecordEditView | null;
+  transferHistory: RecordTransferView[];
+  editHistory: RecordEditView[];
+};
+type DelegationReportOverviewRow = {
+  delegationId: string;
+  delegationName: string;
+  regionId: string;
+  regionName: string;
+  status: 'NOT_REPORTED' | 'PENDING_CHANGES' | 'REPORTED_WITH_CHANGES' | 'REPORTED_WITHOUT_CHANGES';
+  pendingChanges: number;
+  lastReport: VehicleRosterReportEntity | null;
+};
+type RegionReportOverviewRow = {
+  regionId: string;
+  regionName: string;
+  status: 'NOT_REPORTED' | 'PENDING_CHANGES' | 'REPORTED_WITH_CHANGES' | 'REPORTED_WITHOUT_CHANGES';
+  pendingDelegationReports: number;
+  lastReport: VehicleRosterReportEntity | null;
+};
 
 @Injectable()
 export class RecordsService {
@@ -85,6 +150,7 @@ export class RecordsService {
   ) {}
 
   async create(dto: CreateRecordDto, authUser: AuthUser) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
     const createdBy = await this.userRepository.findOneBy({ id: authUser.sub });
     const delegation = await this.delegationRepository.findOne({
       where: { id: dto.delegationId },
@@ -95,7 +161,7 @@ export class RecordsService {
       throw new NotFoundException('User or delegation not found.');
     }
 
-    this.ensureCapturistDelegationAccess(authUser, delegation.id);
+    this.ensureCapturistDelegationAccess(liveAuthUser, delegation.id);
 
     const normalizedDto = {
       ...this.normalizeRecordValues(dto),
@@ -129,8 +195,9 @@ export class RecordsService {
   }
 
   async update(id: string, dto: UpdateRecordDto, authUser: AuthUser) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
     const record = await this.findOne(id);
-    this.ensureRecordEditAccess(record, authUser);
+    this.ensureRecordEditAccess(record, liveAuthUser);
 
     const before = this.pickRecordValues(record);
     const normalizedValues = this.normalizeRecordValues(
@@ -169,6 +236,7 @@ export class RecordsService {
   }
 
   async transfer(id: string, dto: TransferRecordDto, authUser: AuthUser) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
     const record = await this.findOne(id);
     const movedBy = await this.userRepository.findOneBy({ id: authUser.sub });
     const toDelegation = await this.delegationRepository.findOne({
@@ -179,6 +247,8 @@ export class RecordsService {
     if (!movedBy || !toDelegation) {
       throw new NotFoundException('User or target delegation not found.');
     }
+
+    this.ensureRecordTransferAccess(record, toDelegation, liveAuthUser);
 
     if (record.delegation.id === toDelegation.id) {
       throw new BadRequestException('Target delegation must be different.');
@@ -223,13 +293,15 @@ export class RecordsService {
   }
 
   async submitRosterReport(dto: SubmitRosterReportDto, authUser: AuthUser) {
-    if (!authUser.delegationId) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
+
+    if (!liveAuthUser.delegationId) {
       throw new ForbiddenException('User does not have an assigned delegation.');
     }
 
     const submittedBy = await this.userRepository.findOneBy({ id: authUser.sub });
     const delegation = await this.delegationRepository.findOne({
-      where: { id: authUser.delegationId },
+      where: { id: liveAuthUser.delegationId },
       relations: { region: true },
     });
 
@@ -237,17 +309,20 @@ export class RecordsService {
       throw new NotFoundException('User or delegation not found.');
     }
 
-    const lastReport = await this.findLastRosterReport(delegation.id);
+    const lastReport = await this.findLastRosterReportByDelegation(delegation.id);
     const changesSinceLastReport = await this.countDelegationMovementsSince(
       delegation.id,
       lastReport?.submittedAt ?? null,
     );
     const report = await this.rosterReportRepository.save(
       this.rosterReportRepository.create({
+        reportScope: 'DELEGATION',
         delegation,
+        region: delegation.region,
         submittedBy,
         hasChanges: changesSinceLastReport > 0,
         changesSinceLastReport,
+        confirmedDelegationReports: 0,
         notes: normalizeText(dto.notes ?? ''),
         submittedAt: new Date(),
       }),
@@ -257,14 +332,74 @@ export class RecordsService {
       actorId: authUser.sub,
       action:
         changesSinceLastReport > 0
-          ? 'ROSTER_REPORT_SUBMITTED_WITH_CHANGES'
-          : 'ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES',
+          ? 'DELEGATION_ROSTER_REPORT_SUBMITTED_WITH_CHANGES'
+          : 'DELEGATION_ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES',
       entityType: 'vehicle_roster_report',
       entityId: report.id,
       metadata: {
         delegationId: delegation.id,
         regionId: delegation.region.id,
         changesSinceLastReport,
+        reportScope: 'DELEGATION',
+      },
+    });
+
+    const hydratedReport = await this.findRosterReport(report.id);
+    this.realtimeGateway.emitRosterReportSubmitted(hydratedReport);
+
+    return hydratedReport;
+  }
+
+  async submitRegionalRosterReport(dto: SubmitRosterReportDto, authUser: AuthUser) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
+
+    if (!liveAuthUser.regionId) {
+      throw new ForbiddenException('User does not have an assigned region.');
+    }
+
+    const submittedBy = await this.userRepository.findOne({
+      where: { id: authUser.sub },
+      relations: { region: true },
+    });
+    const region = await this.delegationRepository.manager.findOne(RegionEntity, {
+      where: { id: liveAuthUser.regionId },
+    });
+
+    if (!submittedBy || !region) {
+      throw new NotFoundException('User or region not found.');
+    }
+
+    const lastReport = await this.findLastRosterReportByRegion(region.id, 'REGION');
+    const confirmedDelegationReports = await this.countDelegationReportsSince(
+      region.id,
+      lastReport?.submittedAt ?? null,
+    );
+    const report = await this.rosterReportRepository.save(
+      this.rosterReportRepository.create({
+        reportScope: 'REGION',
+        delegation: null,
+        region,
+        submittedBy,
+        hasChanges: confirmedDelegationReports > 0,
+        changesSinceLastReport: confirmedDelegationReports,
+        confirmedDelegationReports,
+        notes: normalizeText(dto.notes ?? ''),
+        submittedAt: new Date(),
+      }),
+    );
+
+    await this.auditLogsService.register({
+      actorId: authUser.sub,
+      action:
+        confirmedDelegationReports > 0
+          ? 'REGION_ROSTER_REPORT_SUBMITTED_WITH_CHANGES'
+          : 'REGION_ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES',
+      entityType: 'vehicle_roster_report',
+      entityId: report.id,
+      metadata: {
+        regionId: region.id,
+        confirmedDelegationReports,
+        reportScope: 'REGION',
       },
     });
 
@@ -275,20 +410,24 @@ export class RecordsService {
   }
 
   async findMyRosterReports(authUser: AuthUser) {
-    if (!authUser.delegationId) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
+
+    if (!liveAuthUser.delegationId) {
       return [];
     }
 
     return this.rosterReportRepository.find({
       where: {
+        reportScope: 'DELEGATION',
         delegation: {
-          id: authUser.delegationId,
+          id: liveAuthUser.delegationId,
         },
       },
       relations: {
         delegation: {
           region: true,
         },
+        region: true,
         submittedBy: true,
       },
       order: {
@@ -298,46 +437,40 @@ export class RecordsService {
     });
   }
 
-  async findRosterReportOverview() {
-    const delegations = await this.delegationRepository.find({
-      relations: {
-        region: true,
-      },
-      order: {
-        region: {
-          sortOrder: 'ASC',
-        },
-        sortOrder: 'ASC',
-      },
-    });
+  async findMyRegionalRosterReports(authUser: AuthUser) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
 
-    const rows = [];
-
-    for (const delegation of delegations) {
-      const lastReport = await this.findLastRosterReport(delegation.id);
-      const pendingChanges = await this.countDelegationMovementsSince(
-        delegation.id,
-        lastReport?.submittedAt ?? null,
-      );
-
-      rows.push({
-        delegationId: delegation.id,
-        delegationName: delegation.name,
-        regionId: delegation.region.id,
-        regionName: delegation.region.name,
-        status: lastReport
-          ? pendingChanges > 0
-            ? 'PENDING_CHANGES'
-            : lastReport.hasChanges
-              ? 'REPORTED_WITH_CHANGES'
-              : 'REPORTED_WITHOUT_CHANGES'
-          : 'NOT_REPORTED',
-        pendingChanges,
-        lastReport,
-      });
+    if (!liveAuthUser.regionId) {
+      return [];
     }
 
-    return rows;
+    return this.rosterReportRepository.find({
+      where: {
+        reportScope: 'REGION',
+        region: {
+          id: liveAuthUser.regionId,
+        },
+      },
+      relations: {
+        region: true,
+        submittedBy: true,
+      },
+      order: {
+        submittedAt: 'DESC',
+      },
+      take: 20,
+    });
+  }
+
+  async findRosterReportOverview(regionId?: string) {
+    const regions = await this.findScopedRegions(regionId);
+    return this.buildRegionRosterReportOverview(regions);
+  }
+
+  async findRegionalRosterReportOverview(authUser: AuthUser, delegationId?: string) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
+    const delegations = await this.findScopedDelegations(liveAuthUser.regionId ?? '', delegationId);
+    return this.buildDelegationRosterReportOverview(delegations);
   }
 
   async findOne(id: string) {
@@ -358,45 +491,22 @@ export class RecordsService {
     return record;
   }
 
-  findMine(userId: string) {
-    return this.recordRepository.find({
-      where: {
-        createdBy: {
-          id: userId,
-        },
-      },
-      relations: {
-        delegation: {
-          region: true,
-        },
-        createdBy: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
+  async findMine(authUser: AuthUser) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
+
+    if (!liveAuthUser.delegationId) {
+      return [];
+    }
+
+    return this.findScopedRecordViews({
+      scopeDelegationIds: [liveAuthUser.delegationId],
     });
   }
 
-  async findRegionalView(regionId: string) {
-    const records = await this.recordRepository.find({
-      where: {
-        delegation: {
-          region: {
-            id: regionId,
-          },
-        },
-      },
-      relations: {
-        delegation: {
-          region: true,
-        },
-        createdBy: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
-
+  async findRegionalView(authUser: AuthUser) {
+    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
+    const scopeDelegationIds = await this.findDelegationIdsByRegion(liveAuthUser.regionId ?? '');
+    const records = await this.findScopedRecordViews({ scopeDelegationIds });
     return this.groupRecords(records);
   }
 
@@ -406,31 +516,12 @@ export class RecordsService {
     dateFrom?: string,
     dateTo?: string,
   ) {
-    const query = this.recordRepository
-      .createQueryBuilder('record')
-      .leftJoinAndSelect('record.delegation', 'delegation')
-      .leftJoinAndSelect('delegation.region', 'region')
-      .leftJoinAndSelect('record.createdBy', 'createdBy')
-      .orderBy('record.createdAt', 'DESC');
-
-    if (regionId) {
-      query.andWhere('region.id = :regionId', { regionId });
-    }
-
-    if (delegationId) {
-      query.andWhere('delegation.id = :delegationId', { delegationId });
-    }
-
-    if (dateFrom) {
-      query.andWhere('record.createdAt >= :dateFrom', { dateFrom: `${dateFrom}T00:00:00.000Z` });
-    }
-
-    if (dateTo) {
-      query.andWhere('record.createdAt <= :dateTo', { dateTo: `${dateTo}T23:59:59.999Z` });
-    }
-
-    const records = await query.getMany();
-
+    const scopeDelegationIds = await this.resolveScopeDelegationIds(regionId, delegationId);
+    const records = await this.findScopedRecordViews({
+      scopeDelegationIds,
+      dateFrom,
+      dateTo,
+    });
     return this.groupRecords(records);
   }
 
@@ -464,6 +555,17 @@ export class RecordsService {
     }
 
     const records = await query.getMany();
+    const reportOverview = await this.findRosterReportOverview(regionId);
+    const reportKpis = {
+      notReported: reportOverview.filter((row) => row.status === 'NOT_REPORTED').length,
+      pendingChanges: reportOverview.filter((row) => row.status === 'PENDING_CHANGES').length,
+      reportedWithoutChanges: reportOverview.filter(
+        (row) => row.status === 'REPORTED_WITHOUT_CHANGES',
+      ).length,
+      reportedWithChanges: reportOverview.filter(
+        (row) => row.status === 'REPORTED_WITH_CHANGES',
+      ).length,
+    };
 
     const statuses = ['INCATIVO', 'SINIESTRADO', 'PARA BAJA', 'OTRO'];
     const physicalStatuses: string[] = [];
@@ -480,11 +582,30 @@ export class RecordsService {
         physicalStatusBreakdown: Record<string, number>;
       }
     >();
+    const delegationMapRows = new Map<
+      string,
+      {
+        delegationId: string;
+        delegationName: string;
+        regionId: string;
+        regionName: string;
+        totalUnits: number;
+        vehicleClasses: Map<
+          string,
+          {
+            vehicleClass: string;
+            totalUnits: number;
+            statusBreakdown: Record<string, number>;
+          }
+        >;
+      }
+    >();
     const customStatusDescriptions: string[] = [];
     const capturedObservations: string[] = [];
 
     for (const record of records) {
       const vehicleClass = record.vehicleClass;
+      const delegationId = record.delegation.id;
 
       if (!vehicleClassRows.has(vehicleClass)) {
         vehicleClassRows.set(vehicleClass, {
@@ -501,10 +622,37 @@ export class RecordsService {
       const row = vehicleClassRows.get(vehicleClass)!;
       row.totalUnits += 1;
 
+      if (!delegationMapRows.has(delegationId)) {
+        delegationMapRows.set(delegationId, {
+          delegationId: record.delegation.id,
+          delegationName: record.delegation.name,
+          regionId: record.delegation.region.id,
+          regionName: record.delegation.region.name,
+          totalUnits: 0,
+          vehicleClasses: new Map(),
+        });
+      }
+
+      const delegationRow = delegationMapRows.get(delegationId)!;
+      delegationRow.totalUnits += 1;
+
+      if (!delegationRow.vehicleClasses.has(vehicleClass)) {
+        delegationRow.vehicleClasses.set(vehicleClass, {
+          vehicleClass,
+          totalUnits: 0,
+          statusBreakdown: Object.fromEntries(statuses.map((status) => [status, 0])),
+        });
+      }
+
+      const delegationVehicleClassRow = delegationRow.vehicleClasses.get(vehicleClass)!;
+      delegationVehicleClassRow.totalUnits += 1;
+
       if (record.status in row.statusBreakdown) {
         row.statusBreakdown[record.status] += 1;
+        delegationVehicleClassRow.statusBreakdown[record.status] += 1;
       } else if (record.status !== 'ACTIVO') {
         row.statusBreakdown.OTRO += 1;
+        delegationVehicleClassRow.statusBreakdown.OTRO += 1;
       }
 
       if (record.physicalStatus in row.physicalStatusBreakdown) {
@@ -575,7 +723,56 @@ export class RecordsService {
         id: delegation.id,
         name: delegation.name,
       });
+
+      if (!delegationMapRows.has(delegation.id)) {
+        delegationMapRows.set(delegation.id, {
+          delegationId: delegation.id,
+          delegationName: delegation.name,
+          regionId: delegation.region.id,
+          regionName: delegation.region.name,
+          totalUnits: 0,
+          vehicleClasses: new Map(),
+        });
+      }
     }
+
+    const mapDelegations = Array.from(delegationMapRows.values())
+      .map((delegationRow) => {
+        const vehicleClasses = Array.from(delegationRow.vehicleClasses.values())
+          .map((vehicleClassRow) => ({
+            vehicleClass: vehicleClassRow.vehicleClass,
+            totalUnits: vehicleClassRow.totalUnits,
+            totalActive: calculateNetActive(
+              vehicleClassRow.totalUnits,
+              vehicleClassRow.statusBreakdown,
+            ),
+          }))
+          .sort((left, right) => {
+            if (right.totalUnits !== left.totalUnits) {
+              return right.totalUnits - left.totalUnits;
+            }
+
+            return left.vehicleClass.localeCompare(right.vehicleClass);
+          });
+
+        return {
+          delegationId: delegationRow.delegationId,
+          delegationName: delegationRow.delegationName,
+          regionId: delegationRow.regionId,
+          regionName: delegationRow.regionName,
+          totalUnits: delegationRow.totalUnits,
+          totalActive: vehicleClasses.reduce((total, row) => total + row.totalActive, 0),
+          dominantVehicleClass: vehicleClasses[0]?.vehicleClass ?? null,
+          vehicleClasses,
+        };
+      })
+      .sort((left, right) => {
+        if (left.regionName !== right.regionName) {
+          return left.regionName.localeCompare(right.regionName);
+        }
+
+        return left.delegationName.localeCompare(right.delegationName);
+      });
 
     return {
       kpis: {
@@ -583,6 +780,7 @@ export class RecordsService {
         totalRegions: new Set(records.map((record) => record.delegation.region.id)).size,
         totalDelegations: new Set(records.map((record) => record.delegation.id)).size,
         totalActive: calculateNetActive(records.length, resume.statusBreakdown),
+        ...reportKpis,
       },
       table: {
         date:
@@ -601,6 +799,9 @@ export class RecordsService {
         resume,
         customStatusDescriptions,
         observations: capturedObservations,
+      },
+      map: {
+        delegations: mapDelegations,
       },
       filters: {
         selectedRegionId: regionId ?? null,
@@ -633,6 +834,7 @@ export class RecordsService {
         delegation: {
           region: true,
         },
+        region: true,
         submittedBy: true,
       },
     });
@@ -644,15 +846,38 @@ export class RecordsService {
     return report;
   }
 
-  private findLastRosterReport(delegationId: string) {
+  private findLastRosterReportByDelegation(delegationId: string) {
     return this.rosterReportRepository.findOne({
       where: {
+        reportScope: 'DELEGATION',
         delegation: {
           id: delegationId,
         },
       },
       relations: {
         delegation: true,
+        region: true,
+        submittedBy: true,
+      },
+      order: {
+        submittedAt: 'DESC',
+      },
+    });
+  }
+
+  private findLastRosterReportByRegion(regionId: string, reportScope: VehicleRosterReportScope) {
+    return this.rosterReportRepository.findOne({
+      where: {
+        reportScope,
+        region: {
+          id: regionId,
+        },
+      },
+      relations: {
+        delegation: {
+          region: true,
+        },
+        region: true,
         submittedBy: true,
       },
       order: {
@@ -681,6 +906,43 @@ export class RecordsService {
     return query.getCount();
   }
 
+  private countDelegationReportsSince(regionId: string, since: Date | null) {
+    const query = this.rosterReportRepository
+      .createQueryBuilder('report')
+      .leftJoin('report.region', 'region')
+      .where('report.reportScope = :reportScope', { reportScope: 'DELEGATION' })
+      .andWhere('region.id = :regionId', { regionId });
+
+    if (since) {
+      query.andWhere('report.submittedAt > :since', { since });
+    }
+
+    return query.getCount();
+  }
+
+  private async resolveLiveAuthUser(authUser: AuthUser): Promise<LiveAuthUser> {
+    const user = await this.userRepository.findOne({
+      where: { id: authUser.sub },
+      relations: {
+        region: true,
+        delegation: {
+          region: true,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return {
+      sub: user.id,
+      role: user.role,
+      regionId: user.region?.id ?? user.delegation?.region?.id ?? null,
+      delegationId: user.delegation?.id ?? null,
+    };
+  }
+
   private ensureCapturistDelegationAccess(authUser: AuthUser, delegationId: string) {
     if (authUser.role !== Role.Capturist) {
       return;
@@ -696,9 +958,42 @@ export class RecordsService {
       return;
     }
 
-    if (record.createdBy.id !== authUser.sub || record.delegation.id !== authUser.delegationId) {
-      throw new ForbiddenException('Capturists can only edit their own delegation records.');
+    if (record.delegation.id !== authUser.delegationId) {
+      throw new ForbiddenException('Capturists can only edit records from their delegation.');
     }
+  }
+
+  private ensureRecordTransferAccess(
+    record: RecordEntity,
+    toDelegation: DelegationEntity,
+    authUser: AuthUser,
+  ) {
+    if (authUser.role === Role.Admin || authUser.role === Role.SuperAdmin) {
+      return;
+    }
+
+    if (authUser.role === Role.Capturist) {
+      if (record.delegation.id !== authUser.delegationId) {
+        throw new ForbiddenException('Capturists can only transfer records from their delegation.');
+      }
+
+      return;
+    }
+
+    if (authUser.role === Role.RegionalManager) {
+      if (
+        record.delegation.region.id !== authUser.regionId ||
+        toDelegation.region.id !== authUser.regionId
+      ) {
+        throw new ForbiddenException(
+          'Regional managers can only transfer records within their assigned region.',
+        );
+      }
+
+      return;
+    }
+
+    throw new ForbiddenException('User is not allowed to transfer records.');
   }
 
   private normalizeRecordValues(values: NormalizedRecordValues): NormalizedRecordValues {
@@ -756,7 +1051,347 @@ export class RecordsService {
     return mergedValues;
   }
 
-  private groupRecords(records: RecordEntity[]) {
+  private async findDelegationIdsByRegion(regionId: string) {
+    if (!regionId) {
+      return [];
+    }
+
+    const delegations = await this.delegationRepository.find({
+      where: {
+        region: {
+          id: regionId,
+        },
+      },
+      relations: {
+        region: true,
+      },
+    });
+
+    return delegations.map((delegation) => delegation.id);
+  }
+
+  private findScopedDelegations(regionId?: string, delegationId?: string) {
+    const where = delegationId
+      ? { id: delegationId }
+      : regionId
+        ? {
+            region: {
+              id: regionId,
+            },
+          }
+        : {};
+
+    return this.delegationRepository.find({
+      where,
+      relations: {
+        region: true,
+      },
+      order: {
+        region: {
+          sortOrder: 'ASC',
+        },
+        sortOrder: 'ASC',
+      },
+    });
+  }
+
+  private findScopedRegions(regionId?: string) {
+    return this.delegationRepository.manager.find(RegionEntity, {
+      where: regionId ? { id: regionId } : {},
+      order: {
+        sortOrder: 'ASC',
+      },
+    });
+  }
+
+  private async buildDelegationRosterReportOverview(
+    delegations: DelegationEntity[],
+  ): Promise<DelegationReportOverviewRow[]> {
+    const rows: DelegationReportOverviewRow[] = [];
+
+    for (const delegation of delegations) {
+      const lastReport = await this.findLastRosterReportByDelegation(delegation.id);
+      const pendingChanges = await this.countDelegationMovementsSince(
+        delegation.id,
+        lastReport?.submittedAt ?? null,
+      );
+
+      rows.push({
+        delegationId: delegation.id,
+        delegationName: delegation.name,
+        regionId: delegation.region.id,
+        regionName: delegation.region.name,
+        status: lastReport
+          ? pendingChanges > 0
+            ? 'PENDING_CHANGES'
+            : lastReport.hasChanges
+              ? 'REPORTED_WITH_CHANGES'
+              : 'REPORTED_WITHOUT_CHANGES'
+          : 'NOT_REPORTED',
+        pendingChanges,
+        lastReport,
+      });
+    }
+
+    return rows;
+  }
+
+  private async buildRegionRosterReportOverview(
+    regions: RegionEntity[],
+  ): Promise<RegionReportOverviewRow[]> {
+    const rows: RegionReportOverviewRow[] = [];
+
+    for (const region of regions) {
+      const lastReport = await this.findLastRosterReportByRegion(region.id, 'REGION');
+      const pendingDelegationReports = await this.countDelegationReportsSince(
+        region.id,
+        lastReport?.submittedAt ?? null,
+      );
+
+      rows.push({
+        regionId: region.id,
+        regionName: region.name,
+        status: lastReport
+          ? pendingDelegationReports > 0
+            ? 'PENDING_CHANGES'
+            : lastReport.hasChanges
+              ? 'REPORTED_WITH_CHANGES'
+              : 'REPORTED_WITHOUT_CHANGES'
+          : 'NOT_REPORTED',
+        pendingDelegationReports,
+        lastReport,
+      });
+    }
+
+    return rows;
+  }
+
+  private async resolveScopeDelegationIds(regionId?: string, delegationId?: string) {
+    if (delegationId) {
+      return [delegationId];
+    }
+
+    if (regionId) {
+      return this.findDelegationIdsByRegion(regionId);
+    }
+
+    const delegations = await this.delegationRepository.find({
+      select: {
+        id: true,
+      },
+    });
+
+    return delegations.map((delegation) => delegation.id);
+  }
+
+  private async findScopedRecordViews(filters: ScopedRecordFilters) {
+    if (filters.scopeDelegationIds.length === 0) {
+      return [];
+    }
+
+    const historicalRecordIds = await this.vehicleTransferRepository
+      .createQueryBuilder('transfer')
+      .leftJoin('transfer.record', 'record')
+      .select('record.id', 'id')
+      .where('transfer.fromDelegationId IN (:...scopeDelegationIds)', {
+        scopeDelegationIds: filters.scopeDelegationIds,
+      })
+      .orWhere('transfer.toDelegationId IN (:...scopeDelegationIds)', {
+        scopeDelegationIds: filters.scopeDelegationIds,
+      })
+      .getRawMany<{ id: string }>();
+
+    const recordIds = Array.from(new Set(historicalRecordIds.map((row) => row.id)));
+    const query = this.recordRepository
+      .createQueryBuilder('record')
+      .leftJoinAndSelect('record.delegation', 'delegation')
+      .leftJoinAndSelect('delegation.region', 'region')
+      .leftJoinAndSelect('record.createdBy', 'createdBy')
+      .where(
+        new Brackets((whereBuilder) => {
+          whereBuilder.where('delegation.id IN (:...scopeDelegationIds)', {
+            scopeDelegationIds: filters.scopeDelegationIds,
+          });
+
+          if (recordIds.length > 0) {
+            whereBuilder.orWhere('record.id IN (:...recordIds)', {
+              recordIds,
+            });
+          }
+        }),
+      )
+      .orderBy('record.createdAt', 'DESC');
+
+    if (filters.dateFrom) {
+      query.andWhere('record.createdAt >= :dateFrom', {
+        dateFrom: `${filters.dateFrom}T00:00:00.000Z`,
+      });
+    }
+
+    if (filters.dateTo) {
+      query.andWhere('record.createdAt <= :dateTo', {
+        dateTo: `${filters.dateTo}T23:59:59.999Z`,
+      });
+    }
+
+    const records = await query.getMany();
+    return this.hydrateRecordViews(records, filters.scopeDelegationIds);
+  }
+
+  private async hydrateRecordViews(records: RecordEntity[], scopeDelegationIds: string[]) {
+    if (records.length === 0) {
+      return [];
+    }
+
+    const recordIds = records.map((record) => record.id);
+    const transfers = await this.vehicleTransferRepository.find({
+      where: {
+        record: {
+          id: In(recordIds),
+        },
+      },
+      relations: {
+        record: true,
+        fromDelegation: {
+          region: true,
+        },
+        toDelegation: {
+          region: true,
+        },
+        movedBy: true,
+      },
+      order: {
+        movedAt: 'DESC',
+      },
+    });
+    const editLogs = await this.auditLogRepository.find({
+      where: {
+        entityType: 'record',
+        entityId: In(recordIds),
+        action: 'RECORD_UPDATED',
+      },
+      relations: {
+        actor: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+    const transfersByRecordId = new Map<string, VehicleTransferEntity[]>();
+    const editsByRecordId = new Map<string, AuditLogEntity[]>();
+
+    for (const transfer of transfers) {
+      const current = transfersByRecordId.get(transfer.record.id) ?? [];
+      current.push(transfer);
+      transfersByRecordId.set(transfer.record.id, current);
+    }
+
+    for (const editLog of editLogs) {
+      const current = editsByRecordId.get(editLog.entityId) ?? [];
+      current.push(editLog);
+      editsByRecordId.set(editLog.entityId, current);
+    }
+
+    const rows: RecordView[] = [];
+
+    for (const record of records) {
+      const recordTransfers = transfersByRecordId.get(record.id) ?? [];
+      const recordEdits = editsByRecordId.get(record.id) ?? [];
+      const viewDelegations = new Map<string, ViewDelegation>();
+
+      if (scopeDelegationIds.includes(record.delegation.id)) {
+        viewDelegations.set(record.delegation.id, this.mapDelegation(record.delegation));
+      }
+
+      for (const transfer of recordTransfers) {
+        if (scopeDelegationIds.includes(transfer.fromDelegation.id)) {
+          viewDelegations.set(
+            transfer.fromDelegation.id,
+            this.mapDelegation(transfer.fromDelegation),
+          );
+        }
+
+        if (scopeDelegationIds.includes(transfer.toDelegation.id)) {
+          viewDelegations.set(transfer.toDelegation.id, this.mapDelegation(transfer.toDelegation));
+        }
+      }
+
+      for (const viewDelegation of viewDelegations.values()) {
+        const scopedTransferHistory = recordTransfers
+          .filter(
+            (transfer) =>
+              transfer.fromDelegation.id === viewDelegation.id ||
+              transfer.toDelegation.id === viewDelegation.id,
+          )
+          .map((transfer) => this.mapTransfer(transfer));
+        const latestTransfer =
+          (record.delegation.id === viewDelegation.id
+            ? scopedTransferHistory[0]
+            : scopedTransferHistory.find(
+                (transfer) => transfer.fromDelegation.id === viewDelegation.id,
+              )) ??
+          scopedTransferHistory[0] ??
+          null;
+
+        rows.push({
+          ...record,
+          viewDelegation,
+          recordState: record.delegation.id === viewDelegation.id ? 'CURRENT' : 'TRANSFERRED_OUT',
+          latestTransfer,
+          latestEdit: recordEdits[0] ? this.mapEditLog(recordEdits[0]) : null,
+          transferHistory: recordTransfers.map((transfer) => this.mapTransfer(transfer)),
+          editHistory: recordEdits.map((editLog) => this.mapEditLog(editLog)),
+        });
+      }
+    }
+
+    return rows.sort((left, right) => +new Date(right.createdAt) - +new Date(left.createdAt));
+  }
+
+  private mapDelegation(delegation: DelegationEntity): ViewDelegation {
+    return {
+      id: delegation.id,
+      name: delegation.name,
+      sortOrder: delegation.sortOrder,
+      region: {
+        id: delegation.region.id,
+        name: delegation.region.name,
+        sortOrder: delegation.region.sortOrder,
+      },
+    };
+  }
+
+  private mapTransfer(transfer: VehicleTransferEntity): RecordTransferView {
+    return {
+      id: transfer.id,
+      movedAt: transfer.movedAt.toISOString(),
+      reason: transfer.reason,
+      fromDelegation: this.mapDelegation(transfer.fromDelegation),
+      toDelegation: this.mapDelegation(transfer.toDelegation),
+      movedBy: transfer.movedBy,
+    };
+  }
+
+  private mapEditLog(editLog: AuditLogEntity): RecordEditView {
+    return {
+      id: editLog.id,
+      editedAt: editLog.createdAt.toISOString(),
+      changedFields: Array.isArray(editLog.metadata.changedFields)
+        ? editLog.metadata.changedFields.map((fieldName) => String(fieldName))
+        : [],
+      before:
+        editLog.metadata.before && typeof editLog.metadata.before === 'object'
+          ? (editLog.metadata.before as Record<string, unknown>)
+          : {},
+      after:
+        editLog.metadata.after && typeof editLog.metadata.after === 'object'
+          ? (editLog.metadata.after as Record<string, unknown>)
+          : {},
+      actor: editLog.actor ?? null,
+    };
+  }
+
+  private groupRecords(records: RecordView[]) {
     const regionsMap = new Map<
       string,
       {
@@ -769,21 +1404,21 @@ export class RecordsService {
             delegationId: string;
             delegationName: string;
             delegationSortOrder: number;
-            records: RecordEntity[];
+            records: RecordView[];
           }
         >;
       }
     >();
 
     for (const record of records) {
-      const regionId = record.delegation.region.id;
-      const delegationId = record.delegation.id;
+      const regionId = record.viewDelegation.region.id;
+      const delegationId = record.viewDelegation.id;
 
       if (!regionsMap.has(regionId)) {
         regionsMap.set(regionId, {
           regionId,
-          regionName: record.delegation.region.name,
-          regionSortOrder: record.delegation.region.sortOrder,
+          regionName: record.viewDelegation.region.name,
+          regionSortOrder: record.viewDelegation.region.sortOrder,
           delegations: new Map(),
         });
       }
@@ -793,8 +1428,8 @@ export class RecordsService {
       if (!region.delegations.has(delegationId)) {
         region.delegations.set(delegationId, {
           delegationId,
-          delegationName: record.delegation.name,
-          delegationSortOrder: record.delegation.sortOrder,
+          delegationName: record.viewDelegation.name,
+          delegationSortOrder: record.viewDelegation.sortOrder,
           records: [],
         });
       }

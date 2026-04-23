@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { formatUserName } from '../lib/format-user-name';
 import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
 
@@ -35,6 +36,10 @@ const pageTitles: Record<string, { title: string; description: string }> = {
   [APP_ROUTES.insights]: {
     title: 'Dashboard directivo',
     description: 'Consulta KPIs globales y el desglose por región y delegación.',
+  },
+  [APP_ROUTES.insightsMap]: {
+    title: 'Mapa directivo',
+    description: 'Explora la distribución territorial de vehículos con filtros operativos.',
   },
   [APP_ROUTES.control]: {
     title: 'Usuarios',
@@ -94,7 +99,7 @@ export function AppShell() {
           <div className="sidebar-title-wrap">
             <p className="eyebrow">Sistema vehicular</p>
             <h1 className="sidebar-title">{roleLabels[session.user.role]}</h1>
-            <p className="sidebar-subtitle">{session.user.fullName}</p>
+            <p className="sidebar-subtitle">{formatUserName(session.user)}</p>
           </div>
 
           <div className="sidebar-session-card">
@@ -134,6 +139,14 @@ export function AppShell() {
               session.user.role === 'superadmin') && (
               <NavLink end to={APP_ROUTES.insights}>
                 Dashboard directivo
+              </NavLink>
+            )}
+
+            {(session.user.role === 'director' ||
+              session.user.role === 'admin' ||
+              session.user.role === 'superadmin') && (
+              <NavLink end to={APP_ROUTES.insightsMap}>
+                Mapa directivo
               </NavLink>
             )}
 
