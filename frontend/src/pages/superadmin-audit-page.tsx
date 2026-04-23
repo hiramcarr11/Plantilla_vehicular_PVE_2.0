@@ -3,7 +3,7 @@ import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { api } from '../lib/api';
-import { socket } from '../lib/socket';
+import { connectSocketWithAuth, socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
 import type { AuditLog } from '../types';
 
@@ -21,7 +21,7 @@ export function SuperAdminAuditPage() {
     };
 
     void loadAuditLogs();
-    socket.connect();
+    connectSocketWithAuth();
     socket.on('audit.created', loadAuditLogs);
 
     return () => {

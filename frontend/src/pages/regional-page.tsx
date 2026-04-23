@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GroupedRecords } from '../components/grouped-records';
 import { api } from '../lib/api';
-import { socket } from '../lib/socket';
+import { connectSocketWithAuth, socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
 import type { GroupedRegionRecords, RecordFieldCatalogMap } from '../types';
 
@@ -26,7 +26,7 @@ export function RegionalPage() {
     };
 
     void refresh();
-    socket.connect();
+    connectSocketWithAuth();
     socket.on('records.created', refresh);
 
     return () => {

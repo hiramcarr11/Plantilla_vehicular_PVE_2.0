@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from 'src/common/enums/role.enum';
 import { AuditLogsService } from 'src/modules/audit-logs/audit-logs.service';
+import { RECORD_FIELD_CATALOG } from 'src/modules/catalog/record-field-catalog';
 import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
 import { RealtimeGateway } from 'src/modules/realtime/realtime.gateway';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
@@ -11,6 +13,16 @@ import { RecordEntity } from './entities/record.entity';
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function calculateNetActive(totalUnits: number, statusBreakdown: Record<string, number>) {
+  return Math.max(
+    totalUnits -
+      (statusBreakdown.INCATIVO ?? 0) -
+      (statusBreakdown.SINIESTRADO ?? 0) -
+      (statusBreakdown['PARA BAJA'] ?? 0),
+    0,
+  );
 }
 
 type AuthUser = {
@@ -149,20 +161,214 @@ export class RecordsService {
     return this.groupRecords(records);
   }
 
-  async findAdminView() {
-    const records = await this.recordRepository.find({
+  async findAdminView(
+    regionId?: string,
+    delegationId?: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const query = this.recordRepository
+      .createQueryBuilder('record')
+      .leftJoinAndSelect('record.delegation', 'delegation')
+      .leftJoinAndSelect('delegation.region', 'region')
+      .leftJoinAndSelect('record.createdBy', 'createdBy')
+      .orderBy('record.createdAt', 'DESC');
+
+    if (regionId) {
+      query.andWhere('region.id = :regionId', { regionId });
+    }
+
+    if (delegationId) {
+      query.andWhere('delegation.id = :delegationId', { delegationId });
+    }
+
+    if (dateFrom) {
+      query.andWhere('record.createdAt >= :dateFrom', { dateFrom: `${dateFrom}T00:00:00.000Z` });
+    }
+
+    if (dateTo) {
+      query.andWhere('record.createdAt <= :dateTo', { dateTo: `${dateTo}T23:59:59.999Z` });
+    }
+
+    const records = await query.getMany();
+
+    return this.groupRecords(records);
+  }
+
+  async findDirectorOverview(
+    regionId?: string,
+    delegationId?: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const query = this.recordRepository
+      .createQueryBuilder('record')
+      .leftJoinAndSelect('record.delegation', 'delegation')
+      .leftJoinAndSelect('delegation.region', 'region')
+      .leftJoinAndSelect('record.createdBy', 'createdBy')
+      .orderBy('record.createdAt', 'DESC');
+
+    if (regionId) {
+      query.andWhere('region.id = :regionId', { regionId });
+    }
+
+    if (delegationId) {
+      query.andWhere('delegation.id = :delegationId', { delegationId });
+    }
+
+    if (dateFrom) {
+      query.andWhere('record.createdAt >= :dateFrom', { dateFrom: `${dateFrom}T00:00:00.000Z` });
+    }
+
+    if (dateTo) {
+      query.andWhere('record.createdAt <= :dateTo', { dateTo: `${dateTo}T23:59:59.999Z` });
+    }
+
+    const records = await query.getMany();
+
+    const statuses = ['INCATIVO', 'SINIESTRADO', 'PARA BAJA', 'OTRO'];
+    const physicalStatuses: string[] = [];
+    const allowedStatusValues = new Set<string>(
+      RECORD_FIELD_CATALOG.status.options.map((option) => option.value),
+    );
+    const vehicleClassRows = new Map<
+      string,
+      {
+        vehicleClass: string;
+        totalUnits: number;
+        totalActive: number;
+        statusBreakdown: Record<string, number>;
+        physicalStatusBreakdown: Record<string, number>;
+      }
+    >();
+    const customStatusDescriptions: string[] = [];
+    const capturedObservations: string[] = [];
+
+    for (const record of records) {
+      const vehicleClass = record.vehicleClass;
+
+      if (!vehicleClassRows.has(vehicleClass)) {
+        vehicleClassRows.set(vehicleClass, {
+          vehicleClass,
+          totalUnits: 0,
+          totalActive: 0,
+          statusBreakdown: Object.fromEntries(statuses.map((status) => [status, 0])),
+          physicalStatusBreakdown: Object.fromEntries(
+            physicalStatuses.map((status) => [status, 0]),
+          ),
+        });
+      }
+
+      const row = vehicleClassRows.get(vehicleClass)!;
+      row.totalUnits += 1;
+
+      if (record.status in row.statusBreakdown) {
+        row.statusBreakdown[record.status] += 1;
+      } else if (record.status !== 'ACTIVO') {
+        row.statusBreakdown.OTRO += 1;
+      }
+
+      if (record.physicalStatus in row.physicalStatusBreakdown) {
+        row.physicalStatusBreakdown[record.physicalStatus] += 1;
+      }
+
+      if (!allowedStatusValues.has(record.status)) {
+        customStatusDescriptions.push(
+          `PLACAS: ${record.plates} | TIPO: ${record.vehicleClass} | DELEGACIÓN: ${record.delegation.name} | OFICIAL: ${record.createdBy.firstName} ${record.createdBy.lastName} | ESTATUS CAPTURADO EN OTRO: ${record.status}`,
+        );
+      }
+
+      if (record.observation.trim().length > 0) {
+        capturedObservations.push(
+          `PLACAS: ${record.plates} | TIPO: ${record.vehicleClass} | DELEGACIÓN: ${record.delegation.name} | OFICIAL: ${record.createdBy.firstName} ${record.createdBy.lastName} | OBSERVACIÓN: ${record.observation}`,
+        );
+      }
+    }
+
+    const rows = Array.from(vehicleClassRows.values())
+      .map((row) => ({
+        ...row,
+        totalActive: calculateNetActive(row.totalUnits, row.statusBreakdown),
+      }))
+      .sort((left, right) => left.vehicleClass.localeCompare(right.vehicleClass));
+
+    const resume = {
+      totalUnits: rows.reduce((total, row) => total + row.totalUnits, 0),
+      totalActive: rows.reduce((total, row) => total + row.totalActive, 0),
+      statusBreakdown: Object.fromEntries(
+        statuses.map((status) => [
+          status,
+          rows.reduce((total, row) => total + row.statusBreakdown[status], 0),
+        ]),
+      ),
+      physicalStatusBreakdown: Object.fromEntries(
+        physicalStatuses.map((status) => [
+          status,
+          rows.reduce((total, row) => total + row.physicalStatusBreakdown[status], 0),
+        ]),
+      ),
+    };
+
+    const availableFilters = await this.delegationRepository.find({
       relations: {
-        delegation: {
-          region: true,
-        },
-        createdBy: true,
+        region: true,
       },
       order: {
-        createdAt: 'DESC',
+        region: {
+          sortOrder: 'ASC',
+        },
+        sortOrder: 'ASC',
       },
     });
 
-    return this.groupRecords(records);
+    const regionsMap = new Map<string, { regionId: string; regionName: string; delegations: { id: string; name: string }[] }>();
+
+    for (const delegation of availableFilters) {
+      if (!regionsMap.has(delegation.region.id)) {
+        regionsMap.set(delegation.region.id, {
+          regionId: delegation.region.id,
+          regionName: delegation.region.name,
+          delegations: [],
+        });
+      }
+
+      regionsMap.get(delegation.region.id)!.delegations.push({
+        id: delegation.id,
+        name: delegation.name,
+      });
+    }
+
+    return {
+      kpis: {
+        totalRecords: records.length,
+        totalRegions: new Set(records.map((record) => record.delegation.region.id)).size,
+        totalDelegations: new Set(records.map((record) => record.delegation.id)).size,
+        totalActive: calculateNetActive(records.length, resume.statusBreakdown),
+      },
+      table: {
+        date:
+          records.length > 0
+            ? records.reduce(
+                (latestDate, record) =>
+                  new Date(record.createdAt) > new Date(latestDate)
+                    ? record.createdAt
+                    : latestDate,
+                records[0].createdAt,
+              )
+            : new Date().toISOString(),
+        statuses,
+        physicalStatuses,
+        rows,
+        resume,
+        customStatusDescriptions,
+        observations: capturedObservations,
+      },
+      filters: {
+        selectedRegionId: regionId ?? null,
+        selectedDelegationId: delegationId ?? null,
+        regions: Array.from(regionsMap.values()),
+      },
+    };
   }
 
   async softDelete(id: string, authUser: AuthUser) {

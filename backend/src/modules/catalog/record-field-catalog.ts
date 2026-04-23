@@ -35,6 +35,7 @@ export const RECORD_FIELD_CATALOG = {
       { value: 'ACTIVO', label: 'ACTIVO' },
       { value: 'INCATIVO', label: 'INCATIVO' },
       { value: 'SINIESTRADO', label: 'SINIESTRADO' },
+      { value: 'PARA BAJA', label: 'PARA BAJA' },
       { value: 'OTRO', label: 'OTRO' },
     ],
   },

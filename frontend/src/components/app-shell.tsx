@@ -1,39 +1,46 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
 
 const roleLabels = {
   capturist: 'Capturista',
   regional_manager: 'Encargado regional',
   admin: 'Administrador',
+  director: 'Director',
   superadmin: 'Superadministrador',
 };
 
 const pageTitles: Record<string, { title: string; description: string }> = {
-  '/': {
+  [APP_ROUTES.home]: {
     title: 'Resumen operativo',
     description: 'Consulta tu espacio de trabajo y accede rápido a las acciones principales.',
   },
-  '/captures': {
+  [APP_ROUTES.workspace]: {
     title: 'Captura de delegación',
     description: 'Registra nuevos bienes vehiculares desde tu delegación.',
   },
-  '/captures/history': {
+  [APP_ROUTES.archive]: {
     title: 'Todas mis capturas',
     description: 'Consulta el historial completo de capturas registradas por tu usuario.',
   },
-  '/region': {
+  [APP_ROUTES.monitor]: {
     title: 'Monitoreo regional',
     description: 'Sigue la actividad de las delegaciones asignadas en tiempo real.',
   },
-  '/admin': {
+  [APP_ROUTES.overview]: {
     title: 'Vista administrativa',
     description: 'Observa la operación completa organizada por región y delegación.',
   },
-  '/superadmin': {
+  [APP_ROUTES.insights]: {
+    title: 'Dashboard directivo',
+    description: 'Consulta KPIs globales y el desglose por región y delegación.',
+  },
+  [APP_ROUTES.control]: {
     title: 'Usuarios',
     description: 'Administra accesos, perfiles y cobertura operativa del sistema.',
   },
-  '/superadmin/audit': {
+  [APP_ROUTES.controlActivity]: {
     title: 'Bitácora',
     description: 'Supervisa en tiempo real los movimientos críticos del sistema.',
   },
@@ -42,76 +49,109 @@ const pageTitles: Record<string, { title: string; description: string }> = {
 export function AppShell() {
   const { session, logout } = useAuth();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   if (!session) {
     return null;
   }
 
-  const currentPage = pageTitles[location.pathname] ?? pageTitles['/'];
+  const currentPage = pageTitles[location.pathname] ?? pageTitles[APP_ROUTES.home];
 
   return (
     <div className="dashboard-shell">
-      <aside className="sidebar">
-        <div className="sidebar-logo-wrap">
-          <img
-            className="sidebar-logo"
-            src="/policia-vial-estatal-oaxaca-seeklogo.png"
-            alt="Logotipo institucional"
-          />
-        </div>
+      <aside
+        className={`sidebar ${isSidebarOpen ? 'is-open' : 'is-collapsed'}`}
+        onMouseEnter={() => setIsSidebarOpen(true)}
+        onMouseLeave={() => setIsSidebarOpen(false)}
+        onFocusCapture={() => setIsSidebarOpen(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setIsSidebarOpen(false);
+          }
+        }}
+      >
+        <button
+          aria-expanded={isSidebarOpen}
+          aria-label={isSidebarOpen ? 'Ocultar navegación' : 'Mostrar navegación'}
+          className="sidebar-toggle"
+          type="button"
+          onClick={() => setIsSidebarOpen((current) => !current)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
 
-        <div className="sidebar-title-wrap">
-          <p className="eyebrow">Sistema vehicular</p>
-          <h1 className="sidebar-title">{roleLabels[session.user.role]}</h1>
-          <p className="sidebar-subtitle">{session.user.fullName}</p>
-        </div>
+        <div className="sidebar-panel">
+          <div className="sidebar-logo-wrap">
+            <img
+              className="sidebar-logo"
+              src="/policia-vial-estatal-oaxaca-seeklogo.png"
+              alt="Logotipo institucional"
+            />
+          </div>
 
-        <div className="sidebar-session-card">
-          <span className="sidebar-session-label">Cobertura</span>
-          <strong>{session.user.region?.name ?? session.user.delegation?.name ?? 'General'}</strong>
-          <span>{session.user.grade}</span>
-        </div>
+          <div className="sidebar-title-wrap">
+            <p className="eyebrow">Sistema vehicular</p>
+            <h1 className="sidebar-title">{roleLabels[session.user.role]}</h1>
+            <p className="sidebar-subtitle">{session.user.fullName}</p>
+          </div>
 
-        <nav className="sidebar-filters nav-list">
-          <NavLink end to="/">
-            Inicio
-          </NavLink>
+          <div className="sidebar-session-card">
+            <span className="sidebar-session-label">Cobertura</span>
+            <strong>{session.user.region?.name ?? session.user.delegation?.name ?? 'General'}</strong>
+            <span>{session.user.grade}</span>
+          </div>
 
-          {session.user.role === 'capturist' && (
-            <NavLink end to="/captures">
-              Capturar
+          <nav className="sidebar-filters nav-list">
+            <NavLink end to={APP_ROUTES.home}>
+              Inicio
             </NavLink>
-          )}
-          {session.user.role === 'capturist' && (
-            <NavLink to="/captures/history">Todas mis capturas</NavLink>
-          )}
 
-          {session.user.role === 'regional_manager' && (
-            <NavLink end to="/region">
-              Delegaciones
-            </NavLink>
-          )}
+            {session.user.role === 'capturist' && (
+              <NavLink end to={APP_ROUTES.workspace}>
+                Capturar
+              </NavLink>
+            )}
+            {session.user.role === 'capturist' && (
+              <NavLink to={APP_ROUTES.archive}>Todas mis capturas</NavLink>
+            )}
 
-          {(session.user.role === 'admin' || session.user.role === 'superadmin') && (
-            <NavLink end to="/admin">
-              Vista general
-            </NavLink>
-          )}
+            {session.user.role === 'regional_manager' && (
+              <NavLink end to={APP_ROUTES.monitor}>
+                Delegaciones
+              </NavLink>
+            )}
 
-          {session.user.role === 'superadmin' && (
-            <NavLink end to="/superadmin">
-              Usuarios
-            </NavLink>
-          )}
-          {session.user.role === 'superadmin' && (
-            <NavLink to="/superadmin/audit">Bitácora</NavLink>
-          )}
-        </nav>
+            {(session.user.role === 'admin' || session.user.role === 'superadmin') && (
+              <NavLink end to={APP_ROUTES.overview}>
+                Vista general
+              </NavLink>
+            )}
 
-        <div className="sidebar-footer">
-          <button className="secondary-button" type="button" onClick={logout}>
-            Cerrar sesión
-          </button>
+            {(session.user.role === 'director' ||
+              session.user.role === 'admin' ||
+              session.user.role === 'superadmin') && (
+              <NavLink end to={APP_ROUTES.insights}>
+                Dashboard directivo
+              </NavLink>
+            )}
+
+            {session.user.role === 'superadmin' && (
+              <NavLink end to={APP_ROUTES.control}>
+                Usuarios
+              </NavLink>
+            )}
+            {session.user.role === 'superadmin' && (
+              <NavLink to={APP_ROUTES.controlActivity}>Bitácora</NavLink>
+            )}
+          </nav>
+
+          <div className="sidebar-footer">
+            <button className="secondary-button" type="button" onClick={logout}>
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </aside>
 

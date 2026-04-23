@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { api } from '../lib/api';
+import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
 import type { VehicleRecord } from '../types';
 
@@ -10,15 +11,25 @@ const roleDescriptions = {
   capturist: 'Registra información de tu delegación y consulta tus propias capturas.',
   regional_manager: 'Monitorea en tiempo real las delegaciones asignadas a tu región.',
   admin: 'Consulta la operación completa organizada por región y delegación.',
+  director: 'Consulta KPIs globales y el comportamiento operativo por región y delegación.',
   superadmin: 'Administra usuarios y consulta la bitácora en tiempo real.',
 };
 
 const quickActions = {
-  regional_manager: [{ label: 'Ver delegaciones', to: '/region', helper: 'Seguimiento en tiempo real' }],
-  admin: [{ label: 'Abrir vista general', to: '/admin', helper: 'Supervisión completa' }],
+  regional_manager: [
+    { label: 'Ver delegaciones', to: APP_ROUTES.monitor, helper: 'Seguimiento en tiempo real' },
+  ],
+  admin: [
+    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Supervisión completa' },
+    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+  ],
+  director: [
+    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+  ],
   superadmin: [
-    { label: 'Administrar usuarios', to: '/superadmin', helper: 'Altas y supervisión de actividad' },
-    { label: 'Abrir vista general', to: '/admin', helper: 'Panorama operativo' },
+    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisión de actividad' },
+    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Panorama operativo' },
+    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
   ],
 };
 

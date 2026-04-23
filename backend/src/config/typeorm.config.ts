@@ -74,7 +74,7 @@ export function createTypeOrmOptions(configService?: ConfigService): DataSourceO
     migrations: MIGRATIONS,
     migrationsRun: true,
     synchronize: false,
-    dropSchema:false,
+    dropSchema:false  ,
   };
 }
 

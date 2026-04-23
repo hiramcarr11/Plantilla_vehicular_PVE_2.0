@@ -1,0 +1,273 @@
+import { useEffect, useMemo, useState } from 'react';
+import { EmptyState } from '../components/empty-state';
+import { PageIntro } from '../components/page-intro';
+import { StatsGrid } from '../components/stats-grid';
+import { api } from '../lib/api';
+import { useAuth } from '../modules/auth/auth-context';
+import type { DirectorOverview } from '../types';
+
+function formatReportDate(value: string) {
+  return new Date(value).toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function formatReportCell(value: number) {
+  return value > 0 ? value : '-';
+}
+
+export function DirectorPage() {
+  const { session } = useAuth();
+  const [overview, setOverview] = useState<DirectorOverview | null>(null);
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [selectedDelegationId, setSelectedDelegationId] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const loadOverview = async () => {
+      const loaded = await api.getDirectorOverview(
+        session.accessToken,
+        selectedRegionId || undefined,
+        selectedDelegationId || undefined,
+        dateFrom || undefined,
+        dateTo || undefined,
+      );
+      setOverview(loaded);
+    };
+
+    void loadOverview();
+  }, [dateFrom, dateTo, selectedDelegationId, selectedRegionId, session]);
+
+  const availableDelegations = useMemo(() => {
+    if (!overview) {
+      return [];
+    }
+
+    if (!selectedRegionId) {
+      return overview.filters.regions.flatMap((region) => region.delegations);
+    }
+
+    return (
+      overview.filters.regions.find((region) => region.regionId === selectedRegionId)?.delegations ?? []
+    );
+  }, [overview, selectedRegionId]);
+
+  const selectedRegionName = useMemo(() => {
+    if (!overview || !selectedRegionId) {
+      return 'Todas las regiones';
+    }
+
+    return (
+      overview.filters.regions.find((region) => region.regionId === selectedRegionId)?.regionName ??
+      'Todas las regiones'
+    );
+  }, [overview, selectedRegionId]);
+
+  const selectedDelegationName = useMemo(() => {
+    if (!selectedDelegationId) {
+      return 'Todas las delegaciones';
+    }
+
+    return (
+      availableDelegations.find((delegation) => delegation.id === selectedDelegationId)?.name ??
+      'Todas las delegaciones'
+    );
+  }, [availableDelegations, selectedDelegationId]);
+
+  if (!session) {
+    return null;
+  }
+
+  if (!overview) {
+    return (
+      <section className="panel">
+        <EmptyState
+          title="Cargando tablero directivo"
+          description="Espera un momento para consolidar los indicadores globales."
+        />
+      </section>
+    );
+  }
+
+  const { kpis, table, filters } = overview;
+  const statusColumns = table.statuses.map((status) => ({
+    key: status,
+    label: status,
+    getValue: (row: { statusBreakdown: Record<string, number> }) => row.statusBreakdown[status] ?? 0,
+  }));
+
+  return (
+    <div className="stack-lg">
+      <section className="panel">
+        <PageIntro
+          eyebrow="Dirección"
+          title="Dashboard directivo"
+          description="Monitorea KPIs globales y resume la operación por tipo de vehículo según la región y delegación filtradas."
+        />
+
+        <div className="form-grid director-filter-grid">
+          <label className="field">
+            <span>Región</span>
+            <select
+              value={selectedRegionId}
+              onChange={(event) => {
+                setSelectedRegionId(event.target.value);
+                setSelectedDelegationId('');
+              }}
+            >
+              <option value="">Todas las regiones</option>
+              {filters.regions.map((region) => (
+                <option key={region.regionId} value={region.regionId}>
+                  {region.regionName}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Delegación</span>
+            <select
+              value={selectedDelegationId}
+              onChange={(event) => setSelectedDelegationId(event.target.value)}
+            >
+              <option value="">Todas las delegaciones</option>
+              {availableDelegations.map((delegation) => (
+                <option key={delegation.id} value={delegation.id}>
+                  {delegation.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Desde</span>
+            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+          </label>
+
+          <label className="field">
+            <span>Hasta</span>
+            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+          </label>
+        </div>
+
+        <StatsGrid
+          items={[
+            { label: 'Total de registros', value: kpis.totalRecords },
+            { label: 'Regiones con registros', value: kpis.totalRegions },
+            { label: 'Delegaciones con registros', value: kpis.totalDelegations },
+            { label: 'Total activos', value: kpis.totalActive },
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <StatsGrid
+          items={[
+            { label: 'Alcance regional', value: selectedRegionName },
+            { label: 'Alcance por delegación', value: selectedDelegationName },
+            {
+              label: 'Corte al',
+              value: table.rows.length > 0 ? formatReportDate(table.date) : '-',
+            },
+            {
+              label: 'Vehículos con estatus OTRO',
+              value: table.resume.statusBreakdown.OTRO ?? 0,
+            },
+          ]}
+        />
+      </section>
+
+      <section className="panel stack-md">
+        <div className="director-report">
+          <table className="director-report-date">
+            <tbody>
+              <tr>
+                <th>FECHA:</th>
+                <td>{formatReportDate(table.date)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="table-wrapper director-report-table-wrap">
+            <table className="director-report-table">
+              <thead>
+                <tr>
+                  <th>TIPO DE VEHICULO</th>
+                  <th>TODOS</th>
+                  {statusColumns.map((column) => (
+                    <th key={column.key}>{column.label}</th>
+                  ))}
+                  <th>ACTIVOS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.rows.map((row) => {
+                  return (
+                    <tr key={row.vehicleClass}>
+                      <td>{row.vehicleClass}</td>
+                      <td>{formatReportCell(row.totalUnits)}</td>
+                      {statusColumns.map((column) => {
+                        const value = column.getValue(row);
+                        return <td key={column.key}>{formatReportCell(value)}</td>;
+                      })}
+                      <td>{formatReportCell(row.totalActive)}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="director-report-summary">
+                  <th>RESUMEN</th>
+                  <th>{formatReportCell(table.resume.totalUnits)}</th>
+                  {statusColumns.map((column) => (
+                    <th key={column.key}>{formatReportCell(column.getValue(table.resume))}</th>
+                  ))}
+                  <th>{formatReportCell(table.resume.totalActive)}</th>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <section className="director-report-observations">
+            <strong>DESCRIPCIÓN OTRO:</strong>
+            {table.customStatusDescriptions.length > 0 ? (
+              <div className="director-report-observations-list">
+                {table.customStatusDescriptions.map((description, index) => (
+                  <div className="director-report-observations-row" key={`${description}-${index}`}>
+                    {description}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="director-report-observations-row">
+                SIN REGISTROS CAPTURADOS EN ESTATUS OTRO PARA EL CORTE CONSULTADO.
+              </div>
+            )}
+          </section>
+
+          <section className="director-report-observations">
+            <strong>OBSERVACIONES:</strong>
+            {table.observations.length > 0 ? (
+              <div className="director-report-observations-list">
+                {table.observations.map((observation, index) => (
+                  <div className="director-report-observations-row" key={`${observation}-${index}`}>
+                    {observation}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="director-report-observations-row">
+                SIN OBSERVACIONES REGISTRADAS PARA EL CORTE CONSULTADO.
+              </div>
+            )}
+          </section>
+        </div>
+      </section>
+    </div>
+  );
+}

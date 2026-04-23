@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
-import { api } from '../lib/api';
-import { useAuth } from '../modules/auth/auth-context';
-import type { CreateUserPayload, Region, User } from '../types';
 import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
+import { api } from '../lib/api';
+import { useAuth } from '../modules/auth/auth-context';
+import type { CreateUserPayload, Region, UpdateUserPayload, User } from '../types';
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, ' ');
@@ -36,6 +36,7 @@ export function SuperAdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [draftUser, setDraftUser] = useState<CreateUserPayload>(emptyUser);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export function SuperAdminPage() {
 
   const selectedRegion = regions.find((region) => region.id === draftUser.regionId);
   const availableDelegations = selectedRegion?.delegations ?? [];
+  const isEditing = editingUserId !== null;
 
   const filteredUsers = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -85,6 +87,46 @@ export function SuperAdminPage() {
         .includes(normalizedSearch),
     );
   }, [search, users]);
+
+  const resetForm = () => {
+    setDraftUser(emptyUser);
+    setEditingUserId(null);
+  };
+
+  const reloadUsers = async () => {
+    setUsers(await api.getUsers(session.accessToken));
+  };
+
+  const buildCreatePayload = (): CreateUserPayload => ({
+    ...draftUser,
+    firstName: normalizeUpper(draftUser.firstName),
+    lastName: normalizeUpper(draftUser.lastName),
+    grade: normalizeUpper(draftUser.grade),
+    phone: normalizeText(draftUser.phone),
+    email: normalizeEmail(draftUser.email),
+    password: normalizeText(draftUser.password),
+  });
+
+  const buildUpdatePayload = (): UpdateUserPayload => {
+    const payload: UpdateUserPayload = {
+      firstName: normalizeUpper(draftUser.firstName),
+      lastName: normalizeUpper(draftUser.lastName),
+      grade: normalizeUpper(draftUser.grade),
+      phone: normalizeText(draftUser.phone),
+      email: normalizeEmail(draftUser.email),
+      role: draftUser.role,
+      regionId: draftUser.regionId,
+      delegationId: draftUser.delegationId,
+    };
+
+    const normalizedPassword = normalizeText(draftUser.password);
+
+    if (normalizedPassword) {
+      payload.password = normalizedPassword;
+    }
+
+    return payload;
+  };
 
   return (
     <div className="stack-lg">
@@ -126,8 +168,13 @@ export function SuperAdminPage() {
         <div className="panel-header">
           <div>
             <p className="eyebrow">Administración</p>
-            <h2>Crear usuario</h2>
+            <h2>{isEditing ? 'Modificar usuario' : 'Crear usuario'}</h2>
           </div>
+          {isEditing && (
+            <button className="secondary-button" type="button" onClick={resetForm}>
+              Cancelar edición
+            </button>
+          )}
         </div>
 
         <div className="form-grid">
@@ -168,7 +215,7 @@ export function SuperAdminPage() {
             />
           </label>
           <label className="field">
-            <span>Contraseña</span>
+            <span>{isEditing ? 'Contraseña nueva (opcional)' : 'Contraseña'}</span>
             <input
               type="password"
               value={draftUser.password}
@@ -200,6 +247,7 @@ export function SuperAdminPage() {
               <option value="capturist">Capturista</option>
               <option value="regional_manager">Encargado regional</option>
               <option value="admin">Administrador</option>
+              <option value="director">Director</option>
               <option value="superadmin">Superadministrador</option>
             </select>
           </label>
@@ -250,10 +298,12 @@ export function SuperAdminPage() {
           onClick={async () => {
             const confirmation = await Swal.fire({
               icon: 'question',
-              title: 'Confirmar alta de usuario',
-              text: 'Se creará una nueva cuenta con los datos capturados.',
+              title: isEditing ? 'Confirmar modificación' : 'Confirmar alta de usuario',
+              text: isEditing
+                ? 'Se actualizarán los datos del usuario seleccionado.'
+                : 'Se creará una nueva cuenta con los datos capturados.',
               showCancelButton: true,
-              confirmButtonText: 'Crear usuario',
+              confirmButtonText: isEditing ? 'Guardar cambios' : 'Crear usuario',
               cancelButtonText: 'Cancelar',
             });
 
@@ -262,38 +312,34 @@ export function SuperAdminPage() {
             }
 
             try {
-              await api.createUser(
-                {
-                  ...draftUser,
-                  firstName: normalizeUpper(draftUser.firstName),
-                  lastName: normalizeUpper(draftUser.lastName),
-                  grade: normalizeUpper(draftUser.grade),
-                  phone: normalizeText(draftUser.phone),
-                  email: normalizeEmail(draftUser.email),
-                  password: normalizeText(draftUser.password),
-                },
-                session.accessToken,
-              );
-              setDraftUser(emptyUser);
-              setUsers(await api.getUsers(session.accessToken));
+              if (isEditing && editingUserId) {
+                await api.updateUser(editingUserId, buildUpdatePayload(), session.accessToken);
+              } else {
+                await api.createUser(buildCreatePayload(), session.accessToken);
+              }
+
+              resetForm();
+              await reloadUsers();
 
               await Swal.fire({
                 icon: 'success',
-                title: 'Usuario creado',
-                text: 'La cuenta se registró correctamente.',
+                title: isEditing ? 'Usuario actualizado' : 'Usuario creado',
+                text: isEditing
+                  ? 'Los cambios se guardaron correctamente.'
+                  : 'La cuenta se registró correctamente.',
                 confirmButtonText: 'Entendido',
               });
             } catch (requestError) {
               await Swal.fire({
                 icon: 'error',
-                title: 'No se pudo crear el usuario',
+                title: isEditing ? 'No se pudo actualizar el usuario' : 'No se pudo crear el usuario',
                 text: (requestError as Error).message,
                 confirmButtonText: 'Entendido',
               });
             }
           }}
         >
-          Guardar usuario
+          {isEditing ? 'Guardar cambios' : 'Guardar usuario'}
         </button>
       </section>
 
@@ -323,10 +369,14 @@ export function SuperAdminPage() {
                   <th>Región</th>
                   <th>Delegación</th>
                   <th>Rol</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user) => {
+                  const isProtectedSuperadmin = user.role === 'superadmin';
+
+                  return (
                   <tr key={user.id}>
                     <td>{user.fullName}</td>
                     <td>{user.grade}</td>
@@ -335,8 +385,80 @@ export function SuperAdminPage() {
                     <td>{user.region?.name ?? '-'}</td>
                     <td>{user.delegation?.name ?? '-'}</td>
                     <td>{user.role}</td>
+                    <td>
+                      <div className="table-actions">
+                        <button
+                          className="primary-button"
+                          type="button"
+                          disabled={isProtectedSuperadmin}
+                          onClick={() => {
+                            setEditingUserId(user.id);
+                            setDraftUser({
+                              firstName: user.firstName,
+                              lastName: user.lastName,
+                              grade: user.grade,
+                              email: user.email,
+                              password: '',
+                              role: user.role,
+                              phone: user.phone,
+                              regionId: user.region?.id,
+                              delegationId: user.delegation?.id,
+                            });
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="secondary-button table-action-button"
+                          type="button"
+                          disabled={isProtectedSuperadmin}
+                          onClick={async () => {
+                            const confirmation = await Swal.fire({
+                              icon: 'warning',
+                              title: 'Eliminar usuario',
+                              text: `Se eliminará la cuenta de ${user.fullName}.`,
+                              showCancelButton: true,
+                              confirmButtonText: 'Eliminar',
+                              cancelButtonText: 'Cancelar',
+                            });
+
+                            if (!confirmation.isConfirmed) {
+                              return;
+                            }
+
+                            try {
+                              await api.deleteUser(user.id, session.accessToken);
+
+                              if (editingUserId === user.id) {
+                                resetForm();
+                              }
+
+                              await reloadUsers();
+
+                              await Swal.fire({
+                                icon: 'success',
+                                title: 'Usuario eliminado',
+                                text: 'La cuenta fue dada de baja correctamente.',
+                                confirmButtonText: 'Entendido',
+                              });
+                            } catch (requestError) {
+                              await Swal.fire({
+                                icon: 'error',
+                                title: 'No se pudo eliminar el usuario',
+                                text: (requestError as Error).message,
+                                confirmButtonText: 'Entendido',
+                              });
+                            }
+                          }}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

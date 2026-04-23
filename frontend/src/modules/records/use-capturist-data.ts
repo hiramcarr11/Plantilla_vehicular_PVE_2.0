@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { api } from '../../lib/api';
-import { socket } from '../../lib/socket';
+import { connectSocketWithAuth, socket } from '../../lib/socket';
 import { useAuth } from '../auth/auth-context';
 import type { RecordFieldCatalogMap, Region, RecordFormValues, VehicleRecord } from '../../types';
 
@@ -26,7 +26,7 @@ export function useCapturistData() {
       setFieldCatalogs(loadedFieldCatalogs);
     });
 
-    socket.connect();
+    connectSocketWithAuth();
 
     const onCreated = (record: VehicleRecord) => {
       if (record.createdBy.id === session.user.id) {

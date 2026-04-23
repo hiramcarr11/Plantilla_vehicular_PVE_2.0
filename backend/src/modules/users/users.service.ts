@@ -1,11 +1,13 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
+import { Role } from 'src/common/enums/role.enum';
 import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
 import { RegionEntity } from 'src/modules/catalog/entities/region.entity';
 import { AuditLogsService } from 'src/modules/audit-logs/audit-logs.service';
@@ -156,6 +158,10 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto, actorId?: string) {
     const user = await this.findOneEntity(id);
 
+    if (user.role === Role.SuperAdmin) {
+      throw new ForbiddenException('Superadmin users cannot be edited.');
+    }
+
     if (dto.password) {
       user.passwordHash = await bcrypt.hash(dto.password, 10);
     }
@@ -211,6 +217,11 @@ export class UsersService {
 
   async softDelete(id: string, actorId?: string) {
     const user = await this.findOneEntity(id);
+
+    if (user.role === Role.SuperAdmin) {
+      throw new ForbiddenException('Superadmin users cannot be deleted.');
+    }
+
     await this.userRepository.softDelete(id);
 
     await this.auditLogsService.register({

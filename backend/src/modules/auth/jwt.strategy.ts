@@ -7,10 +7,16 @@ import { JwtPayload } from './jwt-payload.type';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
+    const jwtSecret = configService.get<string>('JWT_SECRET');
+
+    if (!jwtSecret || jwtSecret === 'change_me') {
+      throw new Error('JWT_SECRET must be configured with a strong secret.');
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'change_me'),
+      secretOrKey: jwtSecret,
     });
   }
 

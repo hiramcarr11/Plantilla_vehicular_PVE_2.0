@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from 'src/common/auth/current-user.decorator';
 import { RequireRoles } from 'src/common/auth/roles.decorator';
 import { RolesGuard } from 'src/common/auth/roles.guard';
@@ -39,8 +39,24 @@ export class RecordsController {
 
   @Get('admin/overview')
   @RequireRoles(Role.Admin, Role.SuperAdmin)
-  findAdminView() {
-    return this.recordsService.findAdminView();
+  findAdminView(
+    @Query('regionId') regionId?: string,
+    @Query('delegationId') delegationId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.recordsService.findAdminView(regionId, delegationId, dateFrom, dateTo);
+  }
+
+  @Get('director/overview')
+  @RequireRoles(Role.Director, Role.Admin, Role.SuperAdmin)
+  findDirectorOverview(
+    @Query('regionId') regionId?: string,
+    @Query('delegationId') delegationId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.recordsService.findDirectorOverview(regionId, delegationId, dateFrom, dateTo);
   }
 
   @Delete(':id')

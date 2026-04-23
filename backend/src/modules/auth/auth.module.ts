@@ -14,12 +14,20 @@ import { JwtStrategy } from './jwt.strategy';
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'change_me'),
-        signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '8h') as never,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+
+        if (!jwtSecret || jwtSecret === 'change_me') {
+          throw new Error('JWT_SECRET must be configured with a strong secret.');
+        }
+
+        return {
+          secret: jwtSecret,
+          signOptions: {
+            expiresIn: configService.get<string>('JWT_EXPIRES_IN', '8h') as never,
+          },
+        };
+      },
     }),
     UsersModule,
     AuditLogsModule,

@@ -9,16 +9,18 @@ import { RegionalPage } from './pages/regional-page';
 import { AdminPage } from './pages/admin-page';
 import { SuperAdminPage } from './pages/superadmin-page';
 import { SuperAdminAuditPage } from './pages/superadmin-audit-page';
+import { DirectorPage } from './pages/director-page';
+import { APP_ROUTES, LEGACY_ROUTE_REDIRECTS } from './lib/routes';
 
 export function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route path={APP_ROUTES.access} element={<LoginPage />} />
       <Route
-        path="/"
+        path={APP_ROUTES.home}
         element={
           <ProtectedRoute
-            allowedRoles={['capturist', 'regional_manager', 'admin', 'superadmin']}
+            allowedRoles={['capturist', 'regional_manager', 'admin', 'director', 'superadmin']}
           >
             <AppShell />
           </ProtectedRoute>
@@ -26,7 +28,7 @@ export function App() {
       >
         <Route index element={<HomePage />} />
         <Route
-          path="captures"
+          path={APP_ROUTES.workspace.slice(1)}
           element={
             <ProtectedRoute allowedRoles={['capturist']}>
               <CapturistPage />
@@ -34,7 +36,7 @@ export function App() {
           }
         />
         <Route
-          path="captures/history"
+          path={APP_ROUTES.archive.slice(1)}
           element={
             <ProtectedRoute allowedRoles={['capturist']}>
               <CapturistRecordsPage />
@@ -42,7 +44,7 @@ export function App() {
           }
         />
         <Route
-          path="region"
+          path={APP_ROUTES.monitor.slice(1)}
           element={
             <ProtectedRoute allowedRoles={['regional_manager']}>
               <RegionalPage />
@@ -50,7 +52,7 @@ export function App() {
           }
         />
         <Route
-          path="admin"
+          path={APP_ROUTES.overview.slice(1)}
           element={
             <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
               <AdminPage />
@@ -58,7 +60,7 @@ export function App() {
           }
         />
         <Route
-          path="superadmin"
+          path={APP_ROUTES.control.slice(1)}
           element={
             <ProtectedRoute allowedRoles={['superadmin']}>
               <SuperAdminPage />
@@ -66,7 +68,15 @@ export function App() {
           }
         />
         <Route
-          path="superadmin/audit"
+          path={APP_ROUTES.insights.slice(1)}
+          element={
+            <ProtectedRoute allowedRoles={['director', 'admin', 'superadmin']}>
+              <DirectorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={APP_ROUTES.controlActivity.slice(1)}
           element={
             <ProtectedRoute allowedRoles={['superadmin']}>
               <SuperAdminAuditPage />
@@ -74,6 +84,13 @@ export function App() {
           }
         />
       </Route>
+      {LEGACY_ROUTE_REDIRECTS.map((redirect) => (
+        <Route
+          key={redirect.from}
+          path={redirect.from}
+          element={<Navigate to={redirect.to} replace />}
+        />
+      ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

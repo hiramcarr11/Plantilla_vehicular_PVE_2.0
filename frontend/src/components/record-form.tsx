@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import type { Delegation, RecordFieldCatalogMap, RecordFormValues } from '../types';
@@ -92,6 +93,7 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<RecordFormData>({
@@ -121,6 +123,17 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
   const selectedUseType = watch('useType');
   const selectedStatus = watch('status');
   const selectedAssetClassification = watch('assetClassification');
+
+  useEffect(() => {
+    if (!delegations.length) {
+      return;
+    }
+
+    setValue('delegationId', delegations[0].id, {
+      shouldValidate: true,
+      shouldDirty: false,
+    });
+  }, [delegations, setValue]);
 
   return (
     <form
@@ -168,14 +181,12 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
 
       <label className="field">
         <span>Delegación</span>
-        <select {...register('delegationId')}>
-          <option value="">Selecciona una delegación</option>
-          {delegations.map((delegation) => (
-            <option key={delegation.id} value={delegation.id}>
-              {delegation.name}
-            </option>
-          ))}
-        </select>
+        <input
+          disabled
+          readOnly
+          value={delegations[0]?.name ?? 'Sin delegación asignada'}
+        />
+        <input type="hidden" {...register('delegationId')} />
         {errors.delegationId && <small>{errors.delegationId.message}</small>}
       </label>
 

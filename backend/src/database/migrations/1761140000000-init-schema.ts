@@ -64,7 +64,27 @@ export class InitSchema1761140000000 implements MigrationInterface {
           JOIN pg_namespace n ON n.oid = t.typnamespace
           WHERE t.typname = '${USER_ROLE_ENUM}' AND n.nspname = 'public'
         ) THEN
-          CREATE TYPE "public"."${USER_ROLE_ENUM}" AS ENUM('capturist', 'regional_manager', 'admin', 'superadmin');
+          CREATE TYPE "public"."${USER_ROLE_ENUM}" AS ENUM('capturist', 'regional_manager', 'admin', 'director', 'superadmin');
+        END IF;
+      END $$;
+    `);
+
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE t.typname = '${USER_ROLE_ENUM}' AND n.nspname = 'public'
+        ) AND NOT EXISTS (
+          SELECT 1
+          FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = '${USER_ROLE_ENUM}'
+            AND e.enumlabel = 'director'
+        ) THEN
+          ALTER TYPE "public"."${USER_ROLE_ENUM}" ADD VALUE 'director';
         END IF;
       END $$;
     `);
@@ -136,7 +156,7 @@ export class InitSchema1761140000000 implements MigrationInterface {
             { name: 'phone', type: 'varchar' },
             { name: 'email', type: 'varchar', isUnique: true },
             { name: 'passwordHash', type: 'varchar' },
-            { name: 'role', type: 'enum', enumName: USER_ROLE_ENUM, enum: ['capturist', 'regional_manager', 'admin', 'superadmin'] },
+            { name: 'role', type: 'enum', enumName: USER_ROLE_ENUM, enum: ['capturist', 'regional_manager', 'admin', 'director', 'superadmin'] },
             { name: 'isActive', type: 'boolean', default: true },
             { name: 'regionId', type: 'uuid', isNullable: true },
             { name: 'delegationId', type: 'uuid', isNullable: true },

@@ -1,4 +1,4 @@
-export type Role = 'capturist' | 'regional_manager' | 'admin' | 'superadmin';
+export type Role = 'capturist' | 'regional_manager' | 'admin' | 'director' | 'superadmin';
 export type RecordCatalogField =
   | 'useType'
   | 'vehicleClass'
@@ -56,6 +56,8 @@ export type CreateUserPayload = {
   delegationId?: string;
 };
 
+export type UpdateUserPayload = Partial<CreateUserPayload>;
+
 export type RecordFormValues = {
   delegationId: string;
   plates: string;
@@ -106,6 +108,47 @@ export type AuditLog = {
   metadata: Record<string, unknown>;
   createdAt: string;
   actor?: User | null;
+};
+
+export type DirectorOverview = {
+  kpis: {
+    totalRecords: number;
+    totalRegions: number;
+    totalDelegations: number;
+    totalActive: number;
+  };
+  table: {
+    date: string;
+    statuses: string[];
+    physicalStatuses: string[];
+    rows: {
+      vehicleClass: string;
+      totalUnits: number;
+      totalActive: number;
+      statusBreakdown: Record<string, number>;
+      physicalStatusBreakdown: Record<string, number>;
+    }[];
+    resume: {
+      totalUnits: number;
+      totalActive: number;
+      statusBreakdown: Record<string, number>;
+      physicalStatusBreakdown: Record<string, number>;
+    };
+    customStatusDescriptions: string[];
+    observations: string[];
+  };
+  filters: {
+    selectedRegionId: string | null;
+    selectedDelegationId: string | null;
+    regions: {
+      regionId: string;
+      regionName: string;
+      delegations: {
+        id: string;
+        name: string;
+      }[];
+    }[];
+  };
 };
 
 export type AuthResponse = {

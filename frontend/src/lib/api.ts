@@ -2,10 +2,12 @@ import {
   AuditLog,
   AuthResponse,
   CreateUserPayload,
+  DirectorOverview,
   GroupedRegionRecords,
   RecordFieldCatalogMap,
   RecordFormValues,
   Region,
+  UpdateUserPayload,
   User,
   VehicleRecord,
 } from '../types';
@@ -27,6 +29,30 @@ function resolveApiUrl() {
 
 const API_URL = resolveApiUrl();
 
+function getPublicErrorMessage(status: number) {
+  if (status === 401) {
+    return 'No autorizado. Inicia sesión nuevamente.';
+  }
+
+  if (status === 403) {
+    return 'No tienes permisos para realizar esta acción.';
+  }
+
+  if (status === 404) {
+    return 'El recurso solicitado no fue encontrado.';
+  }
+
+  if (status === 429) {
+    return 'Demasiadas solicitudes. Intenta más tarde.';
+  }
+
+  if (status >= 500) {
+    return 'Ocurrió un error interno. Intenta nuevamente más tarde.';
+  }
+
+  return 'No se pudo completar la solicitud.';
+}
+
 async function request<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -38,11 +64,20 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Request failed.');
+    throw new Error(getPublicErrorMessage(response.status));
   }
 
-  return response.json() as Promise<T>;
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const responseText = await response.text();
+
+  if (!responseText.trim()) {
+    return undefined as T;
+  }
+
+  return JSON.parse(responseText) as T;
 }
 
 export const api = {
@@ -51,6 +86,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+  },
+  getCurrentUser(token: string) {
+    return request<User>('/auth/me', undefined, token);
   },
   getRegions(token: string) {
     return request<Region[]>('/catalog/regions', undefined, token);
@@ -70,8 +108,65 @@ export const api = {
   getRegionalOverview(token: string) {
     return request<GroupedRegionRecords[]>('/records/region/live', undefined, token);
   },
-  getAdminOverview(token: string) {
-    return request<GroupedRegionRecords[]>('/records/admin/overview', undefined, token);
+  getAdminOverview(
+    token: string,
+    regionId?: string,
+    delegationId?: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const params = new URLSearchParams();
+
+    if (regionId) {
+      params.set('regionId', regionId);
+    }
+
+    if (delegationId) {
+      params.set('delegationId', delegationId);
+    }
+
+    if (dateFrom) {
+      params.set('dateFrom', dateFrom);
+    }
+
+    if (dateTo) {
+      params.set('dateTo', dateTo);
+    }
+
+    const query = params.toString();
+    const path = query ? `/records/admin/overview?${query}` : '/records/admin/overview';
+
+    return request<GroupedRegionRecords[]>(path, undefined, token);
+  },
+  getDirectorOverview(
+    token: string,
+    regionId?: string,
+    delegationId?: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const params = new URLSearchParams();
+
+    if (regionId) {
+      params.set('regionId', regionId);
+    }
+
+    if (delegationId) {
+      params.set('delegationId', delegationId);
+    }
+
+    if (dateFrom) {
+      params.set('dateFrom', dateFrom);
+    }
+
+    if (dateTo) {
+      params.set('dateTo', dateTo);
+    }
+
+    const query = params.toString();
+    const path = query ? `/records/director/overview?${query}` : '/records/director/overview';
+
+    return request<DirectorOverview>(path, undefined, token);
   },
   getUsers(token: string) {
     return request<User[]>('/users', undefined, token);
@@ -80,6 +175,17 @@ export const api = {
     return request<User>('/users', {
       method: 'POST',
       body: JSON.stringify(payload),
+    }, token);
+  },
+  updateUser(userId: string, payload: UpdateUserPayload, token: string) {
+    return request<User>(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }, token);
+  },
+  deleteUser(userId: string, token: string) {
+    return request<void>(`/users/${userId}`, {
+      method: 'DELETE',
     }, token);
   },
   getAuditLogs(token: string) {

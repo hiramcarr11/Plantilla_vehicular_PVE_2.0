@@ -8,42 +8,68 @@ import {
 } from 'react';
 import { api } from '../../lib/api';
 import type { AuthResponse } from '../../types';
+import {
+  clearLegacyAuthStorage,
+  clearStoredAccessToken,
+  readStoredAccessToken,
+  writeStoredAccessToken,
+} from './auth-storage';
 
 type AuthState = AuthResponse | null;
 
 type AuthContextValue = {
   session: AuthState;
+  isHydrating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
-const STORAGE_KEY = 'vehicle-control-session';
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthState>(null);
+  const [isHydrating, setIsHydrating] = useState(true);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setSession(JSON.parse(stored) as AuthResponse);
-    }
+    const bootstrapSession = async () => {
+      clearLegacyAuthStorage();
+      const accessToken = readStoredAccessToken();
+
+      if (!accessToken) {
+        setIsHydrating(false);
+        return;
+      }
+
+      try {
+        const user = await api.getCurrentUser(accessToken);
+        setSession({ accessToken, user });
+      } catch {
+        clearStoredAccessToken();
+        setSession(null);
+      } finally {
+        setIsHydrating(false);
+      }
+    };
+
+    void bootstrapSession();
   }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
+      isHydrating,
       async login(email, password) {
         const response = await api.login(email, password);
         setSession(response);
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(response));
+        writeStoredAccessToken(response.accessToken);
       },
       logout() {
         setSession(null);
-        window.localStorage.removeItem(STORAGE_KEY);
+        clearStoredAccessToken();
+        clearLegacyAuthStorage();
       },
     }),
-    [session],
+    [isHydrating, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

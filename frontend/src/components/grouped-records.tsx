@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { GroupedRegionRecords, RecordFieldCatalogMap } from '../types';
 import { EmptyState } from './empty-state';
 import { PageIntro } from './page-intro';
@@ -10,6 +11,8 @@ type GroupedRecordsProps = {
   eyebrow: string;
   title: string;
   description: string;
+  headerFilters?: ReactNode;
+  vehicleClassAfterDate?: boolean;
 };
 
 type FiltersState = {
@@ -60,6 +63,8 @@ export function GroupedRecords({
   eyebrow,
   title,
   description,
+  headerFilters,
+  vehicleClassAfterDate = false,
 }: GroupedRecordsProps) {
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
 
@@ -158,6 +163,8 @@ export function GroupedRecords({
             </label>
           }
         />
+
+        {headerFilters}
 
         <div className="filter-grid">
           <label className="field">
@@ -301,11 +308,12 @@ export function GroupedRecords({
                       <thead>
                         <tr>
                           <th>Fecha</th>
+                          {vehicleClassAfterDate && <th>Clase</th>}
                           <th>Placas</th>
                           <th>Marca</th>
                           <th>Tipo</th>
                           <th>Uso</th>
-                          <th>Clase</th>
+                          {!vehicleClassAfterDate && <th>Clase</th>}
                           <th>Estado físico</th>
                           <th>Estatus</th>
                           <th>Clasificación</th>
@@ -317,11 +325,12 @@ export function GroupedRecords({
                         {delegation.records.map((record) => (
                           <tr key={record.id}>
                             <td>{new Date(record.createdAt).toLocaleString()}</td>
+                            {vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
                             <td>{record.plates}</td>
                             <td>{record.brand}</td>
                             <td>{record.type}</td>
                             <td>{record.useType}</td>
-                            <td>{record.vehicleClass}</td>
+                            {!vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
                             <td>{record.physicalStatus}</td>
                             <td>{record.status}</td>
                             <td>{record.assetClassification}</td>
