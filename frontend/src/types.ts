@@ -79,6 +79,7 @@ export type RecordFormValues = {
 export type VehicleRecord = RecordFormValues & {
   id: string;
   createdAt: string;
+  updatedAt: string;
   delegation: {
     id: string;
     name: string;
@@ -88,6 +89,38 @@ export type VehicleRecord = RecordFormValues & {
     };
   };
   createdBy: User;
+};
+
+export type VehicleRosterReport = {
+  id: string;
+  hasChanges: boolean;
+  changesSinceLastReport: number;
+  notes: string;
+  submittedAt: string;
+  createdAt: string;
+  delegation: {
+    id: string;
+    name: string;
+    region: {
+      id: string;
+      name: string;
+    };
+  };
+  submittedBy: User;
+};
+
+export type RosterReportOverviewRow = {
+  delegationId: string;
+  delegationName: string;
+  regionId: string;
+  regionName: string;
+  status:
+    | 'NOT_REPORTED'
+    | 'PENDING_CHANGES'
+    | 'REPORTED_WITH_CHANGES'
+    | 'REPORTED_WITHOUT_CHANGES';
+  pendingChanges: number;
+  lastReport: VehicleRosterReport | null;
 };
 
 export type GroupedRegionRecords = {

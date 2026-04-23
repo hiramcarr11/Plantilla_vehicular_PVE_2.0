@@ -28,9 +28,11 @@ export function RegionalPage() {
     void refresh();
     connectSocketWithAuth();
     socket.on('records.created', refresh);
+    socket.on('records.changed', refresh);
 
     return () => {
       socket.off('records.created', refresh);
+      socket.off('records.changed', refresh);
       socket.disconnect();
     };
   }, [session]);

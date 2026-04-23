@@ -7,9 +7,11 @@ import {
   RecordFieldCatalogMap,
   RecordFormValues,
   Region,
+  RosterReportOverviewRow,
   UpdateUserPayload,
   User,
   VehicleRecord,
+  VehicleRosterReport,
 } from '../types';
 
 function resolveApiUrl() {
@@ -29,7 +31,23 @@ function resolveApiUrl() {
 
 const API_URL = resolveApiUrl();
 
-function getPublicErrorMessage(status: number) {
+function getPublicErrorMessage(status: number, responseText = '') {
+  if (responseText.trim()) {
+    try {
+      const payload = JSON.parse(responseText) as { message?: string | string[] };
+
+      if (Array.isArray(payload.message)) {
+        return payload.message.join(' ');
+      }
+
+      if (payload.message) {
+        return payload.message;
+      }
+    } catch {
+      return responseText;
+    }
+  }
+
   if (status === 401) {
     return 'No autorizado. Inicia sesión nuevamente.';
   }
@@ -40,6 +58,10 @@ function getPublicErrorMessage(status: number) {
 
   if (status === 404) {
     return 'El recurso solicitado no fue encontrado.';
+  }
+
+  if (status === 409) {
+    return 'El registro ya existe.';
   }
 
   if (status === 429) {
@@ -64,7 +86,8 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
   });
 
   if (!response.ok) {
-    throw new Error(getPublicErrorMessage(response.status));
+    const responseText = await response.text();
+    throw new Error(getPublicErrorMessage(response.status, responseText));
   }
 
   if (response.status === 204) {
@@ -101,6 +124,33 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(values),
     }, token);
+  },
+  updateRecord(recordId: string, values: RecordFormValues, token: string) {
+    const recordValues: Partial<RecordFormValues> = { ...values };
+    delete recordValues.delegationId;
+
+    return request<VehicleRecord>(`/records/${recordId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(recordValues),
+    }, token);
+  },
+  transferRecord(recordId: string, delegationId: string, reason: string, token: string) {
+    return request<VehicleRecord>(`/records/${recordId}/transfer`, {
+      method: 'POST',
+      body: JSON.stringify({ delegationId, reason }),
+    }, token);
+  },
+  submitRosterReport(notes: string, token: string) {
+    return request<VehicleRosterReport>('/records/reports', {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    }, token);
+  },
+  getMyRosterReports(token: string) {
+    return request<VehicleRosterReport[]>('/records/reports/my', undefined, token);
+  },
+  getRosterReportOverview(token: string) {
+    return request<RosterReportOverviewRow[]>('/records/reports/overview', undefined, token);
   },
   getMyRecords(token: string) {
     return request<VehicleRecord[]>('/records/my', undefined, token);

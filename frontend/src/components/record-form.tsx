@@ -46,7 +46,10 @@ type RecordFormData = z.infer<typeof schema>;
 type RecordFormProps = {
   delegations: Delegation[];
   fieldCatalogs: RecordFieldCatalogMap;
+  initialValues?: RecordFormValues;
+  mode?: 'create' | 'edit';
   onSubmit: (values: RecordFormValues) => Promise<void>;
+  onCancel?: () => void;
 };
 
 const textFields = [
@@ -88,7 +91,42 @@ function normalizeCatalogValue(
   return normalizeUpper(selectedValue);
 }
 
-export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormProps) {
+const emptyFormValues = {
+  delegationId: '',
+  plates: '',
+  brand: '',
+  type: '',
+  useType: '',
+  useTypeCustom: '',
+  vehicleClass: '',
+  model: '',
+  engineNumber: '',
+  serialNumber: '',
+  custodian: '',
+  patrolNumber: '',
+  physicalStatus: '',
+  status: '',
+  statusCustom: '',
+  assetClassification: '',
+  assetClassificationCustom: '',
+  observation: '',
+};
+
+function toFormDefaults(initialValues?: RecordFormValues): RecordFormData {
+  return {
+    ...emptyFormValues,
+    ...initialValues,
+  };
+}
+
+export function RecordForm({
+  delegations,
+  fieldCatalogs,
+  initialValues,
+  mode = 'create',
+  onSubmit,
+  onCancel,
+}: RecordFormProps) {
   const {
     register,
     handleSubmit,
@@ -98,26 +136,7 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
     formState: { errors, isSubmitting },
   } = useForm<RecordFormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      delegationId: '',
-      plates: '',
-      brand: '',
-      type: '',
-      useType: '',
-      useTypeCustom: '',
-      vehicleClass: '',
-      model: '',
-      engineNumber: '',
-      serialNumber: '',
-      custodian: '',
-      patrolNumber: '',
-      physicalStatus: '',
-      status: '',
-      statusCustom: '',
-      assetClassification: '',
-      assetClassificationCustom: '',
-      observation: '',
-    },
+    defaultValues: toFormDefaults(initialValues),
   });
 
   const selectedUseType = watch('useType');
@@ -125,6 +144,11 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
   const selectedAssetClassification = watch('assetClassification');
 
   useEffect(() => {
+    if (initialValues) {
+      reset(toFormDefaults(initialValues));
+      return;
+    }
+
     if (!delegations.length) {
       return;
     }
@@ -133,7 +157,7 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
       shouldValidate: true,
       shouldDirty: false,
     });
-  }, [delegations, setValue]);
+  }, [delegations, initialValues, reset, setValue]);
 
   return (
     <form
@@ -169,13 +193,18 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
           observation: normalizeText(values.observation),
         });
 
-        reset();
+        if (mode === 'create') {
+          reset({
+            ...emptyFormValues,
+            delegationId: delegations[0]?.id ?? '',
+          });
+        }
       })}
     >
       <div className="panel-header">
         <div>
           <p className="eyebrow">Formulario</p>
-          <h2>Nueva captura</h2>
+          <h2>{mode === 'edit' ? 'Editar captura' : 'Nueva captura'}</h2>
         </div>
       </div>
 
@@ -246,9 +275,20 @@ export function RecordForm({ delegations, fieldCatalogs, onSubmit }: RecordFormP
         </label>
       </div>
 
-      <button className="primary-button" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Guardando...' : 'Guardar captura'}
-      </button>
+      <div className="form-actions">
+        {onCancel && (
+          <button className="ghost-button" disabled={isSubmitting} type="button" onClick={onCancel}>
+            Cancelar
+          </button>
+        )}
+        <button className="primary-button" disabled={isSubmitting} type="submit">
+          {isSubmitting
+            ? 'Guardando...'
+            : mode === 'edit'
+              ? 'Guardar cambios'
+              : 'Guardar captura'}
+        </button>
+      </div>
     </form>
   );
 }

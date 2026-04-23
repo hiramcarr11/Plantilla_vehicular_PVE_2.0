@@ -118,8 +118,27 @@ export class RealtimeGateway
     this.server.to('records:oversight').emit('records.created', payload);
   }
 
+  emitRecordChanged(payload: RecordCreatedEvent) {
+    const creatorId = payload.createdBy?.id;
+    const recordRegionId = payload.delegation?.region?.id;
+
+    if (creatorId) {
+      this.server.to(userRoom(creatorId)).emit('records.changed', payload);
+    }
+
+    if (recordRegionId) {
+      this.server.to(regionRoom(recordRegionId)).emit('records.changed', payload);
+    }
+
+    this.server.to('records:oversight').emit('records.changed', payload);
+  }
+
   emitAuditCreated(payload: unknown) {
     this.server.to('role:superadmin').emit('audit.created', payload);
+  }
+
+  emitRosterReportSubmitted(payload: unknown) {
+    this.server.to('records:oversight').emit('reports.submitted', payload);
   }
 
   private authenticateSocket(socket: Socket) {

@@ -1,15 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { Role } from 'src/common/enums/role.enum';
 import { AuditLogsService } from 'src/modules/audit-logs/audit-logs.service';
+import { AuditLogEntity } from 'src/modules/audit-logs/entities/audit-log.entity';
 import { RECORD_FIELD_CATALOG } from 'src/modules/catalog/record-field-catalog';
 import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
 import { RealtimeGateway } from 'src/modules/realtime/realtime.gateway';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
+import { SubmitRosterReportDto } from './dto/submit-roster-report.dto';
+import { TransferRecordDto } from './dto/transfer-record.dto';
+import { UpdateRecordDto } from './dto/update-record.dto';
 import { RecordEntity } from './entities/record.entity';
+import { VehicleRosterReportEntity } from './entities/vehicle-roster-report.entity';
+import { VehicleTransferEntity } from './entities/vehicle-transfer.entity';
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, ' ');
@@ -32,15 +38,48 @@ type AuthUser = {
   delegationId: string | null;
 };
 
+const reportableMovementActions = [
+  'RECORD_CREATED',
+  'RECORD_UPDATED',
+  'RECORD_SOFT_DELETED',
+  'RECORD_TRANSFERRED',
+];
+
+const editableRecordFields = [
+  'plates',
+  'brand',
+  'type',
+  'useType',
+  'vehicleClass',
+  'model',
+  'engineNumber',
+  'serialNumber',
+  'custodian',
+  'patrolNumber',
+  'physicalStatus',
+  'status',
+  'assetClassification',
+  'observation',
+] as const;
+
+type EditableRecordField = (typeof editableRecordFields)[number];
+type NormalizedRecordValues = Pick<RecordEntity, EditableRecordField>;
+
 @Injectable()
 export class RecordsService {
   constructor(
     @InjectRepository(RecordEntity)
     private readonly recordRepository: Repository<RecordEntity>,
+    @InjectRepository(AuditLogEntity)
+    private readonly auditLogRepository: Repository<AuditLogEntity>,
     @InjectRepository(DelegationEntity)
     private readonly delegationRepository: Repository<DelegationEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(VehicleRosterReportEntity)
+    private readonly rosterReportRepository: Repository<VehicleRosterReportEntity>,
+    @InjectRepository(VehicleTransferEntity)
+    private readonly vehicleTransferRepository: Repository<VehicleTransferEntity>,
     private readonly auditLogsService: AuditLogsService,
     private readonly realtimeGateway: RealtimeGateway,
   ) {}
@@ -56,22 +95,10 @@ export class RecordsService {
       throw new NotFoundException('User or delegation not found.');
     }
 
-    const normalizedDto: CreateRecordDto = {
-      ...dto,
-      plates: normalizeText(dto.plates).toUpperCase(),
-      brand: normalizeText(dto.brand).toUpperCase(),
-      type: normalizeText(dto.type).toUpperCase(),
-      useType: normalizeText(dto.useType).toUpperCase(),
-      vehicleClass: normalizeText(dto.vehicleClass).toUpperCase(),
-      model: normalizeText(dto.model).toUpperCase(),
-      engineNumber: normalizeText(dto.engineNumber).toUpperCase(),
-      serialNumber: normalizeText(dto.serialNumber).toUpperCase(),
-      custodian: normalizeText(dto.custodian).toUpperCase(),
-      patrolNumber: normalizeText(dto.patrolNumber).toUpperCase(),
-      physicalStatus: normalizeText(dto.physicalStatus).toUpperCase(),
-      status: normalizeText(dto.status).toUpperCase(),
-      assetClassification: normalizeText(dto.assetClassification).toUpperCase(),
-      observation: normalizeText(dto.observation),
+    this.ensureCapturistDelegationAccess(authUser, delegation.id);
+
+    const normalizedDto = {
+      ...this.normalizeRecordValues(dto),
       delegationId: dto.delegationId,
     };
 
@@ -99,6 +126,218 @@ export class RecordsService {
     this.realtimeGateway.emitRecordCreated(hydratedRecord);
 
     return hydratedRecord;
+  }
+
+  async update(id: string, dto: UpdateRecordDto, authUser: AuthUser) {
+    const record = await this.findOne(id);
+    this.ensureRecordEditAccess(record, authUser);
+
+    const before = this.pickRecordValues(record);
+    const normalizedValues = this.normalizeRecordValues(
+      this.mergeDefinedRecordValues(before, dto),
+    );
+    const changedFields = editableRecordFields.filter(
+      (fieldName) => before[fieldName] !== normalizedValues[fieldName],
+    );
+
+    if (changedFields.length === 0) {
+      return record;
+    }
+
+    await this.recordRepository.update(id, normalizedValues);
+    const updatedRecord = await this.findOne(id);
+
+    await this.auditLogsService.register({
+      actorId: authUser.sub,
+      action: 'RECORD_UPDATED',
+      entityType: 'record',
+      entityId: id,
+      metadata: {
+        delegationId: record.delegation.id,
+        regionId: record.delegation.region.id,
+        changedFields,
+        before: Object.fromEntries(changedFields.map((fieldName) => [fieldName, before[fieldName]])),
+        after: Object.fromEntries(
+          changedFields.map((fieldName) => [fieldName, normalizedValues[fieldName]]),
+        ),
+      },
+    });
+
+    this.realtimeGateway.emitRecordChanged(updatedRecord);
+
+    return updatedRecord;
+  }
+
+  async transfer(id: string, dto: TransferRecordDto, authUser: AuthUser) {
+    const record = await this.findOne(id);
+    const movedBy = await this.userRepository.findOneBy({ id: authUser.sub });
+    const toDelegation = await this.delegationRepository.findOne({
+      where: { id: dto.delegationId },
+      relations: { region: true },
+    });
+
+    if (!movedBy || !toDelegation) {
+      throw new NotFoundException('User or target delegation not found.');
+    }
+
+    if (record.delegation.id === toDelegation.id) {
+      throw new BadRequestException('Target delegation must be different.');
+    }
+
+    const fromDelegation = record.delegation;
+    const movedAt = new Date();
+
+    await this.vehicleTransferRepository.save(
+      this.vehicleTransferRepository.create({
+        record,
+        fromDelegation,
+        toDelegation,
+        movedBy,
+        movedAt,
+        reason: normalizeText(dto.reason),
+      }),
+    );
+
+    record.delegation = toDelegation;
+    await this.recordRepository.save(record);
+    const updatedRecord = await this.findOne(id);
+
+    await this.auditLogsService.register({
+      actorId: authUser.sub,
+      action: 'RECORD_TRANSFERRED',
+      entityType: 'record',
+      entityId: id,
+      metadata: {
+        delegationId: toDelegation.id,
+        fromDelegationId: fromDelegation.id,
+        fromRegionId: fromDelegation.region.id,
+        toDelegationId: toDelegation.id,
+        toRegionId: toDelegation.region.id,
+        reason: normalizeText(dto.reason),
+      },
+    });
+
+    this.realtimeGateway.emitRecordChanged(updatedRecord);
+
+    return updatedRecord;
+  }
+
+  async submitRosterReport(dto: SubmitRosterReportDto, authUser: AuthUser) {
+    if (!authUser.delegationId) {
+      throw new ForbiddenException('User does not have an assigned delegation.');
+    }
+
+    const submittedBy = await this.userRepository.findOneBy({ id: authUser.sub });
+    const delegation = await this.delegationRepository.findOne({
+      where: { id: authUser.delegationId },
+      relations: { region: true },
+    });
+
+    if (!submittedBy || !delegation) {
+      throw new NotFoundException('User or delegation not found.');
+    }
+
+    const lastReport = await this.findLastRosterReport(delegation.id);
+    const changesSinceLastReport = await this.countDelegationMovementsSince(
+      delegation.id,
+      lastReport?.submittedAt ?? null,
+    );
+    const report = await this.rosterReportRepository.save(
+      this.rosterReportRepository.create({
+        delegation,
+        submittedBy,
+        hasChanges: changesSinceLastReport > 0,
+        changesSinceLastReport,
+        notes: normalizeText(dto.notes ?? ''),
+        submittedAt: new Date(),
+      }),
+    );
+
+    await this.auditLogsService.register({
+      actorId: authUser.sub,
+      action:
+        changesSinceLastReport > 0
+          ? 'ROSTER_REPORT_SUBMITTED_WITH_CHANGES'
+          : 'ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES',
+      entityType: 'vehicle_roster_report',
+      entityId: report.id,
+      metadata: {
+        delegationId: delegation.id,
+        regionId: delegation.region.id,
+        changesSinceLastReport,
+      },
+    });
+
+    const hydratedReport = await this.findRosterReport(report.id);
+    this.realtimeGateway.emitRosterReportSubmitted(hydratedReport);
+
+    return hydratedReport;
+  }
+
+  async findMyRosterReports(authUser: AuthUser) {
+    if (!authUser.delegationId) {
+      return [];
+    }
+
+    return this.rosterReportRepository.find({
+      where: {
+        delegation: {
+          id: authUser.delegationId,
+        },
+      },
+      relations: {
+        delegation: {
+          region: true,
+        },
+        submittedBy: true,
+      },
+      order: {
+        submittedAt: 'DESC',
+      },
+      take: 20,
+    });
+  }
+
+  async findRosterReportOverview() {
+    const delegations = await this.delegationRepository.find({
+      relations: {
+        region: true,
+      },
+      order: {
+        region: {
+          sortOrder: 'ASC',
+        },
+        sortOrder: 'ASC',
+      },
+    });
+
+    const rows = [];
+
+    for (const delegation of delegations) {
+      const lastReport = await this.findLastRosterReport(delegation.id);
+      const pendingChanges = await this.countDelegationMovementsSince(
+        delegation.id,
+        lastReport?.submittedAt ?? null,
+      );
+
+      rows.push({
+        delegationId: delegation.id,
+        delegationName: delegation.name,
+        regionId: delegation.region.id,
+        regionName: delegation.region.name,
+        status: lastReport
+          ? pendingChanges > 0
+            ? 'PENDING_CHANGES'
+            : lastReport.hasChanges
+              ? 'REPORTED_WITH_CHANGES'
+              : 'REPORTED_WITHOUT_CHANGES'
+          : 'NOT_REPORTED',
+        pendingChanges,
+        lastReport,
+      });
+    }
+
+    return rows;
   }
 
   async findOne(id: string) {
@@ -382,8 +621,139 @@ export class RecordsService {
       entityId: record.id,
       metadata: {
         delegationId: record.delegation.id,
+        regionId: record.delegation.region.id,
       },
     });
+  }
+
+  private async findRosterReport(id: string) {
+    const report = await this.rosterReportRepository.findOne({
+      where: { id },
+      relations: {
+        delegation: {
+          region: true,
+        },
+        submittedBy: true,
+      },
+    });
+
+    if (!report) {
+      throw new NotFoundException('Roster report not found.');
+    }
+
+    return report;
+  }
+
+  private findLastRosterReport(delegationId: string) {
+    return this.rosterReportRepository.findOne({
+      where: {
+        delegation: {
+          id: delegationId,
+        },
+      },
+      relations: {
+        delegation: true,
+        submittedBy: true,
+      },
+      order: {
+        submittedAt: 'DESC',
+      },
+    });
+  }
+
+  private countDelegationMovementsSince(delegationId: string, since: Date | null) {
+    const query = this.auditLogRepository
+      .createQueryBuilder('auditLog')
+      .where('auditLog.action IN (:...actions)', { actions: reportableMovementActions })
+      .andWhere(
+        new Brackets((whereBuilder) => {
+          whereBuilder
+            .where("auditLog.metadata ->> 'delegationId' = :delegationId", { delegationId })
+            .orWhere("auditLog.metadata ->> 'fromDelegationId' = :delegationId", { delegationId })
+            .orWhere("auditLog.metadata ->> 'toDelegationId' = :delegationId", { delegationId });
+        }),
+      );
+
+    if (since) {
+      query.andWhere('auditLog.createdAt > :since', { since });
+    }
+
+    return query.getCount();
+  }
+
+  private ensureCapturistDelegationAccess(authUser: AuthUser, delegationId: string) {
+    if (authUser.role !== Role.Capturist) {
+      return;
+    }
+
+    if (authUser.delegationId !== delegationId) {
+      throw new ForbiddenException('Capturists can only use their assigned delegation.');
+    }
+  }
+
+  private ensureRecordEditAccess(record: RecordEntity, authUser: AuthUser) {
+    if (authUser.role !== Role.Capturist) {
+      return;
+    }
+
+    if (record.createdBy.id !== authUser.sub || record.delegation.id !== authUser.delegationId) {
+      throw new ForbiddenException('Capturists can only edit their own delegation records.');
+    }
+  }
+
+  private normalizeRecordValues(values: NormalizedRecordValues): NormalizedRecordValues {
+    return {
+      plates: normalizeText(values.plates).toUpperCase(),
+      brand: normalizeText(values.brand).toUpperCase(),
+      type: normalizeText(values.type).toUpperCase(),
+      useType: normalizeText(values.useType).toUpperCase(),
+      vehicleClass: normalizeText(values.vehicleClass).toUpperCase(),
+      model: normalizeText(values.model).toUpperCase(),
+      engineNumber: normalizeText(values.engineNumber).toUpperCase(),
+      serialNumber: normalizeText(values.serialNumber).toUpperCase(),
+      custodian: normalizeText(values.custodian).toUpperCase(),
+      patrolNumber: normalizeText(values.patrolNumber).toUpperCase(),
+      physicalStatus: normalizeText(values.physicalStatus).toUpperCase(),
+      status: normalizeText(values.status).toUpperCase(),
+      assetClassification: normalizeText(values.assetClassification).toUpperCase(),
+      observation: normalizeText(values.observation),
+    };
+  }
+
+  private pickRecordValues(record: RecordEntity): NormalizedRecordValues {
+    return {
+      plates: record.plates,
+      brand: record.brand,
+      type: record.type,
+      useType: record.useType,
+      vehicleClass: record.vehicleClass,
+      model: record.model,
+      engineNumber: record.engineNumber,
+      serialNumber: record.serialNumber,
+      custodian: record.custodian,
+      patrolNumber: record.patrolNumber,
+      physicalStatus: record.physicalStatus,
+      status: record.status,
+      assetClassification: record.assetClassification,
+      observation: record.observation,
+    };
+  }
+
+  private mergeDefinedRecordValues(
+    currentValues: NormalizedRecordValues,
+    dto: UpdateRecordDto,
+  ): NormalizedRecordValues {
+    const mergedValues: NormalizedRecordValues = { ...currentValues };
+
+    for (const fieldName of editableRecordFields) {
+      const nextValue = dto[fieldName];
+
+      if (nextValue !== undefined) {
+        mergedValues[fieldName] = nextValue;
+      }
+    }
+
+    return mergedValues;
   }
 
   private groupRecords(records: RecordEntity[]) {

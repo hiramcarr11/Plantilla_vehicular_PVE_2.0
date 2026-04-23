@@ -387,6 +387,13 @@ table {
   font-weight: 600;
 }
 
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .page-intro {
   display: flex;
   justify-content: space-between;
@@ -585,7 +592,9 @@ table {
 }
 
 .primary-button,
-.secondary-button {
+.secondary-button,
+.ghost-button,
+.inline-button {
   border-radius: 8px;
   border: 1px solid transparent;
   min-height: 36px;
@@ -619,6 +628,63 @@ table {
 .secondary-button:hover {
   background: var(--sidebar-soft);
   color: #ffffff;
+}
+
+.ghost-button {
+  background: #ffffff;
+  border-color: var(--border-strong);
+  color: var(--slate-700);
+}
+
+.ghost-button:hover {
+  background: var(--slate-050);
+  color: var(--text);
+}
+
+.inline-button {
+  min-height: 30px;
+  background: #ffffff;
+  border-color: var(--border-strong);
+  color: var(--slate-700);
+  padding: 0 10px;
+}
+
+.inline-button:hover {
+  border-color: var(--slate-500);
+  color: var(--text);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.report-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.report-status-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.report-status-card span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.report-status-card strong {
+  color: var(--text);
+  font-size: 20px;
 }
 
 .table-actions {
@@ -956,6 +1022,10 @@ tbody tr:hover {
   .filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .report-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
@@ -986,6 +1056,10 @@ tbody tr:hover {
   .form-grid,
   .director-filter-grid,
   .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-status-grid {
     grid-template-columns: 1fr;
   }
 }

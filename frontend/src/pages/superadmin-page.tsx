@@ -128,6 +128,32 @@ export function SuperAdminPage() {
     return payload;
   };
 
+  const validateDraftUser = () => {
+    const missingFields = [
+      ['Nombre', draftUser.firstName],
+      ['Apellido', draftUser.lastName],
+      ['Grado', draftUser.grade],
+      ['Correo', draftUser.email],
+      ['Telefono', draftUser.phone],
+    ].filter(([, value]) => !normalizeText(value).length);
+
+    if (missingFields.length > 0) {
+      return `Campos obligatorios pendientes: ${missingFields.map(([label]) => label).join(', ')}.`;
+    }
+
+    const normalizedPassword = normalizeText(draftUser.password);
+
+    if (!isEditing && normalizedPassword.length < 8) {
+      return 'La contrasena debe tener al menos 8 caracteres.';
+    }
+
+    if (isEditing && normalizedPassword.length > 0 && normalizedPassword.length < 8) {
+      return 'La contrasena nueva debe tener al menos 8 caracteres.';
+    }
+
+    return null;
+  };
+
   return (
     <div className="stack-lg">
       <section className="panel">
@@ -296,6 +322,18 @@ export function SuperAdminPage() {
           className="primary-button"
           type="button"
           onClick={async () => {
+            const validationError = validateDraftUser();
+
+            if (validationError) {
+              await Swal.fire({
+                icon: 'warning',
+                title: 'Datos incompletos',
+                text: validationError,
+                confirmButtonText: 'Entendido',
+              });
+              return;
+            }
+
             const confirmation = await Swal.fire({
               icon: 'question',
               title: isEditing ? 'Confirmar modificación' : 'Confirmar alta de usuario',

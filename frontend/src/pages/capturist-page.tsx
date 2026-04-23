@@ -5,8 +5,16 @@ import { StatsGrid } from '../components/stats-grid';
 import { useCapturistData } from '../modules/records/use-capturist-data';
 
 export function CapturistPage() {
-  const { session, records, latestRecord, availableDelegations, fieldCatalogs, createRecord } =
-    useCapturistData();
+  const {
+    session,
+    records,
+    latestRecord,
+    latestRosterReport,
+    availableDelegations,
+    fieldCatalogs,
+    createRecord,
+    submitRosterReport,
+  } = useCapturistData();
 
   if (!session) {
     return null;
@@ -18,21 +26,37 @@ export function CapturistPage() {
         <PageIntro
           eyebrow="Captura operativa"
           title="Registro de bienes vehiculares"
-          description="Captura la información desde tu delegación con apoyo de catálogos controlados."
+          description="Captura la informacion desde tu delegacion con apoyo de catalogos controlados."
         />
 
         <StatsGrid
           items={[
-            { label: 'Delegación asignada', value: session.user.delegation?.name ?? '-' },
+            { label: 'Delegacion asignada', value: session.user.delegation?.name ?? '-' },
             { label: 'Capturas realizadas', value: records.length },
             {
-              label: 'Última captura',
+              label: 'Ultima captura',
               value: latestRecord ? new Date(latestRecord.createdAt).toLocaleDateString() : '-',
               helper: latestRecord ? latestRecord.plates : 'Sin registros',
             },
-            { label: 'Estado de canal', value: 'En línea' },
+            {
+              label: 'Ultimo reporte',
+              value: latestRosterReport
+                ? new Date(latestRosterReport.submittedAt).toLocaleDateString()
+                : 'Sin reporte',
+              helper: latestRosterReport
+                ? latestRosterReport.hasChanges
+                  ? 'Con cambios'
+                  : 'Sin cambios'
+                : 'Pendiente',
+            },
           ]}
         />
+
+        <div className="panel-actions">
+          <button className="primary-button" type="button" onClick={submitRosterReport}>
+            Enviar reporte de plantilla
+          </button>
+        </div>
       </section>
 
       {fieldCatalogs ? (
@@ -44,7 +68,7 @@ export function CapturistPage() {
       ) : (
         <section className="panel">
           <EmptyState
-            title="Cargando catálogos de captura"
+            title="Cargando catalogos de captura"
             description="Espera un momento para desplegar las opciones del formulario."
           />
         </section>

@@ -226,6 +226,58 @@ export class InitSchema1761140000000 implements MigrationInterface {
       );
     }
 
+    const hasRosterReportsTable = await queryRunner.hasTable('vehicle_roster_reports');
+    if (!hasRosterReportsTable) {
+      await queryRunner.createTable(
+        new Table({
+          name: 'vehicle_roster_reports',
+          columns: [
+            {
+              name: 'id',
+              type: 'uuid',
+              isPrimary: true,
+              default: 'uuid_generate_v4()',
+            },
+            { name: 'createdAt', type: 'timestamp', default: 'now()' },
+            { name: 'updatedAt', type: 'timestamp', default: 'now()' },
+            { name: 'deletedAt', type: 'timestamp', isNullable: true },
+            { name: 'hasChanges', type: 'boolean', default: false },
+            { name: 'changesSinceLastReport', type: 'int', default: 0 },
+            { name: 'notes', type: 'text', default: "''" },
+            { name: 'submittedAt', type: 'timestamp' },
+            { name: 'delegationId', type: 'uuid' },
+            { name: 'submittedById', type: 'uuid' },
+          ],
+        }),
+      );
+    }
+
+    const hasTransfersTable = await queryRunner.hasTable('vehicle_transfers');
+    if (!hasTransfersTable) {
+      await queryRunner.createTable(
+        new Table({
+          name: 'vehicle_transfers',
+          columns: [
+            {
+              name: 'id',
+              type: 'uuid',
+              isPrimary: true,
+              default: 'uuid_generate_v4()',
+            },
+            { name: 'createdAt', type: 'timestamp', default: 'now()' },
+            { name: 'updatedAt', type: 'timestamp', default: 'now()' },
+            { name: 'deletedAt', type: 'timestamp', isNullable: true },
+            { name: 'reason', type: 'text', default: "''" },
+            { name: 'movedAt', type: 'timestamp' },
+            { name: 'recordId', type: 'uuid' },
+            { name: 'fromDelegationId', type: 'uuid' },
+            { name: 'toDelegationId', type: 'uuid' },
+            { name: 'movedById', type: 'uuid' },
+          ],
+        }),
+      );
+    }
+
     await ensureColumn(
       queryRunner,
       'regions',
@@ -349,9 +401,94 @@ export class InitSchema1761140000000 implements MigrationInterface {
         onDelete: 'SET NULL',
       }),
     );
+    await ensureForeignKey(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableForeignKey({
+        name: 'FK_vehicle_roster_reports_delegation',
+        columnNames: ['delegationId'],
+        referencedTableName: 'delegations',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }),
+    );
+    await ensureForeignKey(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableForeignKey({
+        name: 'FK_vehicle_roster_reports_submitted_by',
+        columnNames: ['submittedById'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }),
+    );
+    await ensureForeignKey(
+      queryRunner,
+      'vehicle_transfers',
+      new TableForeignKey({
+        name: 'FK_vehicle_transfers_record',
+        columnNames: ['recordId'],
+        referencedTableName: 'records',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }),
+    );
+    await ensureForeignKey(
+      queryRunner,
+      'vehicle_transfers',
+      new TableForeignKey({
+        name: 'FK_vehicle_transfers_from_delegation',
+        columnNames: ['fromDelegationId'],
+        referencedTableName: 'delegations',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }),
+    );
+    await ensureForeignKey(
+      queryRunner,
+      'vehicle_transfers',
+      new TableForeignKey({
+        name: 'FK_vehicle_transfers_to_delegation',
+        columnNames: ['toDelegationId'],
+        referencedTableName: 'delegations',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }),
+    );
+    await ensureForeignKey(
+      queryRunner,
+      'vehicle_transfers',
+      new TableForeignKey({
+        name: 'FK_vehicle_transfers_moved_by',
+        columnNames: ['movedById'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }),
+    );
+
+    await ensureIndex(
+      queryRunner,
+      'vehicle_roster_reports',
+      new TableIndex({
+        name: 'IDX_vehicle_roster_reports_delegation_submitted',
+        columnNames: ['delegationId', 'submittedAt'],
+      }),
+    );
+    await ensureIndex(
+      queryRunner,
+      'vehicle_transfers',
+      new TableIndex({
+        name: 'IDX_vehicle_transfers_record_moved',
+        columnNames: ['recordId', 'movedAt'],
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropTable('vehicle_transfers', true);
+    await queryRunner.dropTable('vehicle_roster_reports', true);
     await queryRunner.dropTable('audit_logs', true);
     await queryRunner.dropTable('records', true);
     await queryRunner.dropTable('users', true);

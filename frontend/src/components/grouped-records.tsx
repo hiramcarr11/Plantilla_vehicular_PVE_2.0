@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { GroupedRegionRecords, RecordFieldCatalogMap } from '../types';
+import type { GroupedRegionRecords, RecordFieldCatalogMap, VehicleRecord } from '../types';
 import { EmptyState } from './empty-state';
 import { PageIntro } from './page-intro';
 import { StatsGrid } from './stats-grid';
@@ -13,6 +13,7 @@ type GroupedRecordsProps = {
   description: string;
   headerFilters?: ReactNode;
   vehicleClassAfterDate?: boolean;
+  renderRecordActions?: (record: VehicleRecord) => ReactNode;
 };
 
 type FiltersState = {
@@ -65,6 +66,7 @@ export function GroupedRecords({
   description,
   headerFilters,
   vehicleClassAfterDate = false,
+  renderRecordActions,
 }: GroupedRecordsProps) {
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
 
@@ -319,6 +321,7 @@ export function GroupedRecords({
                           <th>Clasificación</th>
                           <th>Modelo</th>
                           <th>Resguardante</th>
+                          {renderRecordActions && <th>Acciones</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -336,6 +339,7 @@ export function GroupedRecords({
                             <td>{record.assetClassification}</td>
                             <td>{record.model}</td>
                             <td>{record.custodian}</td>
+                            {renderRecordActions && <td>{renderRecordActions(record)}</td>}
                           </tr>
                         ))}
                       </tbody>

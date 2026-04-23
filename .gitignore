@@ -12,6 +12,7 @@ frontend/.env
 
 # Logs
 *.log
+*.err
 backend/*.log
 frontend/*.log
 

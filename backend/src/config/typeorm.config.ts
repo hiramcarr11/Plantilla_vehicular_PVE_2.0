@@ -8,9 +8,19 @@ import { AuditLogEntity } from '../modules/audit-logs/entities/audit-log.entity'
 import { DelegationEntity } from '../modules/catalog/entities/delegation.entity';
 import { RegionEntity } from '../modules/catalog/entities/region.entity';
 import { RecordEntity } from '../modules/records/entities/record.entity';
+import { VehicleRosterReportEntity } from '../modules/records/entities/vehicle-roster-report.entity';
+import { VehicleTransferEntity } from '../modules/records/entities/vehicle-transfer.entity';
 import { UserEntity } from '../modules/users/entities/user.entity';
 
-const ENTITIES = [AuditLogEntity, DelegationEntity, RecordEntity, RegionEntity, UserEntity];
+const ENTITIES = [
+  AuditLogEntity,
+  DelegationEntity,
+  RecordEntity,
+  RegionEntity,
+  UserEntity,
+  VehicleRosterReportEntity,
+  VehicleTransferEntity,
+];
 const MIGRATIONS = [InitSchema1761140000000];
 
 function loadEnvFile() {
@@ -74,7 +84,7 @@ export function createTypeOrmOptions(configService?: ConfigService): DataSourceO
     migrations: MIGRATIONS,
     migrationsRun: true,
     synchronize: false,
-    dropSchema:false  ,
+    dropSchema: false,
   };
 }
 
