@@ -2,14 +2,20 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../modules/auth/auth-context';
+import { LoadingSpinner } from '../components/loading-spinner';
 
 export function LoginPage() {
   const { session, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   if (session) {
     return <Navigate to="/" replace />;
+  }
+
+  if (isLoggingIn) {
+    return <LoadingSpinner message="Iniciando sesi&oacute;n..." />;
   }
 
   return (
@@ -18,6 +24,7 @@ export function LoginPage() {
         className="login-card"
         onSubmit={async (event) => {
           event.preventDefault();
+          setIsLoggingIn(true);
 
           try {
             await login(email.trim(), password);
@@ -30,10 +37,12 @@ export function LoginPage() {
           } catch (requestError) {
             await Swal.fire({
               icon: 'error',
-              title: 'No se pudo iniciar sesión',
+              title: 'No se pudo iniciar sesi&oacute;n',
               text: (requestError as Error).message,
               confirmButtonText: 'Entendido',
             });
+          } finally {
+            setIsLoggingIn(false);
           }
         }}
       >

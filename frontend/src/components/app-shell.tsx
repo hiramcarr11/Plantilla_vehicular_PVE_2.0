@@ -52,7 +52,7 @@ const pageTitles: Record<string, { title: string; description: string }> = {
 };
 
 export function AppShell() {
-  const { session, logout } = useAuth();
+  const { session, logoutWithApi } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -161,7 +161,7 @@ export function AppShell() {
           </nav>
 
           <div className="sidebar-footer">
-            <button className="secondary-button" type="button" onClick={logout}>
+            <button className="secondary-button" type="button" onClick={logoutWithApi}>
               Cerrar sesión
             </button>
           </div>

@@ -4,13 +4,17 @@ import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { api } from '../lib/api';
 import { formatUserName } from '../lib/format-user-name';
-import { connectSocketWithAuth, socket } from '../lib/socket';
+import { socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
 import type { AuditLog } from '../types';
 
 export function SuperAdminAuditPage() {
   const { session } = useAuth();
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LOGS_PER_PAGE = 100;
 
   useEffect(() => {
     if (!session) {
@@ -18,18 +22,22 @@ export function SuperAdminAuditPage() {
     }
 
     const loadAuditLogs = async () => {
-      setAuditLogs(await api.getAuditLogs(session.accessToken));
+      const response = await api.getAuditLogs(session.accessToken, currentPage, LOGS_PER_PAGE);
+      const logsList = Array.isArray(response) ? response : response.items;
+      const pages = Array.isArray(response) ? 1 : Math.max(1, response.meta.totalPages);
+      const total = Array.isArray(response) ? response.length : response.meta.totalItems;
+      setAuditLogs(logsList);
+      setTotalPages(pages);
+      setTotalItems(total);
     };
 
     void loadAuditLogs();
-    connectSocketWithAuth();
     socket.on('audit.created', loadAuditLogs);
 
     return () => {
       socket.off('audit.created', loadAuditLogs);
-      socket.disconnect();
     };
-  }, [session]);
+  }, [session, currentPage]);
 
   if (!session) {
     return null;
@@ -46,7 +54,7 @@ export function SuperAdminAuditPage() {
 
         <StatsGrid
           items={[
-            { label: 'Eventos registrados', value: auditLogs.length },
+            { label: 'Eventos registrados', value: totalItems },
             {
               label: 'Último movimiento',
               value: auditLogs[0] ? new Date(auditLogs[0].createdAt).toLocaleTimeString() : '-',
@@ -95,6 +103,36 @@ export function SuperAdminAuditPage() {
           </div>
         )}
       </section>
+
+      {totalPages > 1 && (
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Paginación</p>
+              <h2>Bitácora</h2>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </button>
+            <span>Página {currentPage} de {totalPages}</span>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

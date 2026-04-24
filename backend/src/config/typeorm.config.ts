@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, type DataSourceOptions } from 'typeorm';
 import { InitSchema1761140000000 } from '../database/migrations/1761140000000-init-schema';
+import { AddUniqueIndexesRecords1761200000000 } from '../database/migrations/1761200000000-add-unique-indexes-records';
 import { AuditLogEntity } from '../modules/audit-logs/entities/audit-log.entity';
 import { DelegationEntity } from '../modules/catalog/entities/delegation.entity';
 import { RegionEntity } from '../modules/catalog/entities/region.entity';
@@ -21,7 +22,7 @@ const ENTITIES = [
   VehicleRosterReportEntity,
   VehicleTransferEntity,
 ];
-const MIGRATIONS = [InitSchema1761140000000];
+const MIGRATIONS = [InitSchema1761140000000, AddUniqueIndexesRecords1761200000000];
 
 function loadEnvFile() {
   const envPath = path.resolve(process.cwd(), '.env');

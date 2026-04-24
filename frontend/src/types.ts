@@ -271,3 +271,15 @@ export type AuthResponse = {
   accessToken: string;
   user: User;
 };
+
+export type PaginatedMeta = {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  meta: PaginatedMeta;
+};

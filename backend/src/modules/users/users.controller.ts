@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from 'src/common/auth/current-user.decorator';
+import { PaginatedQueryDto } from 'src/common/dto/paginated-query.dto';
 import { RequireRoles } from 'src/common/auth/roles.decorator';
 import { RolesGuard } from 'src/common/auth/roles.guard';
 import { Role } from 'src/common/enums/role.enum';
@@ -24,7 +25,15 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Query() query: PaginatedQueryDto) {
+    const hasPagination = query.page !== undefined || query.limit !== undefined;
+
+    if (hasPagination) {
+      const page = query.page ?? 1;
+      const limit = query.limit ?? 50;
+      return this.usersService.findAll(page, limit);
+    }
+
     return this.usersService.findAll();
   }
 

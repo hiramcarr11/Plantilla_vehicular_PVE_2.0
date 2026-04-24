@@ -79,6 +79,15 @@ export class AuthService {
     return this.usersService.findOne(userId);
   }
 
+  async logout(userId: string) {
+    await this.auditLogsService.register({
+      actorId: userId,
+      action: 'USER_LOGGED_OUT',
+      entityType: 'user',
+      entityId: userId,
+    });
+  }
+
   private assertRateLimit(attemptKey: string) {
     this.cleanupStaleAttempts();
     const currentAttempt = this.loginAttempts.get(attemptKey);

@@ -7,12 +7,16 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "lint": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "typeorm": "node -r ts-node/register -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d src/config/typeorm.config.ts",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
     "migration:show": "npm run typeorm -- migration:show",
     "seed:users": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-users.ts",
-    "seed:vehicles": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-vehicles.ts"
+    "seed:vehicles": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-vehicles.ts",
+    "validate:release": "node -r ts-node/register -r tsconfig-paths/register src/scripts/validate-release.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.3",
@@ -37,10 +41,14 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
+    "@nestjs/testing": "^11.1.19",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.15.3",
     "@types/passport-jwt": "^4.0.1",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.3"

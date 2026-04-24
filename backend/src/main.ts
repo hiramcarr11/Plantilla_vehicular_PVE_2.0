@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { httpLoggingMiddleware, rateLimitMiddleware, requestIdMiddleware } from './common/middleware';
 
 const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
@@ -10,6 +11,8 @@ const SECURITY_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Resource-Policy': 'same-site',
   'X-Permitted-Cross-Domain-Policies': 'none',
+  'X-XSS-Protection': '0',
+  'Cache-Control': 'no-store',
 };
 
 function isLocalDevelopmentOrigin(origin: string) {
@@ -69,6 +72,10 @@ function resolveTrustProxy() {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.getHttpAdapter().getInstance().set('trust proxy', resolveTrustProxy());
+
+  app.use(requestIdMiddleware);
+  app.use(rateLimitMiddleware);
+  app.use(httpLoggingMiddleware);
 
   app.enableCors({
     origin: buildCorsOriginChecker(),
