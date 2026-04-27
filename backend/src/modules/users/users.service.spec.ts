@@ -22,7 +22,7 @@ function createMockUser(overrides: Partial<UserEntity> = {}): UserEntity {
     phone: '1234567890',
     email: 'test@example.com',
     passwordHash: 'hashed',
-    role: Role.Capturist,
+    role: Role.Enlace,
     isActive: true,
     region: null,
     delegation: null,
@@ -92,7 +92,7 @@ describe('UsersService', () => {
           phone: '0000000000',
           email: 'test@example.com',
           password: 'StrongP@ss1',
-          role: Role.Capturist,
+          role: Role.Enlace,
         }),
       ).rejects.toThrow(ConflictException);
     });
@@ -110,7 +110,7 @@ describe('UsersService', () => {
           phone: '0000000000',
           email: 'test@example.com',
           password: 'StrongP@ss1',
-          role: Role.Capturist,
+          role: Role.Enlace,
         }),
       ).rejects.toThrow(ConflictException);
     });
