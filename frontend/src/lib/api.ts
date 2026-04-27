@@ -1,9 +1,11 @@
 import {
   AuditLog,
   AuthResponse,
+  Conversation,
   CreateUserPayload,
   DirectorOverview,
   GroupedRegionRecords,
+  Message,
   PaginatedResponse,
   Region,
   RegionRosterReportOverviewRow,
@@ -58,11 +60,11 @@ function getPublicErrorMessage(status: number, responseText = '') {
   }
 
   if (status === 401) {
-    return 'No autorizado. Inicia sesión nuevamente.';
+    return 'No autorizado. Inicia sesion nuevamente.';
   }
 
   if (status === 403) {
-    return 'No tienes permisos para realizar esta acción.';
+    return 'No tienes permisos para realizar esta accion.';
   }
 
   if (status === 404) {
@@ -74,11 +76,11 @@ function getPublicErrorMessage(status: number, responseText = '') {
   }
 
   if (status === 429) {
-    return 'Demasiadas solicitudes. Intenta más tarde.';
+    return 'Demasiadas solicitudes. Intenta mas tarde.';
   }
 
   if (status >= 500) {
-    return 'Ocurrió un error interno. Intenta nuevamente más tarde.';
+    return 'Ocurrio un error interno. Intenta nuevamente mas tarde.';
   }
 
   return 'No se pudo completar la solicitud.';
@@ -119,6 +121,36 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
   return JSON.parse(responseText) as T;
 }
 
+async function requestWithFormData<T>(path: string, formData: FormData, token: string): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+
+    if (response.status === 401 && token) {
+      if (unauthorizedHandler) {
+        unauthorizedHandler();
+      }
+    }
+
+    throw new Error(getPublicErrorMessage(response.status, responseText));
+  }
+
+  const responseText = await response.text();
+
+  if (!responseText.trim()) {
+    return undefined as T;
+  }
+
+  return JSON.parse(responseText) as T;
+}
+
 export const api = {
   login(email: string, password: string) {
     return request<AuthResponse>('/auth/login', {
@@ -140,6 +172,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(values),
     }, token);
+  },
+  createRecordWithPhotos(values: RecordFormValues, photos: File[], token: string) {
+    const formData = new FormData();
+
+    Object.entries(values).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    });
+
+    photos.forEach((photo) => {
+      formData.append('photos', photo);
+    });
+
+    return requestWithFormData<VehicleRecord>('/records', formData, token);
   },
   updateRecord(recordId: string, values: RecordFormValues, token: string) {
     const recordValues: Partial<RecordFormValues> = { ...values };
@@ -317,5 +364,48 @@ export const api = {
   },
   logout(token: string) {
     return request<void>('/auth/logout', { method: 'POST' }, token);
+  },
+  getMessagingPartners(token: string) {
+    return request<User[]>('/messages/partners', undefined, token);
+  },
+  getConversations(token: string) {
+    return request<Conversation[]>('/messages/conversations', undefined, token);
+  },
+  createConversation(participantIds: string[], title: string | undefined, token: string) {
+    return request<Conversation>('/messages/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ participantIds, title }),
+    }, token);
+  },
+  getConversationMessages(conversationId: string, token: string) {
+    return request<Message[]>(`/messages/conversations/${conversationId}/messages`, undefined, token);
+  },
+  sendMessage(conversationId: string, content: string, token: string) {
+    return request<Message>('/messages', {
+      method: 'POST',
+      body: JSON.stringify({ conversationId, content }),
+    }, token);
+  },
+  sendMessageWithPhotos(conversationId: string, content: string, photos: File[], token: string) {
+    const formData = new FormData();
+    formData.append('conversationId', conversationId);
+    formData.append('content', content);
+
+    photos.forEach((photo) => {
+      formData.append('photos', photo);
+    });
+
+    return requestWithFormData<Message>('/messages/with-photos', formData, token);
+  },
+  markMessageAsRead(messageId: string, token: string) {
+    return request<Message>('/messages/read', {
+      method: 'PATCH',
+      body: JSON.stringify({ messageId }),
+    }, token);
+  },
+  markConversationAsRead(conversationId: string, token: string) {
+    return request<void>(`/messages/conversations/${conversationId}/read-all`, {
+      method: 'PATCH',
+    }, token);
   },
 };

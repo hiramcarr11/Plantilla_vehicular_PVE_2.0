@@ -76,6 +76,15 @@ export type RecordFormValues = {
   observation: string;
 };
 
+export type VehiclePhoto = {
+  id: string;
+  fileName: string;
+  filePath: string;
+  mimeType: string;
+  uploadedBy: User;
+  createdAt: string;
+};
+
 export type VehicleRecord = RecordFormValues & {
   id: string;
   createdAt: string;
@@ -98,6 +107,7 @@ export type VehicleRecord = RecordFormValues & {
     };
   };
   createdBy: User;
+  photos: VehiclePhoto[];
   latestTransfer: VehicleTransferEvent | null;
   latestEdit: VehicleEditEvent | null;
   transferHistory: VehicleTransferEvent[];
@@ -282,4 +292,37 @@ export type PaginatedMeta = {
 export type PaginatedResponse<T> = {
   items: T[];
   meta: PaginatedMeta;
+};
+
+export type Conversation = {
+  id: string;
+  title: string | null;
+  isGroup: boolean;
+  participants: User[];
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  unreadCount?: number;
+  lastMessage?: Message | null;
+};
+
+export type MessagePhoto = {
+  id: string;
+  fileName: string;
+  filePath: string;
+  mimeType: string;
+  uploadedBy: User;
+  createdAt: string;
+};
+
+export type Message = {
+  id: string;
+  content: string;
+  isRead: boolean;
+  readAt: string | null;
+  sender: User;
+  conversation: Conversation;
+  photos: MessagePhoto[];
+  createdAt: string;
+  updatedAt: string;
 };

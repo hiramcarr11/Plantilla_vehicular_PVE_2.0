@@ -1,6 +1,9 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
+import { mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { httpLoggingMiddleware, rateLimitMiddleware, requestIdMiddleware } from './common/middleware';
 
@@ -72,8 +75,28 @@ function resolveTrustProxy() {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const vehiclePhotosDir = join(process.cwd(), 'uploads', 'vehicle-photos');
+  const messagePhotosDir = join(process.cwd(), 'uploads', 'message-photos');
+
+  if (!existsSync(vehiclePhotosDir)) {
+    mkdirSync(vehiclePhotosDir, { recursive: true });
+  }
+
+  if (!existsSync(messagePhotosDir)) {
+    mkdirSync(messagePhotosDir, { recursive: true });
+  }
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.getHttpAdapter().getInstance().set('trust proxy', resolveTrustProxy());
+
+  const uploadsDir = join(process.cwd(), 'uploads');
+  app.useStaticAssets(uploadsDir, {
+    prefix: '/uploads',
+    setHeaders: (res: Response) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    },
+  });
 
   app.use(requestIdMiddleware);
   app.use(rateLimitMiddleware);
@@ -86,8 +109,16 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.use((request: Request, response: Response, next: NextFunction) => {
+    const isUpload = request.path.startsWith('/uploads');
+
     Object.entries(SECURITY_HEADERS).forEach(([headerName, headerValue]) => {
-      response.setHeader(headerName, headerValue);
+      if (isUpload && headerName === 'Cross-Origin-Resource-Policy') {
+        response.setHeader(headerName, 'cross-origin');
+      } else if (isUpload && headerName === 'Cache-Control') {
+        response.setHeader(headerName, 'public, max-age=86400');
+      } else {
+        response.setHeader(headerName, headerValue);
+      }
     });
 
     if (request.secure || request.headers['x-forwarded-proto'] === 'https') {

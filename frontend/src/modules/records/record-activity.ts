@@ -1,7 +1,22 @@
 import Swal from 'sweetalert2';
 import { api } from '../../lib/api';
 import { formatUserName } from '../../lib/format-user-name';
-import type { Region, VehicleEditEvent, VehicleRecord, VehicleTransferEvent } from '../../types';
+import { resolveConfiguredNetworkUrl } from '../../lib/resolve-network-url';
+import type { Region, VehicleEditEvent, VehicleRecord, VehicleTransferEvent, VehiclePhoto } from '../../types';
+
+function resolveApiBaseUrl() {
+  const configuredUrl = resolveConfiguredNetworkUrl(import.meta.env.VITE_API_URL, '/api');
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/api$/, '');
+  }
+  if (typeof window === 'undefined') {
+    return 'http://localhost:3000';
+  }
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:3000`;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 function escapeHtml(value: unknown) {
   return String(value ?? '')
@@ -51,6 +66,15 @@ function renderEditLine(edit: VehicleEditEvent) {
   `;
 }
 
+function renderPhotoThumbnail(photo: VehiclePhoto) {
+  const photoUrl = `${API_BASE_URL}/uploads/vehicle-photos/${escapeHtml(photo.filePath)}`;
+  return `
+    <div class="photo-thumb" data-photo-url="${photoUrl}" data-photo-name="${escapeHtml(photo.fileName)}">
+      <img src="${photoUrl}" alt="${escapeHtml(photo.fileName)}" />
+    </div>
+  `;
+}
+
 export function getRecordActivitySummary(record: VehicleRecord) {
   const parts = [];
 
@@ -77,6 +101,21 @@ export async function openRecordDetails(record: VehicleRecord) {
       ? record.editHistory.map((edit) => renderEditLine(edit)).join('')
       : '<div class="activity-item"><span>Sin ediciones registradas.</span></div>';
 
+  const photosSection =
+    record.photos && record.photos.length > 0
+      ? `
+        <div class="activity-item">
+          <div class="activity-item-head">
+            <strong>Fotos</strong>
+            <span>${record.photos.length} imagen(es)</span>
+          </div>
+          <div class="photo-gallery">
+            ${record.photos.map((photo) => renderPhotoThumbnail(photo)).join('')}
+          </div>
+        </div>
+      `
+      : '<div class="activity-item"><span>Sin fotos cargadas.</span></div>';
+
   await Swal.fire({
     title: `Historial de ${record.plates}`,
     width: 900,
@@ -91,10 +130,27 @@ export async function openRecordDetails(record: VehicleRecord) {
           <p>Delegacion visible: ${escapeHtml(record.viewDelegation.name)}</p>
           <span>Delegacion actual: ${escapeHtml(record.delegation.name)}</span>
         </div>
+        ${photosSection}
         ${transferHistory}
         ${editHistory}
       </div>
     `,
+  });
+
+  document.querySelectorAll('.photo-thumb').forEach((thumb) => {
+    thumb.addEventListener('click', async () => {
+      const url = (thumb as HTMLElement).getAttribute('data-photo-url');
+      const name = (thumb as HTMLElement).getAttribute('data-photo-name');
+      if (url) {
+        await Swal.fire({
+          imageUrl: url,
+          imageAlt: name ?? 'Foto del vehiculo',
+          showConfirmButton: false,
+          showCloseButton: true,
+          width: '90%',
+        });
+      }
+    });
   });
 }
 

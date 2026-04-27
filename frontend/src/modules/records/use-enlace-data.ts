@@ -71,7 +71,7 @@ export function useEnlaceData() {
   const latestRecord = records[0];
   const latestRosterReport = rosterReports[0];
 
-  const createRecord = async (values: RecordFormValues) => {
+  const createRecord = async (values: RecordFormValues, photos: File[] = []) => {
     if (!session) {
       return;
     }
@@ -90,7 +90,11 @@ export function useEnlaceData() {
     }
 
     try {
-      await api.createRecord(values, session.accessToken);
+      if (photos.length > 0) {
+        await api.createRecordWithPhotos(values, photos, session.accessToken);
+      } else {
+        await api.createRecord(values, session.accessToken);
+      }
       await loadSnapshot();
 
       await Swal.fire({

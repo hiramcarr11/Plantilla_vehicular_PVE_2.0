@@ -3,26 +3,31 @@ import * as path from 'node:path';
 import 'reflect-metadata';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, type DataSourceOptions } from 'typeorm';
-import { InitSchema1761140000000 } from '../database/migrations/1761140000000-init-schema';
-import { AddUniqueIndexesRecords1761200000000 } from '../database/migrations/1761200000000-add-unique-indexes-records';
 import { AuditLogEntity } from '../modules/audit-logs/entities/audit-log.entity';
 import { DelegationEntity } from '../modules/catalog/entities/delegation.entity';
 import { RegionEntity } from '../modules/catalog/entities/region.entity';
+import { ConversationEntity } from '../modules/messages/entities/conversation.entity';
+import { MessageEntity } from '../modules/messages/entities/message.entity';
+import { MessagePhotoEntity } from '../modules/messages/entities/message-photo.entity';
 import { RecordEntity } from '../modules/records/entities/record.entity';
+import { VehiclePhotoEntity } from '../modules/records/entities/vehicle-photo.entity';
 import { VehicleRosterReportEntity } from '../modules/records/entities/vehicle-roster-report.entity';
 import { VehicleTransferEntity } from '../modules/records/entities/vehicle-transfer.entity';
 import { UserEntity } from '../modules/users/entities/user.entity';
 
 const ENTITIES = [
   AuditLogEntity,
+  ConversationEntity,
   DelegationEntity,
+  MessageEntity,
+  MessagePhotoEntity,
   RecordEntity,
   RegionEntity,
   UserEntity,
+  VehiclePhotoEntity,
   VehicleRosterReportEntity,
   VehicleTransferEntity,
 ];
-const MIGRATIONS = [InitSchema1761140000000, AddUniqueIndexesRecords1761200000000];
 
 function loadEnvFile() {
   const envPath = path.resolve(process.cwd(), '.env');
@@ -82,9 +87,7 @@ export function createTypeOrmOptions(configService?: ConfigService): DataSourceO
     username: readValue('DATABASE_USER', 'postgres'),
     password: readValue('DATABASE_PASSWORD', 'change_me'),
     entities: ENTITIES,
-    migrations: MIGRATIONS,
-    migrationsRun: true,
-    synchronize: false,
+    synchronize: true,
     dropSchema: false,
   };
 }

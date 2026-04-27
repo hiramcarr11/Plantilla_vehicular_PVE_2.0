@@ -1,7 +1,8 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
+import { VehiclePhotoEntity } from './vehicle-photo.entity';
 
 @Entity('records')
 export class RecordEntity extends BaseEntity {
@@ -58,4 +59,9 @@ export class RecordEntity extends BaseEntity {
     onDelete: 'RESTRICT',
   })
   createdBy!: UserEntity;
+
+  @OneToMany(() => VehiclePhotoEntity, (photo) => photo.record, {
+    cascade: true,
+  })
+  photos!: VehiclePhotoEntity[];
 }

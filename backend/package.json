@@ -10,10 +10,6 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "typeorm": "node -r ts-node/register -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d src/config/typeorm.config.ts",
-    "migration:run": "npm run typeorm -- migration:run",
-    "migration:revert": "npm run typeorm -- migration:revert",
-    "migration:show": "npm run typeorm -- migration:show",
     "seed:users": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-users.ts",
     "seed:vehicles": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-vehicles.ts",
     "validate:release": "node -r ts-node/register -r tsconfig-paths/register src/scripts/validate-release.ts"
@@ -46,6 +42,7 @@
     "@types/express": "^5.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.15.3",
+    "@types/multer": "^1.4.12",
     "@types/passport-jwt": "^4.0.1",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",

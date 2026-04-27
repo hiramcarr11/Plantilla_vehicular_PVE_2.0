@@ -1,4 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { randomBytes } from 'crypto';
 import { CurrentUser } from 'src/common/auth/current-user.decorator';
 import { RequireRoles } from 'src/common/auth/roles.decorator';
 import { RolesGuard } from 'src/common/auth/roles.guard';
@@ -9,6 +13,43 @@ import { SubmitRosterReportDto } from './dto/submit-roster-report.dto';
 import { TransferRecordDto } from './dto/transfer-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { RecordsService } from './records.service';
+
+type UploadedFile = {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  filename: string;
+  path: string;
+  size: number;
+};
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILES = 3;
+
+function photoFileFilter(
+  _req: Express.Request,
+  file: UploadedFile,
+  callback: (error: Error | null, acceptFile: boolean) => void,
+) {
+  if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    callback(null, true);
+  } else {
+    callback(new Error('Solo se permiten imagenes en formato JPG, JPEG, PNG o WEBP.'), false);
+  }
+}
+
+const photoStorage = diskStorage({
+  destination: (_req, _file, callback) => {
+    const uploadDir = join(process.cwd(), 'uploads', 'vehicle-photos');
+    callback(null, uploadDir);
+  },
+  filename: (_req, file, callback) => {
+    const uniqueName = `${randomBytes(16).toString('hex')}${extname(file.originalname)}`;
+    callback(null, uniqueName);
+  },
+});
 
 type AuthUser = {
   sub: string;
@@ -24,8 +65,19 @@ export class RecordsController {
 
   @Post()
   @RequireRoles(Role.Enlace)
-  create(@Body() dto: CreateRecordDto, @CurrentUser() user: AuthUser) {
-    return this.recordsService.create(dto, user);
+  @UseInterceptors(
+    FilesInterceptor('photos', MAX_FILES, {
+      storage: photoStorage,
+      fileFilter: photoFileFilter,
+      limits: { fileSize: MAX_FILE_SIZE },
+    }),
+  )
+  create(
+    @Body() dto: CreateRecordDto,
+    @CurrentUser() user: AuthUser,
+    @UploadedFiles() photos?: UploadedFile[],
+  ) {
+    return this.recordsService.create(dto, user, photos);
   }
 
   @Get('my')

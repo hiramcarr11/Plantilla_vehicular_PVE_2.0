@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import type { Delegation, RecordFieldCatalogMap, RecordFormValues } from '../types';
 
 const customCatalogFields = ['useType', 'status', 'assetClassification'] as const;
+const MAX_PHOTOS = 3;
 
 const schema = z
   .object({
@@ -43,12 +44,17 @@ const schema = z
 
 type RecordFormData = z.infer<typeof schema>;
 
+type PhotoFile = {
+  file: File;
+  preview: string;
+};
+
 type RecordFormProps = {
   delegations: Delegation[];
   fieldCatalogs: RecordFieldCatalogMap;
   initialValues?: RecordFormValues;
   mode?: 'create' | 'edit';
-  onSubmit: (values: RecordFormValues) => Promise<void>;
+  onSubmit: (values: RecordFormValues, photos: File[]) => Promise<void>;
   onCancel?: () => void;
 };
 
@@ -65,10 +71,10 @@ const textFields = [
 
 const catalogFields = [
   ['useType', 'Uso'],
-  ['vehicleClass', 'Clase de vehículo'],
-  ['physicalStatus', 'Estado físico'],
+  ['vehicleClass', 'Clase de vehiculo'],
+  ['physicalStatus', 'Estado fisico'],
   ['status', 'Estatus'],
-  ['assetClassification', 'Clasificación del bien'],
+  ['assetClassification', 'Clasificacion del bien'],
 ] as const;
 
 function normalizeText(value: string) {
@@ -139,6 +145,9 @@ export function RecordForm({
     defaultValues: toFormDefaults(initialValues),
   });
 
+  const [photos, setPhotos] = useState<PhotoFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const selectedUseType = watch('useType');
   const selectedStatus = watch('status');
   const selectedAssetClassification = watch('assetClassification');
@@ -159,45 +168,53 @@ export function RecordForm({
     });
   }, [delegations, initialValues, reset, setValue]);
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const remaining = MAX_PHOTOS - photos.length;
+
+    if (remaining <= 0) return;
+
+    const newFiles = files.slice(0, remaining).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setPhotos((prev) => [...prev, ...newFiles]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => {
+      const removed = prev[index];
+      if (removed) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+    };
+  }, [photos]);
+
   return (
     <form
       className="panel stack-md"
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit({
-          delegationId: values.delegationId,
-          plates: normalizeUpper(values.plates),
-          brand: normalizeUpper(values.brand),
-          type: normalizeUpper(values.type),
-          useType: normalizeCatalogValue(
-            values.useType,
-            values.useTypeCustom,
-            fieldCatalogs.useType.allowsCustom,
-          ),
-          vehicleClass: normalizeUpper(values.vehicleClass),
-          model: normalizeUpper(values.model),
-          engineNumber: normalizeUpper(values.engineNumber),
-          serialNumber: normalizeUpper(values.serialNumber),
-          custodian: normalizeUpper(values.custodian),
-          patrolNumber: normalizeUpper(values.patrolNumber),
-          physicalStatus: normalizeUpper(values.physicalStatus),
-          status: normalizeCatalogValue(
-            values.status,
-            values.statusCustom,
-            fieldCatalogs.status.allowsCustom,
-          ),
-          assetClassification: normalizeCatalogValue(
-            values.assetClassification,
-            values.assetClassificationCustom,
-            fieldCatalogs.assetClassification.allowsCustom,
-          ),
-          observation: normalizeText(values.observation),
-        });
+        const photoFiles = photos.map((p) => p.file);
+        await onSubmit(values, photoFiles);
 
         if (mode === 'create') {
           reset({
             ...emptyFormValues,
             delegationId: delegations[0]?.id ?? '',
           });
+          setPhotos([]);
         }
       })}
     >
@@ -209,11 +226,11 @@ export function RecordForm({
       </div>
 
       <label className="field">
-        <span>Delegación</span>
+        <span>Delegacion</span>
         <input
           disabled
           readOnly
-          value={delegations[0]?.name ?? 'Sin delegación asignada'}
+          value={delegations[0]?.name ?? 'Sin delegacion asignada'}
         />
         <input type="hidden" {...register('delegationId')} />
         {errors.delegationId && <small>{errors.delegationId.message}</small>}
@@ -247,7 +264,7 @@ export function RecordForm({
             <div className="field" key={fieldName}>
               <span>{catalog?.label ?? fallbackLabel}</span>
               <select {...register(fieldName)}>
-                <option value="">Selecciona una opción</option>
+                <option value="">Selecciona una opcion</option>
                 {catalog.options.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -270,9 +287,42 @@ export function RecordForm({
         })}
 
         <label className="field field-full">
-          <span>Observación</span>
+          <span>Observacion</span>
           <textarea rows={4} {...register('observation')} />
         </label>
+
+        {mode === 'create' && (
+          <div className="field field-full">
+            <span>Fotos (opcional, maximo 3)</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoChange}
+              disabled={photos.length >= MAX_PHOTOS}
+            />
+            {photos.length >= MAX_PHOTOS && (
+              <small>Limite de fotos alcanzado (3)</small>
+            )}
+            {photos.length > 0 && (
+              <div className="photo-preview-grid">
+                {photos.map((photo, index) => (
+                  <div key={index} className="photo-preview-item">
+                    <img src={photo.preview} alt={photo.file.name} />
+                    <button
+                      type="button"
+                      className="photo-remove-btn"
+                      onClick={() => removePhoto(index)}
+                    >
+                      X
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="form-actions">

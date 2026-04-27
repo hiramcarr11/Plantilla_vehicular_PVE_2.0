@@ -19,7 +19,15 @@ import {
   VehicleRosterReportEntity,
   type VehicleRosterReportScope,
 } from './entities/vehicle-roster-report.entity';
+import { VehiclePhotoEntity } from './entities/vehicle-photo.entity';
 import { VehicleTransferEntity } from './entities/vehicle-transfer.entity';
+
+type UploadedFile = {
+  originalname: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+};
 
 const catalogValidatedFields = ['useType', 'vehicleClass', 'physicalStatus', 'status', 'assetClassification'] as const;
 type CatalogValidatedField = (typeof catalogValidatedFields)[number];
@@ -172,11 +180,13 @@ export class RecordsService {
     private readonly rosterReportRepository: Repository<VehicleRosterReportEntity>,
     @InjectRepository(VehicleTransferEntity)
     private readonly vehicleTransferRepository: Repository<VehicleTransferEntity>,
+    @InjectRepository(VehiclePhotoEntity)
+    private readonly vehiclePhotoRepository: Repository<VehiclePhotoEntity>,
     private readonly auditLogsService: AuditLogsService,
     private readonly realtimeGateway: RealtimeGateway,
   ) {}
 
-  async create(dto: CreateRecordDto, authUser: AuthUser) {
+  async create(dto: CreateRecordDto, authUser: AuthUser, photos?: UploadedFile[]) {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
     const createdBy = await this.userRepository.findOneBy({ id: authUser.sub });
     const delegation = await this.delegationRepository.findOne({
@@ -210,6 +220,19 @@ export class RecordsService {
         createdBy,
       }),
     );
+
+    if (photos && photos.length > 0) {
+      const photoEntities = photos.map((photo) =>
+        this.vehiclePhotoRepository.create({
+          fileName: photo.originalname,
+          filePath: photo.filename,
+          mimeType: photo.mimetype,
+          record,
+          uploadedBy: createdBy,
+        }),
+      );
+      await this.vehiclePhotoRepository.save(photoEntities);
+    }
 
     const hydratedRecord = await this.findOne(record.id);
 
@@ -524,6 +547,9 @@ export class RecordsService {
           region: true,
         },
         createdBy: true,
+        photos: {
+          uploadedBy: true,
+        },
       },
     });
 
@@ -1287,6 +1313,8 @@ export class RecordsService {
       .leftJoinAndSelect('record.delegation', 'delegation')
       .leftJoinAndSelect('delegation.region', 'region')
       .leftJoinAndSelect('record.createdBy', 'createdBy')
+      .leftJoinAndSelect('record.photos', 'photos')
+      .leftJoinAndSelect('photos.uploadedBy', 'photoUploadedBy')
       .where(
         new Brackets((whereBuilder) => {
           whereBuilder.where('delegation.id IN (:...scopeDelegationIds)', {
