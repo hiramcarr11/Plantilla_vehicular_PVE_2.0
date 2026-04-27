@@ -159,6 +159,34 @@ export class RealtimeGateway
     this.server.to('records:oversight').emit('reports.submitted', payload);
   }
 
+  emitMessageSent(payload: unknown, recipientIds: string[]) {
+    for (const recipientId of recipientIds) {
+      this.server.to(userRoom(recipientId)).emit('messages:new', payload);
+    }
+  }
+
+  emitMessageRead(payload: unknown, recipientIds: string[]) {
+    for (const recipientId of recipientIds) {
+      this.server.to(userRoom(recipientId)).emit('messages:read', payload);
+    }
+  }
+
+  emitConversationCreated(payload: { participants?: { id: string }[] }) {
+    const participantIds =
+      payload.participants?.map((p) => p.id).filter(Boolean) ?? [];
+
+    for (const participantId of participantIds) {
+      this.server.to(userRoom(participantId)).emit('conversations:updated', payload);
+    }
+  }
+
+  emitConversationRead(conversationId: string, participantIds: string[]) {
+    const otherParticipantIds = participantIds;
+    for (const participantId of otherParticipantIds) {
+      this.server.to(userRoom(participantId)).emit('conversations:read', { conversationId });
+    }
+  }
+
   private authenticateSocket(socket: Socket) {
     const token = this.extractToken(socket);
 
