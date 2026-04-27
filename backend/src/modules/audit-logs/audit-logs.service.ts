@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { PaginatedMeta, PaginatedResponse } from 'src/common/dto/paginated-query.dto';
 import { RealtimeGateway } from 'src/modules/realtime/realtime.gateway';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
 import { AuditLogEntity } from './entities/audit-log.entity';
@@ -43,15 +44,30 @@ export class AuditLogsService {
     return auditLog;
   }
 
-  findAll() {
-    return this.auditLogRepository.find({
-      relations: {
-        actor: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-      take: 200,
-    });
+  async findAll(page?: number, limit?: number): Promise<AuditLogEntity[] | PaginatedResponse<AuditLogEntity>> {
+    const query = this.auditLogRepository
+      .createQueryBuilder('auditLog')
+      .leftJoinAndSelect('auditLog.actor', 'actor')
+      .orderBy('auditLog.createdAt', 'DESC');
+
+    if (page !== undefined && limit !== undefined) {
+      const total = await query.getCount();
+      const skip = (page - 1) * limit;
+      query.skip(skip).take(limit);
+
+      const logs = await query.getMany();
+      const totalPages = Math.ceil(total / limit);
+
+      const meta: PaginatedMeta = {
+        page,
+        limit,
+        totalItems: total,
+        totalPages,
+      };
+
+      return { items: logs, meta };
+    }
+
+    return query.take(200).getMany();
   }
 }

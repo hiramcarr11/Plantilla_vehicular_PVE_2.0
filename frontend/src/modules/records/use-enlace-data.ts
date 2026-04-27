@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { api } from '../../lib/api';
-import { connectSocketWithAuth, socket } from '../../lib/socket';
+import { socket } from '../../lib/socket';
 import type {
   RecordFieldCatalogMap,
   RecordFormValues,
@@ -49,7 +49,6 @@ export function useEnlaceData() {
 
     void loadSnapshot();
 
-    connectSocketWithAuth();
     socket.on('records.created', loadSnapshot);
     socket.on('records.changed', loadSnapshot);
     socket.on('reports.submitted', loadSnapshot);
@@ -58,7 +57,6 @@ export function useEnlaceData() {
       socket.off('records.created', loadSnapshot);
       socket.off('records.changed', loadSnapshot);
       socket.off('reports.submitted', loadSnapshot);
-      socket.disconnect();
     };
   }, [session]);
 

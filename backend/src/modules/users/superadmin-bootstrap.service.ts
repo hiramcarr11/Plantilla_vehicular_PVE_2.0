@@ -7,6 +7,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UserEntity } from './entities/user.entity';
 import { UsersService } from './users.service';
 
+const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
+
 @Injectable()
 export class SuperadminBootstrapService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SuperadminBootstrapService.name);
@@ -36,6 +38,13 @@ export class SuperadminBootstrapService implements OnApplicationBootstrap {
     if (!superadminEmail || !superadminPassword) {
       this.logger.warn(
         'SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is missing. Initial superadmin bootstrap was skipped.',
+      );
+      return;
+    }
+
+    if (!PASSWORD_POLICY_REGEX.test(superadminPassword)) {
+      this.logger.error(
+        'SUPERADMIN_PASSWORD does not meet the minimum policy: at least 8 characters, one uppercase, one lowercase, one digit, and one special character. Bootstrap aborted.',
       );
       return;
     }

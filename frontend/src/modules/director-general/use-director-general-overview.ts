@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
-import { connectSocketWithAuth, socket } from '../../lib/socket';
+import { socket } from '../../lib/socket';
 import type { DirectorOverview } from '../../types';
 
 type UseDirectorGeneralOverviewParams = {
@@ -32,7 +32,6 @@ export function useDirectorGeneralOverview({ accessToken }: UseDirectorGeneralOv
     };
 
     void loadOverview();
-    connectSocketWithAuth();
     socket.on('records.created', loadOverview);
     socket.on('records.changed', loadOverview);
     socket.on('reports.submitted', loadOverview);
@@ -41,7 +40,6 @@ export function useDirectorGeneralOverview({ accessToken }: UseDirectorGeneralOv
       socket.off('records.created', loadOverview);
       socket.off('records.changed', loadOverview);
       socket.off('reports.submitted', loadOverview);
-      socket.disconnect();
     };
   }, [accessToken, dateFrom, dateTo, selectedDelegationId, selectedRegionId]);
 

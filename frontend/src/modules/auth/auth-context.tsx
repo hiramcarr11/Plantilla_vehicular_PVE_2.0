@@ -6,7 +6,8 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react';
-import { api } from '../../lib/api';
+import { api, setUnauthorizedHandler } from '../../lib/api';
+import { connectSocket, disconnectSocket, resetSocketReconnectAttempts } from '../../lib/socket';
 import type { AuthResponse } from '../../types';
 import {
   clearLegacyAuthStorage,
@@ -22,6 +23,7 @@ type AuthContextValue = {
   isHydrating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  logoutWithApi: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -29,6 +31,19 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthState>(null);
   const [isHydrating, setIsHydrating] = useState(true);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setSession(null);
+      clearStoredAccessToken();
+      clearLegacyAuthStorage();
+      disconnectSocket();
+    });
+
+    return () => {
+      setUnauthorizedHandler(null);
+    };
+  }, []);
 
   useEffect(() => {
     const bootstrapSession = async () => {
@@ -43,6 +58,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const user = await api.getCurrentUser(accessToken);
         setSession({ accessToken, user });
+        connectSocket();
       } catch {
         clearStoredAccessToken();
         setSession(null);
@@ -62,11 +78,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const response = await api.login(email, password);
         setSession(response);
         writeStoredAccessToken(response.accessToken);
+        resetSocketReconnectAttempts();
+        connectSocket();
       },
       logout() {
         setSession(null);
         clearStoredAccessToken();
         clearLegacyAuthStorage();
+        disconnectSocket();
+      },
+      async logoutWithApi() {
+        const currentToken = session?.accessToken;
+
+        try {
+          if (currentToken) {
+            await api.logout(currentToken);
+          }
+        } catch {
+        } finally {
+          setSession(null);
+          clearStoredAccessToken();
+          clearLegacyAuthStorage();
+          disconnectSocket();
+        }
       },
     }),
     [isHydrating, session],

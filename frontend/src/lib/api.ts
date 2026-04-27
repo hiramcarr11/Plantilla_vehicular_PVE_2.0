@@ -4,10 +4,11 @@ import {
   CreateUserPayload,
   DirectorOverview,
   GroupedRegionRecords,
+  PaginatedResponse,
+  Region,
   RegionRosterReportOverviewRow,
   RecordFieldCatalogMap,
   RecordFormValues,
-  Region,
   RosterReportOverviewRow,
   UpdateUserPayload,
   User,
@@ -15,6 +16,12 @@ import {
   VehicleRosterReport,
 } from '../types';
 import { resolveConfiguredNetworkUrl } from './resolve-network-url';
+
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
 
 function resolveApiUrl() {
   const configuredApiUrl = resolveConfiguredNetworkUrl(import.meta.env.VITE_API_URL, '/api');
@@ -89,6 +96,13 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
 
   if (!response.ok) {
     const responseText = await response.text();
+
+    if (response.status === 401 && token) {
+      if (unauthorizedHandler) {
+        unauthorizedHandler();
+      }
+    }
+
     throw new Error(getPublicErrorMessage(response.status, responseText));
   }
 
@@ -252,8 +266,21 @@ export const api = {
 
     return request<DirectorOverview>(path, undefined, token);
   },
-  getUsers(token: string) {
-    return request<User[]>('/users', undefined, token);
+  getUsers(token: string, page?: number, limit?: number) {
+    const params = new URLSearchParams();
+
+    if (page !== undefined) {
+      params.set('page', String(page));
+    }
+
+    if (limit !== undefined) {
+      params.set('limit', String(limit));
+    }
+
+    const query = params.toString();
+    const path = query ? `/users?${query}` : '/users';
+
+    return request<User[] | PaginatedResponse<User>>(path, undefined, token);
   },
   createUser(payload: CreateUserPayload, token: string) {
     return request<User>('/users', {
@@ -272,7 +299,23 @@ export const api = {
       method: 'DELETE',
     }, token);
   },
-  getAuditLogs(token: string) {
-    return request<AuditLog[]>('/audit-logs/live', undefined, token);
+  getAuditLogs(token: string, page?: number, limit?: number) {
+    const params = new URLSearchParams();
+
+    if (page !== undefined) {
+      params.set('page', String(page));
+    }
+
+    if (limit !== undefined) {
+      params.set('limit', String(limit));
+    }
+
+    const query = params.toString();
+    const path = query ? `/audit-logs/live?${query}` : '/audit-logs/live';
+
+    return request<AuditLog[] | PaginatedResponse<AuditLog>>(path, undefined, token);
+  },
+  logout(token: string) {
+    return request<void>('/auth/logout', { method: 'POST' }, token);
   },
 };

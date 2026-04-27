@@ -10,6 +10,10 @@ frontend/dist/
 backend/.env
 frontend/.env
 
+# Docker volumes
+*.qcow2
+*.vdi
+
 # Logs
 *.log
 *.err

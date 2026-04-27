@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../components/empty-state';
+import { LoadingSpinner } from '../components/loading-spinner';
 import { PageIntro } from '../components/page-intro';
 import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
@@ -48,6 +49,10 @@ export function EnlaceRecordsPage() {
 
   if (!session) {
     return null;
+  }
+
+  if (!fieldCatalogs) {
+    return <LoadingSpinner message="Cargando registros..." />;
   }
 
   return (

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
 import type { Role } from '../types';
+import { LoadingSpinner } from './loading-spinner';
 
 type ProtectedRouteProps = {
   allowedRoles: Role[];
@@ -13,7 +14,7 @@ export function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) 
   const { session, isHydrating } = useAuth();
 
   if (isHydrating) {
-    return null;
+    return <LoadingSpinner message="Verificando sesi&oacute;n..." />;
   }
 
   if (!session) {

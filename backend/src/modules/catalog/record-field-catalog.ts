@@ -17,6 +17,7 @@ export const RECORD_FIELD_CATALOG = {
       { value: 'MOTOCICLETA', label: 'MOTOCICLETA' },
       { value: 'GRUA', label: 'GRUA' },
       { value: 'BICICLETA', label: 'BICICLETA' },
+      { value: 'MICROBUS', label: 'MICROBUS' },
     ],
   },
   physicalStatus: {

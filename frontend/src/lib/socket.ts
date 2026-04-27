@@ -22,14 +22,35 @@ export const socket = io(SOCKET_URL, {
   autoConnect: false,
 });
 
-export function connectSocketWithAuth() {
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 3;
+
+export function connectSocket() {
   const token = readStoredAccessToken();
 
   if (!token) {
-    socket.disconnect();
+    return;
+  }
+
+  if (socket.connected) {
+    return;
+  }
+
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
     return;
   }
 
   socket.auth = { token };
   socket.connect();
+  reconnectAttempts += 1;
+}
+
+export function disconnectSocket() {
+  reconnectAttempts = 0;
+  socket.removeAllListeners();
+  socket.disconnect();
+}
+
+export function resetSocketReconnectAttempts() {
+  reconnectAttempts = 0;
 }

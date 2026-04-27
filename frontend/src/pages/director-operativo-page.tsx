@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { EmptyState } from '../components/empty-state';
 import { GroupedRecords } from '../components/grouped-records';
+import { LoadingSpinner } from '../components/loading-spinner';
 import { api } from '../lib/api';
 import { formatUserName } from '../lib/format-user-name';
-import { connectSocketWithAuth, socket } from '../lib/socket';
+import { socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
 import { openRecordDetails, openTransferDialog } from '../modules/records/record-activity';
 import type {
@@ -52,7 +53,6 @@ export function DirectorOperativoPage() {
     };
 
     void refresh();
-    connectSocketWithAuth();
     socket.on('records.created', refresh);
     socket.on('records.changed', refresh);
     socket.on('reports.submitted', refresh);
@@ -61,7 +61,6 @@ export function DirectorOperativoPage() {
       socket.off('records.created', refresh);
       socket.off('records.changed', refresh);
       socket.off('reports.submitted', refresh);
-      socket.disconnect();
     };
   }, [session]);
 
@@ -171,7 +170,7 @@ export function DirectorOperativoPage() {
   }
 
   if (!fieldCatalogs) {
-    return null;
+    return <LoadingSpinner message="Cargando datos regionales..." />;
   }
 
   return (

@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
@@ -20,6 +20,33 @@ import {
   type VehicleRosterReportScope,
 } from './entities/vehicle-roster-report.entity';
 import { VehicleTransferEntity } from './entities/vehicle-transfer.entity';
+
+const catalogValidatedFields = ['useType', 'vehicleClass', 'physicalStatus', 'status', 'assetClassification'] as const;
+type CatalogValidatedField = (typeof catalogValidatedFields)[number];
+
+function validateCatalogFields(values: NormalizedRecordValues): string | null {
+  for (const field of catalogValidatedFields) {
+    const value = values[field];
+
+    if (!value || value.trim().length === 0) {
+      continue;
+    }
+
+    const catalogEntry = RECORD_FIELD_CATALOG[field];
+    const validValues = catalogEntry.options.map((opt: { value: string }) => opt.value);
+
+    if (!validValues.includes(value)) {
+      if (catalogEntry.allowsCustom) {
+        continue;
+      }
+
+      const fieldLabel = catalogEntry.label;
+      return `${fieldLabel}: '${value}' is not a valid option. Allowed: ${validValues.join(', ')}.`;
+    }
+  }
+
+  return null;
+}
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, ' ');
@@ -168,6 +195,14 @@ export class RecordsService {
       delegationId: dto.delegationId,
     };
 
+    const catalogError = validateCatalogFields(normalizedDto);
+
+    if (catalogError) {
+      throw new BadRequestException(catalogError);
+    }
+
+    await this.ensureNoDuplicateRecords(normalizedDto);
+
     const record = await this.recordRepository.save(
       this.recordRepository.create({
         ...normalizedDto,
@@ -210,6 +245,14 @@ export class RecordsService {
     if (changedFields.length === 0) {
       return record;
     }
+
+    const catalogError = validateCatalogFields(normalizedValues);
+
+    if (catalogError) {
+      throw new BadRequestException(catalogError);
+    }
+
+    await this.ensureNoDuplicateRecords(normalizedValues, id);
 
     await this.recordRepository.update(id, normalizedValues);
     const updatedRecord = await this.findOne(id);
@@ -950,6 +993,39 @@ export class RecordsService {
 
     if (authUser.delegationId !== delegationId) {
       throw new ForbiddenException('Enlaces can only use their assigned delegation.');
+    }
+  }
+
+  private async ensureNoDuplicateRecords(values: NormalizedRecordValues, excludeId?: string) {
+    const uniqueFields = ['plates', 'engineNumber', 'serialNumber'] as const;
+    const conflicts: string[] = [];
+
+    for (const field of uniqueFields) {
+      const fieldValue = values[field];
+
+      if (!fieldValue || fieldValue.trim().length === 0) {
+        continue;
+      }
+
+      const query = this.recordRepository
+        .createQueryBuilder('record')
+        .where(`record.${field} = :value`, { value: fieldValue })
+        .andWhere('record.deletedAt IS NULL');
+
+      if (excludeId) {
+        query.andWhere('record.id != :excludeId', { excludeId });
+      }
+
+      const existing = await query.getOne();
+
+      if (existing) {
+        const fieldLabel = field === 'plates' ? 'Plates' : field === 'engineNumber' ? 'Engine number' : 'Serial number';
+        conflicts.push(`${fieldLabel} '${fieldValue}' is already in use by an active record.`);
+      }
+    }
+
+    if (conflicts.length > 0) {
+      throw new ConflictException(conflicts.join(' '));
     }
   }
 

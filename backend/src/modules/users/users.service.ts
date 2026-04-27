@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { Role } from 'src/common/enums/role.enum';
+import type { PaginatedMeta, PaginatedResponse } from 'src/common/dto/paginated-query.dto';
 import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
 import { RegionEntity } from 'src/modules/catalog/entities/region.entity';
 import { AuditLogsService } from 'src/modules/audit-logs/audit-logs.service';
@@ -90,20 +91,34 @@ export class UsersService {
     return this.findOne(user.id);
   }
 
-  async findAll() {
-    const users = await this.userRepository.find({
-      relations: {
-        region: true,
-        delegation: {
-          region: true,
-        },
-      },
-      order: {
-        firstName: 'ASC',
-        lastName: 'ASC',
-      },
-    });
+  async findAll(page?: number, limit?: number): Promise<SafeUser[] | PaginatedResponse<SafeUser>> {
+    const query = this.userRepository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.region', 'region')
+      .leftJoinAndSelect('user.delegation', 'delegation')
+      .leftJoinAndSelect('delegation.region', 'delegationRegion')
+      .orderBy('user.firstName', 'ASC')
+      .addOrderBy('user.lastName', 'ASC');
 
+    if (page !== undefined && limit !== undefined) {
+      const total = await query.getCount();
+      const skip = (page - 1) * limit;
+      query.skip(skip).take(limit);
+
+      const users = await query.getMany();
+      const safeUsers = users.map((user) => this.toSafeUser(user));
+      const totalPages = Math.ceil(total / limit);
+
+      const meta: PaginatedMeta = {
+        page,
+        limit,
+        totalItems: total,
+        totalPages,
+      };
+
+      return { items: safeUsers, meta };
+    }
+
+    const users = await query.getMany();
     return users.map((user) => this.toSafeUser(user));
   }
 
@@ -162,6 +177,23 @@ export class UsersService {
       throw new ForbiddenException('Coordinacion users cannot be edited.');
     }
 
+    if (dto.email) {
+      const normalizedEmail = normalizeEmail(dto.email);
+
+      if (normalizedEmail !== user.email) {
+        const existingUser = await this.userRepository.findOne({
+          where: { email: normalizedEmail },
+          withDeleted: true,
+        });
+
+        if (existingUser) {
+          throw new ConflictException('Email is already registered.');
+        }
+
+        user.email = normalizedEmail;
+      }
+    }
+
     if (dto.password) {
       user.passwordHash = await bcrypt.hash(dto.password, 10);
     }
@@ -180,10 +212,6 @@ export class UsersService {
 
     if (dto.phone) {
       user.phone = normalizeText(dto.phone);
-    }
-
-    if (dto.email) {
-      user.email = normalizeEmail(dto.email);
     }
 
     if (dto.role) {

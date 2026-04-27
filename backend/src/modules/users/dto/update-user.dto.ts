@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, IsUUID, Matches, MinLength } from 'class-validator';
 import { Role } from 'src/common/enums/role.enum';
 
 export class UpdateUserDto {
@@ -25,6 +25,9 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @MinLength(8)
+  @Matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^\w\s]).+$/, {
+    message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+  })
   password?: string;
 
   @IsOptional()

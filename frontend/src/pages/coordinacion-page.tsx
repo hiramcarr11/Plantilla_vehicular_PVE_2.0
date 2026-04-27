@@ -19,6 +19,8 @@ function normalizeEmail(value: string) {
   return normalizeText(value).toLowerCase();
 }
 
+const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
+
 const emptyUser: CreateUserPayload = {
   firstName: '',
   lastName: '',
@@ -34,10 +36,14 @@ const emptyUser: CreateUserPayload = {
 export function CoordinacionPage() {
   const { session } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [regions, setRegions] = useState<Region[]>([]);
   const [draftUser, setDraftUser] = useState<CreateUserPayload>(emptyUser);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 50;
 
   useEffect(() => {
     if (!session) {
@@ -45,17 +51,29 @@ export function CoordinacionPage() {
     }
 
     const loadData = async () => {
-      const [loadedUsers, loadedRegions] = await Promise.all([
-        api.getUsers(session.accessToken),
+      const [loadedUsersResponse, loadedRegions] = await Promise.all([
+        api.getUsers(session.accessToken, currentPage, USERS_PER_PAGE),
         api.getRegions(session.accessToken),
       ]);
 
-      setUsers(loadedUsers);
+      const usersList = Array.isArray(loadedUsersResponse)
+        ? loadedUsersResponse
+        : loadedUsersResponse.items;
+      const pages = Array.isArray(loadedUsersResponse)
+        ? 1
+        : Math.max(1, loadedUsersResponse.meta.totalPages);
+      const total = Array.isArray(loadedUsersResponse)
+        ? loadedUsersResponse.length
+        : loadedUsersResponse.meta.totalItems;
+
+      setUsers(usersList);
+      setTotalPages(pages);
+      setTotalItems(total);
       setRegions(loadedRegions);
     };
 
     void loadData();
-  }, [session]);
+  }, [session, currentPage]);
 
   if (!session) {
     return null;
@@ -94,7 +112,13 @@ export function CoordinacionPage() {
   };
 
   const reloadUsers = async () => {
-    setUsers(await api.getUsers(session.accessToken));
+    const response = await api.getUsers(session.accessToken, currentPage, USERS_PER_PAGE);
+    const usersList = Array.isArray(response) ? response : response.items;
+    const pages = Array.isArray(response) ? 1 : Math.max(1, response.meta.totalPages);
+    const total = Array.isArray(response) ? response.length : response.meta.totalItems;
+    setUsers(usersList);
+    setTotalPages(pages);
+    setTotalItems(total);
   };
 
   const buildCreatePayload = (): CreateUserPayload => ({
@@ -143,12 +167,17 @@ export function CoordinacionPage() {
 
     const normalizedPassword = normalizeText(draftUser.password);
 
-    if (!isEditing && normalizedPassword.length < 8) {
-      return 'La contrasena debe tener al menos 8 caracteres.';
-    }
-
-    if (isEditing && normalizedPassword.length > 0 && normalizedPassword.length < 8) {
-      return 'La contrasena nueva debe tener al menos 8 caracteres.';
+    if (!isEditing) {
+      if (!normalizedPassword) {
+        return 'La contrasena es obligatoria.';
+      }
+      if (!PASSWORD_POLICY_REGEX.test(normalizedPassword)) {
+        return 'La contrasena debe tener al menos 8 caracteres, una mayuscula, una minuscula, un numero y un caracter especial.';
+      }
+    } else if (normalizedPassword.length > 0) {
+      if (!PASSWORD_POLICY_REGEX.test(normalizedPassword)) {
+        return 'La contrasena nueva debe tener al menos 8 caracteres, una mayuscula, una minuscula, un numero y un caracter especial.';
+      }
     }
 
     return null;
@@ -175,7 +204,7 @@ export function CoordinacionPage() {
 
         <StatsGrid
           items={[
-            { label: 'Usuarios activos', value: users.length },
+            { label: 'Usuarios activos', value: totalItems },
             { label: 'Regiones cargadas', value: regions.length },
             {
               label: 'Delegaciones disponibles',
@@ -511,6 +540,36 @@ export function CoordinacionPage() {
           </div>
         )}
       </section>
+
+      {totalPages > 1 && (
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Paginación</p>
+              <h2>Usuarios</h2>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </button>
+            <span>Página {currentPage} de {totalPages}</span>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

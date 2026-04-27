@@ -19,6 +19,13 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password, ipAddress);
   }
 
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(@CurrentUser() user: AuthUser) {
+    await this.authService.logout(user.sub);
+    return { message: 'Logged out successfully.' };
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   findCurrentUser(@CurrentUser() user: AuthUser) {
