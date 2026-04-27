@@ -8,7 +8,7 @@ import { connectSocketWithAuth, socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
 import type { AuditLog } from '../types';
 
-export function SuperAdminAuditPage() {
+export function CoordinacionAuditPage() {
   const { session } = useAuth();
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 

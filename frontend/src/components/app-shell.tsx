@@ -5,11 +5,12 @@ import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
 
 const roleLabels = {
-  capturist: 'Capturista',
-  regional_manager: 'Encargado regional',
-  admin: 'Administrador',
-  director: 'Director',
+  enlace: 'Enlace',
+  director_operativo: 'Director Operativo',
+  plantilla_vehicular: 'Admin Plantilla vehicular',
+  director_general: 'Director General',
   superadmin: 'Superadministrador',
+  coordinacion: 'Coordinación',
 };
 
 const pageTitles: Record<string, { title: string; description: string }> = {
@@ -113,49 +114,53 @@ export function AppShell() {
               Inicio
             </NavLink>
 
-            {session.user.role === 'capturist' && (
+            {session.user.role === 'enlace' && (
               <NavLink end to={APP_ROUTES.workspace}>
                 Capturar
               </NavLink>
             )}
-            {session.user.role === 'capturist' && (
+            {session.user.role === 'enlace' && (
               <NavLink to={APP_ROUTES.archive}>Todas mis capturas</NavLink>
             )}
 
-            {session.user.role === 'regional_manager' && (
+            {session.user.role === 'director_operativo' && (
               <NavLink end to={APP_ROUTES.monitor}>
                 Delegaciones
               </NavLink>
             )}
 
-            {(session.user.role === 'admin' || session.user.role === 'superadmin') && (
+            {(session.user.role === 'plantilla_vehicular' || session.user.role === 'superadmin' || session.user.role === 'coordinacion' || session.user.role === 'director_operativo') && (
               <NavLink end to={APP_ROUTES.overview}>
                 Vista general
               </NavLink>
             )}
 
-            {(session.user.role === 'director' ||
-              session.user.role === 'admin' ||
-              session.user.role === 'superadmin') && (
+            {(session.user.role === 'director_general' ||
+              session.user.role === 'plantilla_vehicular' ||
+              session.user.role === 'superadmin' ||
+              session.user.role === 'coordinacion' ||
+              session.user.role === 'director_operativo') && (
               <NavLink end to={APP_ROUTES.insights}>
                 Dashboard directivo
               </NavLink>
             )}
 
-            {(session.user.role === 'director' ||
-              session.user.role === 'admin' ||
-              session.user.role === 'superadmin') && (
+            {(session.user.role === 'director_general' ||
+              session.user.role === 'plantilla_vehicular' ||
+              session.user.role === 'superadmin' ||
+              session.user.role === 'coordinacion' ||
+              session.user.role === 'director_operativo') && (
               <NavLink end to={APP_ROUTES.insightsMap}>
                 Mapa directivo
               </NavLink>
             )}
 
-            {session.user.role === 'superadmin' && (
+            {(session.user.role === 'superadmin' || session.user.role === 'coordinacion') && (
               <NavLink end to={APP_ROUTES.control}>
                 Usuarios
               </NavLink>
             )}
-            {session.user.role === 'superadmin' && (
+            {(session.user.role === 'superadmin' || session.user.role === 'coordinacion') && (
               <NavLink to={APP_ROUTES.controlActivity}>Bitácora</NavLink>
             )}
           </nav>

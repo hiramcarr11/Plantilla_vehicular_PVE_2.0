@@ -7,7 +7,7 @@ import { AuditLogsService } from './audit-logs.service';
 
 @Controller('audit-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles(Role.SuperAdmin)
+@RequireRoles(Role.SuperAdmin, Role.Coordinacion)
 export class AuditLogsController {
   constructor(private readonly auditLogsService: AuditLogsService) {}
 

@@ -2,7 +2,7 @@ import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { useAuth } from '../modules/auth/auth-context';
-import { useDirectorOverview } from '../modules/director/use-director-overview';
+import { useDirectorGeneralOverview } from '../modules/director-general/use-director-general-overview';
 
 function formatReportDate(value: string) {
   return new Date(value).toLocaleDateString('es-MX', {
@@ -16,7 +16,7 @@ function formatReportCell(value: number) {
   return value > 0 ? value : '-';
 }
 
-export function DirectorPage() {
+export function DirectorGeneralPage() {
   const { session } = useAuth();
   const {
     overview,
@@ -31,7 +31,7 @@ export function DirectorPage() {
     availableDelegations,
     selectedRegionName,
     selectedDelegationName,
-  } = useDirectorOverview({ accessToken: session?.accessToken });
+  } = useDirectorGeneralOverview({ accessToken: session?.accessToken });
 
   if (!session) {
     return null;

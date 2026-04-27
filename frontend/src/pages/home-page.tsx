@@ -9,25 +9,33 @@ import { useAuth } from '../modules/auth/auth-context';
 import type { VehicleRecord } from '../types';
 
 const roleDescriptions = {
-  capturist: 'Registra información de tu delegación y consulta tus propias capturas.',
-  regional_manager: 'Monitorea en tiempo real las delegaciones asignadas a tu región.',
-  admin: 'Consulta la operación completa organizada por región y delegación.',
-  director: 'Consulta KPIs globales y el comportamiento operativo por región y delegación.',
+  enlace: 'Registra información de tu delegación y consulta tus propias capturas.',
+  director_operativo: 'Monitorea en tiempo real las delegaciones asignadas a tu región.',
+  plantilla_vehicular: 'Consulta la operación completa organizada por región y delegación.',
+  director_general: 'Consulta KPIs globales y el comportamiento operativo por región y delegación.',
   superadmin: 'Administra usuarios y consulta la bitácora en tiempo real.',
+  coordinacion: 'Administra usuarios y consulta la bitácora en tiempo real.',
 };
 
 const quickActions = {
-  regional_manager: [
+  director_operativo: [
     { label: 'Ver delegaciones', to: APP_ROUTES.monitor, helper: 'Seguimiento en tiempo real' },
-  ],
-  admin: [
     { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Supervisión completa' },
     { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
   ],
-  director: [
+  plantilla_vehicular: [
+    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Supervisión completa' },
+    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+  ],
+  director_general: [
     { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
   ],
   superadmin: [
+    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisión de actividad' },
+    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Panorama operativo' },
+    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+  ],
+  coordinacion: [
     { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisión de actividad' },
     { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Panorama operativo' },
     { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
@@ -39,7 +47,7 @@ export function HomePage() {
   const [records, setRecords] = useState<VehicleRecord[]>([]);
 
   useEffect(() => {
-    if (!session || session.user.role !== 'capturist') {
+    if (!session || session.user.role !== 'enlace') {
       return;
     }
 
@@ -71,7 +79,7 @@ export function HomePage() {
   }, [records]);
 
   const topStatus = Object.entries(statusBreakdown).sort((left, right) => right[1] - left[1])[0];
-  const actions = session.user.role === 'capturist' ? [] : quickActions[session.user.role];
+  const actions = session.user.role === 'enlace' ? [] : quickActions[session.user.role];
 
   return (
     <div className="stack-lg">
@@ -92,7 +100,7 @@ export function HomePage() {
         />
       </section>
 
-      {session.user.role === 'capturist' ? (
+      {session.user.role === 'enlace' ? (
         <section className="quick-grid">
           <article className="quick-card">
             <span className="quick-card-label">Capturas totales</span>

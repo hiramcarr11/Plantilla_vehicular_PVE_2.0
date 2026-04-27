@@ -13,7 +13,7 @@ import type {
 import { useAuth } from '../auth/auth-context';
 import { openTransferDialog } from './record-activity';
 
-export function useCapturistData() {
+export function useEnlaceData() {
   const { session } = useAuth();
   const [regions, setRegions] = useState<Region[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);

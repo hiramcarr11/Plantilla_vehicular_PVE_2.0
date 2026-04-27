@@ -21,4 +21,10 @@ export const LEGACY_ROUTE_REDIRECTS = [
   { from: '/director/map', to: APP_ROUTES.insightsMap },
   { from: '/superadmin', to: APP_ROUTES.control },
   { from: '/superadmin/audit', to: APP_ROUTES.controlActivity },
+  { from: '/plantilla-vehicular', to: APP_ROUTES.overview },
+  { from: '/director-general', to: APP_ROUTES.insights },
+  { from: '/director-general/map', to: APP_ROUTES.insightsMap },
+  { from: '/director-operativo', to: APP_ROUTES.monitor },
+  { from: '/coordinacion', to: APP_ROUTES.control },
+  { from: '/coordinacion/audit', to: APP_ROUTES.controlActivity },
 ] as const;

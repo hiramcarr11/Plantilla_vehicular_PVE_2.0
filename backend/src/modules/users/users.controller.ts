@@ -14,7 +14,7 @@ type AuthUser = {
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles(Role.SuperAdmin)
+@RequireRoles(Role.SuperAdmin, Role.Coordinacion)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

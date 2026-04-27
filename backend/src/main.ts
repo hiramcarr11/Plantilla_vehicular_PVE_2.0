@@ -16,13 +16,15 @@ function isLocalDevelopmentOrigin(origin: string) {
   try {
     const parsedOrigin = new URL(origin);
     const hostname = parsedOrigin.hostname;
+    const port = Number(parsedOrigin.port);
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isPrivateIpv4 =
       /^10\./.test(hostname) ||
       /^192\.168\./.test(hostname) ||
       /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
 
-    return parsedOrigin.protocol === 'http:' && parsedOrigin.port === '5173' && (isLocalhost || isPrivateIpv4);
+    const isVitePort = port >= 5173 && port <= 5179;
+    return parsedOrigin.protocol === 'http:' && isVitePort && (isLocalhost || isPrivateIpv4);
   } catch {
     return false;
   }
@@ -98,6 +100,8 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? 3000);
   const host = process.env.HOST ?? '0.0.0.0';
   await app.listen(port, host);
+  console.log("servidor listo");
+  
 }
 
 bootstrap();

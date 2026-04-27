@@ -1,4 +1,4 @@
-export type Role = 'capturist' | 'regional_manager' | 'admin' | 'director' | 'superadmin';
+export type Role = 'enlace' | 'director_operativo' | 'plantilla_vehicular' | 'director_general' | 'superadmin' | 'coordinacion';
 export type RecordCatalogField =
   | 'useType'
   | 'vehicleClass'

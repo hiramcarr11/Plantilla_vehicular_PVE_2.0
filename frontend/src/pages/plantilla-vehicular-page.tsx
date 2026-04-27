@@ -14,7 +14,7 @@ import type {
   VehicleRecord,
 } from '../types';
 
-export function AdminPage() {
+export function PlantillaVehicularPage() {
   const { session } = useAuth();
   const [regions, setRegions] = useState<GroupedRegionRecords[]>([]);
   const [catalogRegions, setCatalogRegions] = useState<Region[]>([]);
@@ -37,7 +37,7 @@ export function AdminPage() {
         loadedCatalogRegions,
         loadedReportOverview,
       ] = await Promise.all([
-        api.getAdminOverview(
+        api.getPlantillaVehicularOverview(
           session.accessToken,
           selectedRegionId || undefined,
           selectedDelegationId || undefined,
@@ -106,7 +106,7 @@ export function AdminPage() {
         token: session.accessToken,
         onTransferred: async () => {
           const [loadedRegions, loadedReportOverview] = await Promise.all([
-            api.getAdminOverview(
+            api.getPlantillaVehicularOverview(
               session.accessToken,
               selectedRegionId || undefined,
               selectedDelegationId || undefined,
@@ -197,7 +197,7 @@ export function AdminPage() {
                   <th>Estado</th>
                   <th>Reportes de delegacion pendientes</th>
                   <th>Ultimo envio regional</th>
-                  <th>Encargado regional</th>
+                  <th>Director Operativo</th>
                 </tr>
               </thead>
               <tbody>

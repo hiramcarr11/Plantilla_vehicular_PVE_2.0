@@ -158,8 +158,8 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto, actorId?: string) {
     const user = await this.findOneEntity(id);
 
-    if (user.role === Role.SuperAdmin) {
-      throw new ForbiddenException('Superadmin users cannot be edited.');
+    if (user.role === Role.SuperAdmin || user.role === Role.Coordinacion) {
+      throw new ForbiddenException('Coordinacion users cannot be edited.');
     }
 
     if (dto.password) {
@@ -218,8 +218,8 @@ export class UsersService {
   async softDelete(id: string, actorId?: string) {
     const user = await this.findOneEntity(id);
 
-    if (user.role === Role.SuperAdmin) {
-      throw new ForbiddenException('Superadmin users cannot be deleted.');
+    if (user.role === Role.SuperAdmin || user.role === Role.Coordinacion) {
+      throw new ForbiddenException('Coordinacion users cannot be deleted.');
     }
 
     await this.userRepository.softDelete(id);

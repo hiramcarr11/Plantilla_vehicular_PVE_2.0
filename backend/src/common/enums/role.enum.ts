@@ -1,7 +1,8 @@
 export enum Role {
-  Capturist = 'capturist',
-  RegionalManager = 'regional_manager',
-  Admin = 'admin',
-  Director = 'director',
+  Enlace = 'enlace',
+  DirectorOperativo = 'director_operativo',
+  PlantillaVehicular = 'plantilla_vehicular',
+  DirectorGeneral = 'director_general',
   SuperAdmin = 'superadmin',
+  Coordinacion = 'coordinacion',
 }

@@ -16,7 +16,7 @@ import type {
   VehicleRosterReport,
 } from '../types';
 
-export function RegionalPage() {
+export function DirectorOperativoPage() {
   const { session } = useAuth();
   const [regions, setRegions] = useState<GroupedRegionRecords[]>([]);
   const [catalogRegions, setCatalogRegions] = useState<Region[]>([]);
@@ -225,7 +225,7 @@ export function RegionalPage() {
                   <th>Estado</th>
                   <th>Cambios pendientes</th>
                   <th>Ultimo envio</th>
-                  <th>Capturista</th>
+                  <th>Enlace</th>
                 </tr>
               </thead>
               <tbody>

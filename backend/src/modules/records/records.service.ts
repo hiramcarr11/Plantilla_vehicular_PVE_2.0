@@ -161,7 +161,7 @@ export class RecordsService {
       throw new NotFoundException('User or delegation not found.');
     }
 
-    this.ensureCapturistDelegationAccess(liveAuthUser, delegation.id);
+    this.ensureEnlaceDelegationAccess(liveAuthUser, delegation.id);
 
     const normalizedDto = {
       ...this.normalizeRecordValues(dto),
@@ -943,23 +943,23 @@ export class RecordsService {
     };
   }
 
-  private ensureCapturistDelegationAccess(authUser: AuthUser, delegationId: string) {
-    if (authUser.role !== Role.Capturist) {
+  private ensureEnlaceDelegationAccess(authUser: AuthUser, delegationId: string) {
+    if (authUser.role !== Role.Enlace) {
       return;
     }
 
     if (authUser.delegationId !== delegationId) {
-      throw new ForbiddenException('Capturists can only use their assigned delegation.');
+      throw new ForbiddenException('Enlaces can only use their assigned delegation.');
     }
   }
 
   private ensureRecordEditAccess(record: RecordEntity, authUser: AuthUser) {
-    if (authUser.role !== Role.Capturist) {
+    if (authUser.role !== Role.Enlace) {
       return;
     }
 
     if (record.delegation.id !== authUser.delegationId) {
-      throw new ForbiddenException('Capturists can only edit records from their delegation.');
+      throw new ForbiddenException('Enlaces can only edit records from their delegation.');
     }
   }
 
@@ -968,25 +968,29 @@ export class RecordsService {
     toDelegation: DelegationEntity,
     authUser: AuthUser,
   ) {
-    if (authUser.role === Role.Admin || authUser.role === Role.SuperAdmin) {
+    if (
+      authUser.role === Role.PlantillaVehicular ||
+      authUser.role === Role.SuperAdmin ||
+      authUser.role === Role.Coordinacion
+    ) {
       return;
     }
 
-    if (authUser.role === Role.Capturist) {
+    if (authUser.role === Role.Enlace) {
       if (record.delegation.id !== authUser.delegationId) {
-        throw new ForbiddenException('Capturists can only transfer records from their delegation.');
+        throw new ForbiddenException('Enlaces can only transfer records from their delegation.');
       }
 
       return;
     }
 
-    if (authUser.role === Role.RegionalManager) {
+    if (authUser.role === Role.DirectorOperativo) {
       if (
         record.delegation.region.id !== authUser.regionId ||
         toDelegation.region.id !== authUser.regionId
       ) {
         throw new ForbiddenException(
-          'Regional managers can only transfer records within their assigned region.',
+          'Directores operativos can only transfer records within their assigned region.',
         );
       }
 

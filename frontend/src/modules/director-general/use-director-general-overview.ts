@@ -3,11 +3,11 @@ import { api } from '../../lib/api';
 import { connectSocketWithAuth, socket } from '../../lib/socket';
 import type { DirectorOverview } from '../../types';
 
-type UseDirectorOverviewParams = {
+type UseDirectorGeneralOverviewParams = {
   accessToken?: string;
 };
 
-export function useDirectorOverview({ accessToken }: UseDirectorOverviewParams) {
+export function useDirectorGeneralOverview({ accessToken }: UseDirectorGeneralOverviewParams) {
   const [overview, setOverview] = useState<DirectorOverview | null>(null);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
   const [selectedDelegationId, setSelectedDelegationId] = useState<string>('');
@@ -21,7 +21,7 @@ export function useDirectorOverview({ accessToken }: UseDirectorOverviewParams) 
     }
 
     const loadOverview = async () => {
-      const loaded = await api.getDirectorOverview(
+      const loaded = await api.getDirectorGeneralOverview(
         accessToken,
         selectedRegionId || undefined,
         selectedDelegationId || undefined,

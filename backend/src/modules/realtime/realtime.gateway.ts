@@ -24,13 +24,31 @@ function resolveRealtimeOrigins() {
   const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
 
   return (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-    if (!origin || allowedOrigins.has(origin)) {
+    if (!origin || allowedOrigins.has(origin) || isLocalDevelopmentOrigin(origin)) {
       callback(null, true);
       return;
     }
 
     callback(new Error(`Socket CORS blocked for origin ${origin}`));
   };
+}
+
+function isLocalDevelopmentOrigin(origin: string) {
+  try {
+    const parsedOrigin = new URL(origin);
+    const hostname = parsedOrigin.hostname;
+    const port = Number(parsedOrigin.port);
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isPrivateIpv4 =
+      /^10\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+
+    const isVitePort = port >= 5173 && port <= 5179;
+    return parsedOrigin.protocol === 'http:' && isVitePort && (isLocalhost || isPrivateIpv4);
+  } catch {
+    return false;
+  }
 }
 
 type AuthenticatedSocketData = {
@@ -88,12 +106,12 @@ export class RealtimeGateway
 
     socket.join(userRoom(user.sub));
 
-    if (user.role === Role.RegionalManager && user.regionId) {
+    if (user.role === Role.DirectorOperativo && user.regionId) {
       socket.join(regionRoom(user.regionId));
     }
 
     if (this.canAccessAuditChannel(user.role)) {
-      socket.join('role:superadmin');
+      socket.join('role:coordinacion');
     }
 
     if (this.canAccessOversightRecordsChannel(user.role)) {
@@ -134,7 +152,7 @@ export class RealtimeGateway
   }
 
   emitAuditCreated(payload: unknown) {
-    this.server.to('role:superadmin').emit('audit.created', payload);
+    this.server.to('role:coordinacion').emit('audit.created', payload);
   }
 
   emitRosterReportSubmitted(payload: unknown) {
@@ -168,10 +186,10 @@ export class RealtimeGateway
   }
 
   private canAccessOversightRecordsChannel(role: Role) {
-    return [Role.Admin, Role.Director, Role.SuperAdmin].includes(role);
+    return [Role.PlantillaVehicular, Role.DirectorGeneral, Role.SuperAdmin, Role.Coordinacion, Role.DirectorOperativo].includes(role);
   }
 
   private canAccessAuditChannel(role: Role) {
-    return role === Role.SuperAdmin;
+    return role === Role.Coordinacion;
   }
 }

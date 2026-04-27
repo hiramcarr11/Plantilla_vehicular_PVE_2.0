@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { EmptyState } from './empty-state';
-import { getDelegationLatLng, OAXACA_MAP_BOUNDS } from '../modules/director/oaxaca-map-layout';
+import { getDelegationLatLng, OAXACA_MAP_BOUNDS } from '../modules/director-general/oaxaca-map-layout';
 import type { DirectorOverview } from '../types';
 
 function CustomMarker({ icon, children, ...props }: React.ComponentProps<typeof Marker> & { icon: L.DivIcon }) {

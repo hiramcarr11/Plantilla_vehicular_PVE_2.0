@@ -3,14 +3,14 @@ import { AppShell } from './components/app-shell';
 import { ProtectedRoute } from './components/protected-route';
 import { HomePage } from './pages/home-page';
 import { LoginPage } from './pages/login-page';
-import { CapturistPage } from './pages/capturist-page';
-import { CapturistRecordsPage } from './pages/capturist-records-page';
-import { RegionalPage } from './pages/regional-page';
-import { AdminPage } from './pages/admin-page';
-import { SuperAdminPage } from './pages/superadmin-page';
-import { SuperAdminAuditPage } from './pages/superadmin-audit-page';
-import { DirectorPage } from './pages/director-page';
-import { DirectorMapPage } from './pages/director-map-page';
+import { EnlacePage } from './pages/enlace-page';
+import { EnlaceRecordsPage } from './pages/enlace-records-page';
+import { PlantillaVehicularPage } from './pages/plantilla-vehicular-page';
+import { CoordinacionPage } from './pages/coordinacion-page';
+import { CoordinacionAuditPage } from './pages/coordinacion-audit-page';
+import { DirectorGeneralPage } from './pages/director-general-page';
+import { DirectorGeneralMapPage } from './pages/director-general-map-page';
+import { DirectorOperativoPage } from './pages/director-operativo-page';
 import { APP_ROUTES, LEGACY_ROUTE_REDIRECTS } from './lib/routes';
 
 export function App() {
@@ -21,7 +21,7 @@ export function App() {
         path={APP_ROUTES.home}
         element={
           <ProtectedRoute
-            allowedRoles={['capturist', 'regional_manager', 'admin', 'director', 'superadmin']}
+            allowedRoles={['enlace', 'director_operativo', 'plantilla_vehicular', 'director_general', 'superadmin', 'coordinacion']}
           >
             <AppShell />
           </ProtectedRoute>
@@ -31,64 +31,64 @@ export function App() {
         <Route
           path={APP_ROUTES.workspace.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['capturist']}>
-              <CapturistPage />
+            <ProtectedRoute allowedRoles={['enlace']}>
+              <EnlacePage />
             </ProtectedRoute>
           }
         />
         <Route
           path={APP_ROUTES.archive.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['capturist']}>
-              <CapturistRecordsPage />
+            <ProtectedRoute allowedRoles={['enlace']}>
+              <EnlaceRecordsPage />
             </ProtectedRoute>
           }
         />
         <Route
           path={APP_ROUTES.monitor.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['regional_manager']}>
-              <RegionalPage />
+            <ProtectedRoute allowedRoles={['director_operativo']}>
+              <DirectorOperativoPage />
             </ProtectedRoute>
           }
         />
         <Route
           path={APP_ROUTES.overview.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-              <AdminPage />
+            <ProtectedRoute allowedRoles={['plantilla_vehicular', 'superadmin', 'coordinacion', 'director_operativo']}>
+              <PlantillaVehicularPage />
             </ProtectedRoute>
           }
         />
         <Route
           path={APP_ROUTES.control.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <SuperAdminPage />
+            <ProtectedRoute allowedRoles={['superadmin', 'coordinacion']}>
+              <CoordinacionPage />
             </ProtectedRoute>
           }
         />
         <Route
           path={APP_ROUTES.insights.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['director', 'admin', 'superadmin']}>
-              <DirectorPage />
+            <ProtectedRoute allowedRoles={['director_general', 'plantilla_vehicular', 'superadmin', 'coordinacion', 'director_operativo']}>
+              <DirectorGeneralPage />
             </ProtectedRoute>
           }
         />
         <Route
           path={APP_ROUTES.insightsMap.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['director', 'admin', 'superadmin']}>
-              <DirectorMapPage />
+            <ProtectedRoute allowedRoles={['director_general', 'plantilla_vehicular', 'superadmin', 'coordinacion', 'director_operativo']}>
+              <DirectorGeneralMapPage />
             </ProtectedRoute>
           }
         />
         <Route
           path={APP_ROUTES.controlActivity.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <SuperAdminAuditPage />
+            <ProtectedRoute allowedRoles={['superadmin', 'coordinacion']}>
+              <CoordinacionAuditPage />
             </ProtectedRoute>
           }
         />

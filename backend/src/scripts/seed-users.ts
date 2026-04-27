@@ -8,7 +8,7 @@ import { RegionEntity } from 'src/modules/catalog/entities/region.entity';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
 
 type SeedUserDefinition = {
-  role: Exclude<Role, Role.SuperAdmin>;
+  role: Exclude<Role, Role.SuperAdmin | Role.Coordinacion>;
   firstName: string;
   lastName: string;
   grade: string;
@@ -20,42 +20,42 @@ type SeedUserDefinition = {
 
 const SEED_USERS: SeedUserDefinition[] = [
   {
-    role: Role.Capturist,
+    role: Role.Enlace,
     firstName: 'Usuario',
-    lastName: 'Capturista',
+    lastName: 'Enlace',
     grade: 'OFICIAL',
     phone: '5550000001',
-    email: 'capturist.seed@example.local',
+    email: 'enlace.seed@example.local',
     useRegion: false,
     useDelegation: true,
   },
   {
-    role: Role.RegionalManager,
+    role: Role.DirectorOperativo,
     firstName: 'Usuario',
-    lastName: 'Regional',
+    lastName: 'Director Operativo',
     grade: 'COMANDANTE',
     phone: '5550000002',
-    email: 'regional_manager.seed@example.local',
+    email: 'director_operativo.seed@example.local',
     useRegion: true,
     useDelegation: false,
   },
   {
-    role: Role.Admin,
+    role: Role.PlantillaVehicular,
     firstName: 'Usuario',
-    lastName: 'Administrador',
+    lastName: 'Plantilla Vehicular',
     grade: 'ADMINISTRATIVO',
     phone: '5550000003',
-    email: 'admin.seed@example.local',
+    email: 'plantilla_vehicular.seed@example.local',
     useRegion: false,
     useDelegation: false,
   },
   {
-    role: Role.Director,
+    role: Role.DirectorGeneral,
     firstName: 'Usuario',
-    lastName: 'Director',
+    lastName: 'Director General',
     grade: 'DIRECTOR',
     phone: '5550000004',
-    email: 'director.seed@example.local',
+    email: 'director_general.seed@example.local',
     useRegion: false,
     useDelegation: false,
   },

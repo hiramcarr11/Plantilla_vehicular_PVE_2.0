@@ -25,13 +25,13 @@ const emptyUser: CreateUserPayload = {
   grade: '',
   email: '',
   password: '',
-  role: 'capturist',
+  role: 'enlace',
   phone: '',
   regionId: undefined,
   delegationId: undefined,
 };
 
-export function SuperAdminPage() {
+export function CoordinacionPage() {
   const { session } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -270,11 +270,12 @@ export function SuperAdminPage() {
                 }))
               }
             >
-              <option value="capturist">Capturista</option>
-              <option value="regional_manager">Encargado regional</option>
-              <option value="admin">Administrador</option>
-              <option value="director">Director</option>
+              <option value="enlace">Enlace</option>
+              <option value="director_operativo">Director Operativo</option>
+              <option value="plantilla_vehicular">Admin Plantilla vehicular</option>
+              <option value="director_general">Director General</option>
               <option value="superadmin">Superadministrador</option>
+              <option value="coordinacion">Coordinación</option>
             </select>
           </label>
           <label className="field">
@@ -412,7 +413,7 @@ export function SuperAdminPage() {
               </thead>
               <tbody>
                 {filteredUsers.map((user) => {
-                  const isProtectedSuperadmin = user.role === 'superadmin';
+                  const isProtected = user.role === 'superadmin' || user.role === 'coordinacion';
 
                   return (
                   <tr key={user.id}>
@@ -428,7 +429,7 @@ export function SuperAdminPage() {
                         <button
                           className="primary-button"
                           type="button"
-                          disabled={isProtectedSuperadmin}
+                          disabled={isProtected}
                           onClick={() => {
                             const resolvedRegionId =
                               user.region?.id ??
@@ -458,7 +459,7 @@ export function SuperAdminPage() {
                         <button
                           className="secondary-button table-action-button"
                           type="button"
-                          disabled={isProtectedSuperadmin}
+                          disabled={isProtected}
                           onClick={async () => {
                             const confirmation = await Swal.fire({
                               icon: 'warning',

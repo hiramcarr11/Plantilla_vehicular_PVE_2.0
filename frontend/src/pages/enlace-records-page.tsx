@@ -4,10 +4,10 @@ import { PageIntro } from '../components/page-intro';
 import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
 import { getRecordActivitySummary, openRecordDetails } from '../modules/records/record-activity';
-import { useCapturistData } from '../modules/records/use-capturist-data';
+import { useEnlaceData } from '../modules/records/use-enlace-data';
 import type { VehicleRecord } from '../types';
 
-export function CapturistRecordsPage() {
+export function EnlaceRecordsPage() {
   const {
     session,
     records,
@@ -19,7 +19,7 @@ export function CapturistRecordsPage() {
     updateRecord,
     transferRecord,
     submitRosterReport,
-  } = useCapturistData();
+  } = useEnlaceData();
   const [editingRecord, setEditingRecord] = useState<VehicleRecord | null>(null);
 
   const editingValues = useMemo(

@@ -192,7 +192,7 @@ export const api = {
   getRegionalOverview(token: string) {
     return request<GroupedRegionRecords[]>('/records/region/live', undefined, token);
   },
-  getAdminOverview(
+  getPlantillaVehicularOverview(
     token: string,
     regionId?: string,
     delegationId?: string,
@@ -222,7 +222,7 @@ export const api = {
 
     return request<GroupedRegionRecords[]>(path, undefined, token);
   },
-  getDirectorOverview(
+  getDirectorGeneralOverview(
     token: string,
     regionId?: string,
     delegationId?: string,

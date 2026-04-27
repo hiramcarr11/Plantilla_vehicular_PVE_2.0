@@ -3,9 +3,9 @@ import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { useAuth } from '../modules/auth/auth-context';
-import { useDirectorOverview } from '../modules/director/use-director-overview';
+import { useDirectorGeneralOverview } from '../modules/director-general/use-director-general-overview';
 
-export function DirectorMapPage() {
+export function DirectorGeneralMapPage() {
   const { session } = useAuth();
   const {
     overview,
@@ -20,7 +20,7 @@ export function DirectorMapPage() {
     availableDelegations,
     selectedRegionName,
     selectedDelegationName,
-  } = useDirectorOverview({ accessToken: session?.accessToken });
+  } = useDirectorGeneralOverview({ accessToken: session?.accessToken });
 
   if (!session) {
     return null;

@@ -2,9 +2,9 @@ import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
-import { useCapturistData } from '../modules/records/use-capturist-data';
+import { useEnlaceData } from '../modules/records/use-enlace-data';
 
-export function CapturistPage() {
+export function EnlacePage() {
   const {
     session,
     records,
@@ -13,7 +13,7 @@ export function CapturistPage() {
     availableDelegations,
     fieldCatalogs,
     createRecord,
-  } = useCapturistData();
+  } = useEnlaceData();
 
   if (!session) {
     return null;

@@ -23,43 +23,43 @@ export class RecordsController {
   constructor(private readonly recordsService: RecordsService) {}
 
   @Post()
-  @RequireRoles(Role.Capturist)
+  @RequireRoles(Role.Enlace)
   create(@Body() dto: CreateRecordDto, @CurrentUser() user: AuthUser) {
     return this.recordsService.create(dto, user);
   }
 
   @Get('my')
-  @RequireRoles(Role.Capturist)
+  @RequireRoles(Role.Enlace)
   findMine(@CurrentUser() user: AuthUser) {
     return this.recordsService.findMine(user);
   }
 
   @Get('reports/my')
-  @RequireRoles(Role.Capturist)
+  @RequireRoles(Role.Enlace)
   findMyRosterReports(@CurrentUser() user: AuthUser) {
     return this.recordsService.findMyRosterReports(user);
   }
 
   @Get('reports/region/my')
-  @RequireRoles(Role.RegionalManager)
+  @RequireRoles(Role.DirectorOperativo)
   findMyRegionalRosterReports(@CurrentUser() user: AuthUser) {
     return this.recordsService.findMyRegionalRosterReports(user);
   }
 
   @Post('reports')
-  @RequireRoles(Role.Capturist)
+  @RequireRoles(Role.Enlace)
   submitRosterReport(@Body() dto: SubmitRosterReportDto, @CurrentUser() user: AuthUser) {
     return this.recordsService.submitRosterReport(dto, user);
   }
 
   @Post('reports/region')
-  @RequireRoles(Role.RegionalManager)
+  @RequireRoles(Role.DirectorOperativo)
   submitRegionalRosterReport(@Body() dto: SubmitRosterReportDto, @CurrentUser() user: AuthUser) {
     return this.recordsService.submitRegionalRosterReport(dto, user);
   }
 
   @Get('reports/overview')
-  @RequireRoles(Role.Admin, Role.SuperAdmin, Role.Director)
+  @RequireRoles(Role.PlantillaVehicular, Role.SuperAdmin, Role.DirectorGeneral, Role.Coordinacion, Role.DirectorOperativo)
   findRosterReportOverview(
     @Query('regionId') regionId?: string,
   ) {
@@ -67,7 +67,7 @@ export class RecordsController {
   }
 
   @Get('reports/region/overview')
-  @RequireRoles(Role.RegionalManager)
+  @RequireRoles(Role.DirectorOperativo)
   findRegionalRosterReportOverview(
     @CurrentUser() user: AuthUser,
     @Query('delegationId') delegationId?: string,
@@ -76,13 +76,13 @@ export class RecordsController {
   }
 
   @Get('region/live')
-  @RequireRoles(Role.RegionalManager)
+  @RequireRoles(Role.DirectorOperativo)
   findRegionalView(@CurrentUser() user: AuthUser) {
     return this.recordsService.findRegionalView(user);
   }
 
   @Get('admin/overview')
-  @RequireRoles(Role.Admin, Role.SuperAdmin)
+  @RequireRoles(Role.PlantillaVehicular, Role.SuperAdmin, Role.Coordinacion, Role.DirectorOperativo)
   findAdminView(
     @Query('regionId') regionId?: string,
     @Query('delegationId') delegationId?: string,
@@ -93,7 +93,7 @@ export class RecordsController {
   }
 
   @Get('director/overview')
-  @RequireRoles(Role.Director, Role.Admin, Role.SuperAdmin)
+  @RequireRoles(Role.DirectorGeneral, Role.PlantillaVehicular, Role.SuperAdmin, Role.Coordinacion, Role.DirectorOperativo)
   findDirectorOverview(
     @Query('regionId') regionId?: string,
     @Query('delegationId') delegationId?: string,
@@ -104,13 +104,13 @@ export class RecordsController {
   }
 
   @Delete(':id')
-  @RequireRoles(Role.Admin, Role.SuperAdmin)
+  @RequireRoles(Role.PlantillaVehicular, Role.SuperAdmin, Role.Coordinacion)
   softDelete(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.recordsService.softDelete(id, user);
   }
 
   @Patch(':id')
-  @RequireRoles(Role.Capturist, Role.Admin, Role.SuperAdmin)
+  @RequireRoles(Role.Enlace, Role.PlantillaVehicular, Role.SuperAdmin, Role.Coordinacion, Role.DirectorOperativo)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateRecordDto,
@@ -120,7 +120,7 @@ export class RecordsController {
   }
 
   @Post(':id/transfer')
-  @RequireRoles(Role.Capturist, Role.RegionalManager, Role.Admin, Role.SuperAdmin)
+  @RequireRoles(Role.Enlace, Role.DirectorOperativo, Role.PlantillaVehicular, Role.SuperAdmin, Role.Coordinacion)
   transfer(
     @Param('id') id: string,
     @Body() dto: TransferRecordDto,
