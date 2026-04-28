@@ -4,6 +4,47 @@ import { socket } from '../../../lib/socket';
 import type { Message } from '../../../types';
 import { useAuth } from '../../auth/auth-context';
 
+function playMessageAlertTone() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const AudioContextCtor = window.AudioContext || (window as typeof window & {
+    webkitAudioContext?: typeof AudioContext;
+  }).webkitAudioContext;
+
+  if (!AudioContextCtor) {
+    return;
+  }
+
+  try {
+    const audioContext = new AudioContextCtor();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const now = audioContext.currentTime;
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, now);
+    oscillator.frequency.setValueAtTime(660, now + 0.08);
+
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + 0.24);
+
+    oscillator.onended = () => {
+      void audioContext.close();
+    };
+  } catch {
+    // Browsers can block autoplay audio. Ignore silently and keep the visual notification.
+  }
+}
+
 export function MessageNotification() {
   const { session } = useAuth();
   const notificationShownRef = useRef<Record<string, boolean>>({});
@@ -19,6 +60,7 @@ export function MessageNotification() {
       if (notificationShownRef.current[messageId]) return;
 
       notificationShownRef.current[messageId] = true;
+      playMessageAlertTone();
 
       const senderName = `${message.sender.firstName} ${message.sender.lastName}`;
       const hasPhotos = message.photos && message.photos.length > 0;

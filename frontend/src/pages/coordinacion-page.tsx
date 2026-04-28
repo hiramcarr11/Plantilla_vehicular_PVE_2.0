@@ -506,6 +506,9 @@ export function CoordinacionPage() {
                             try {
                               await api.deleteUser(user.id, session.accessToken);
 
+                              setUsers((current) => current.filter((currentUser) => currentUser.id !== user.id));
+                              setTotalItems((current) => Math.max(0, current - 1));
+
                               if (editingUserId === user.id) {
                                 resetForm();
                               }

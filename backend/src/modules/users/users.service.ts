@@ -96,6 +96,7 @@ export class UsersService {
       .leftJoinAndSelect('user.region', 'region')
       .leftJoinAndSelect('user.delegation', 'delegation')
       .leftJoinAndSelect('delegation.region', 'delegationRegion')
+      .where('user.deletedAt IS NULL')
       .orderBy('user.firstName', 'ASC')
       .addOrderBy('user.lastName', 'ASC');
 

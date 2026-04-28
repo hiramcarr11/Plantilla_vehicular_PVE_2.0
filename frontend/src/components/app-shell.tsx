@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { formatUserName } from '../lib/format-user-name';
+import { api } from '../lib/api';
 import { APP_ROUTES } from '../lib/routes';
+import { socket } from '../lib/socket';
 import { useAuth } from '../modules/auth/auth-context';
 import { MessageNotification } from '../modules/messages/components/MessageNotification';
 import { MessengerPanel } from '../modules/messages/components/MessengerPanel';
 import { MESSENGER_ROLES, ROUTE_ROLES, hasAnyRole } from '../lib/role-access';
+import type { Message } from '../types';
 
 const roleLabels = {
   enlace: 'Enlace',
@@ -60,14 +63,73 @@ export function AppShell() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMessengerOpen, setIsMessengerOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const canUseMessenger = session
+    ? hasAnyRole(session.user.role, MESSENGER_ROLES)
+    : false;
+
+  const currentPage = pageTitles[location.pathname] ?? pageTitles[APP_ROUTES.home];
+
+  useEffect(() => {
+    if (!session || !canUseMessenger) {
+      setUnreadMessages(0);
+      return;
+    }
+
+    const loadUnreadMessages = async () => {
+      try {
+        const conversations = await api.getConversations(session.accessToken);
+        const totalUnread = conversations.reduce(
+          (total, conversation) => total + (conversation.unreadCount ?? 0),
+          0,
+        );
+        setUnreadMessages(totalUnread);
+      } catch {
+        setUnreadMessages(0);
+      }
+    };
+
+    const handleNewMessage = (message: Message) => {
+      if (message.sender.id === session.user.id) {
+        return;
+      }
+
+      setUnreadMessages((current) => current + 1);
+    };
+
+    const handleConversationUpdated = () => {
+      void loadUnreadMessages();
+    };
+
+    const handleConversationRead = () => {
+      void loadUnreadMessages();
+    };
+
+    void loadUnreadMessages();
+
+    socket.on('messages:new', handleNewMessage);
+    socket.on('conversations:updated', handleConversationUpdated);
+    socket.on('conversations:read', handleConversationRead);
+
+    return () => {
+      socket.off('messages:new', handleNewMessage);
+      socket.off('conversations:updated', handleConversationUpdated);
+      socket.off('conversations:read', handleConversationRead);
+    };
+  }, [canUseMessenger, session]);
+
+  const unreadIndicator = useMemo(() => {
+    if (unreadMessages <= 0) {
+      return null;
+    }
+
+    return unreadMessages > 99 ? '99+' : String(unreadMessages);
+  }, [unreadMessages]);
 
   if (!session) {
     return null;
   }
-
-  const canUseMessenger = hasAnyRole(session.user.role, MESSENGER_ROLES);
-
-  const currentPage = pageTitles[location.pathname] ?? pageTitles[APP_ROUTES.home];
 
   return (
     <div className="dashboard-shell">
@@ -184,8 +246,31 @@ export function AppShell() {
                 type="button"
                 onClick={() => setIsMessengerOpen((prev) => !prev)}
                 title="Mensajero"
+                style={{ position: 'relative' }}
               >
                 Mensajes
+                {unreadIndicator && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-0.4rem',
+                      right: '-0.4rem',
+                      minWidth: '1.2rem',
+                      height: '1.2rem',
+                      padding: '0 0.25rem',
+                      borderRadius: '999px',
+                      background: '#dc2626',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      lineHeight: '1.2rem',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      boxShadow: '0 0 0 2px #111827',
+                    }}
+                  >
+                    {unreadIndicator}
+                  </span>
+                )}
               </button>
             )}
             <div className="live-pill">
