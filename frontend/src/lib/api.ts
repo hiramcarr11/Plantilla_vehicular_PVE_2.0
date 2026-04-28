@@ -33,14 +33,68 @@ function resolveApiUrl() {
   }
 
   if (typeof window === 'undefined') {
-    return 'http://localhost:3000/api';
+    return 'http://localhost:3101/api';
   }
 
   const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:3000/api`;
+  return `${protocol}//${hostname}:3101/api`;
 }
 
 const API_URL = resolveApiUrl();
+
+function translateBackendMessage(message: string) {
+  const exactTranslations: Record<string, string> = {
+    'A record with the same unique constraint already exists.':
+      'Ya existe un registro con la misma restriccion unica.',
+    'Internal server error': 'Error interno del servidor.',
+    'property useTypeCustom should not exist': 'El campo useTypeCustom no es valido.',
+    'property statusCustom should not exist': 'El campo statusCustom no es valido.',
+    'property assetClassificationCustom should not exist':
+      'El campo assetClassificationCustom no es valido.',
+  };
+
+  if (exactTranslations[message]) {
+    return exactTranslations[message];
+  }
+
+  const patternTranslations: Array<[RegExp, (...matches: string[]) => string]> = [
+    [
+      /^property (\w+) should not exist$/i,
+      (_full, fieldName) => `El campo ${fieldName} no es valido.`,
+    ],
+    [
+      /^(.+?) '(.+?)' is already in use by an active record\.$/i,
+      (_full, fieldLabel, fieldValue) =>
+        `${fieldLabel} '${fieldValue}' ya esta en uso en una captura activa.`,
+    ],
+    [
+      /^(.+?): '(.+?)' is not a valid option\. Allowed: (.+)\.$/i,
+      (_full, fieldLabel, fieldValue, allowedValues) =>
+        `${fieldLabel}: '${fieldValue}' no es una opcion valida. Valores permitidos: ${allowedValues}.`,
+    ],
+    [/^Invalid credentials\.$/i, () => 'Credenciales invalidas.'],
+    [
+      /^Too many login attempts\. Please try again later\.$/i,
+      () => 'Demasiados intentos de inicio de sesion. Intenta nuevamente mas tarde.',
+    ],
+    [/^User not found\.$/i, () => 'No se encontro el usuario.'],
+    [/^Record not found\.$/i, () => 'No se encontro la captura vehicular.'],
+    [/^Conversation not found\.$/i, () => 'No se encontro la conversacion.'],
+    [/^Message not found\.$/i, () => 'No se encontro el mensaje.'],
+    [/^Roster report not found\.$/i, () => 'No se encontro el reporte de plantilla.'],
+    [/^Email is already registered\.$/i, () => 'El correo electronico ya esta registrado.'],
+  ];
+
+  for (const [pattern, buildMessage] of patternTranslations) {
+    const match = message.match(pattern);
+
+    if (match) {
+      return buildMessage(...match);
+    }
+  }
+
+  return message;
+}
 
 function getPublicErrorMessage(status: number, responseText = '') {
   if (responseText.trim()) {
@@ -48,14 +102,14 @@ function getPublicErrorMessage(status: number, responseText = '') {
       const payload = JSON.parse(responseText) as { message?: string | string[] };
 
       if (Array.isArray(payload.message)) {
-        return payload.message.join(' ');
+        return payload.message.map((message) => translateBackendMessage(message)).join(' ');
       }
 
       if (payload.message) {
-        return payload.message;
+        return translateBackendMessage(payload.message);
       }
     } catch {
-      return responseText;
+      return translateBackendMessage(responseText);
     }
   }
 

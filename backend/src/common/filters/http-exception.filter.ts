@@ -59,13 +59,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
       if (code === '23505') {
         status = HttpStatus.CONFLICT;
-        message = 'A record with the same unique constraint already exists.';
+        message = 'Ya existe un registro con la misma restriccion unica.';
         this.logger.warn(
           `Unique constraint violation ${request?.method} ${request?.url} - code ${code}`,
         );
       } else {
         status = HttpStatus.INTERNAL_SERVER_ERROR;
-        message = 'Internal server error';
+        message = 'Error interno del servidor';
         this.logger.error(
           `Database query failed ${request?.method} ${request?.url}: ${exception.message}`,
           exception.stack,
@@ -73,7 +73,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     } else {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = 'Internal server error';
+      message = 'Error interno del servidor';
       this.logger.error(
         `Unhandled exception ${request?.method} ${request?.url}: ${exception instanceof Error ? exception.message : String(exception)}`,
         exception instanceof Error ? exception.stack : undefined,

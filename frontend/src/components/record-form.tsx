@@ -6,6 +6,8 @@ import type { Delegation, RecordFieldCatalogMap, RecordFormValues } from '../typ
 
 const customCatalogFields = ['useType', 'status', 'assetClassification'] as const;
 const MAX_PHOTOS = 3;
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const schema = z
   .object({
@@ -125,6 +127,41 @@ function toFormDefaults(initialValues?: RecordFormValues): RecordFormData {
   };
 }
 
+function toSubmitValues(
+  values: RecordFormData,
+  fieldCatalogs: RecordFieldCatalogMap,
+): RecordFormValues {
+  return {
+    delegationId: values.delegationId,
+    plates: normalizeUpper(values.plates),
+    brand: normalizeUpper(values.brand),
+    type: normalizeUpper(values.type),
+    useType: normalizeCatalogValue(
+      values.useType,
+      values.useTypeCustom,
+      fieldCatalogs.useType.allowsCustom,
+    ),
+    vehicleClass: normalizeUpper(values.vehicleClass),
+    model: normalizeUpper(values.model),
+    engineNumber: normalizeUpper(values.engineNumber),
+    serialNumber: normalizeUpper(values.serialNumber),
+    custodian: normalizeUpper(values.custodian),
+    patrolNumber: normalizeUpper(values.patrolNumber),
+    physicalStatus: normalizeUpper(values.physicalStatus),
+    status: normalizeCatalogValue(
+      values.status,
+      values.statusCustom,
+      fieldCatalogs.status.allowsCustom,
+    ),
+    assetClassification: normalizeCatalogValue(
+      values.assetClassification,
+      values.assetClassificationCustom,
+      fieldCatalogs.assetClassification.allowsCustom,
+    ),
+    observation: normalizeText(values.observation),
+  };
+}
+
 export function RecordForm({
   delegations,
   fieldCatalogs,
@@ -146,6 +183,7 @@ export function RecordForm({
   });
 
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
+  const [photoErrors, setPhotoErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedUseType = watch('useType');
@@ -170,20 +208,55 @@ export function RecordForm({
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
     const remaining = MAX_PHOTOS - photos.length;
 
-    if (remaining <= 0) return;
+    if (remaining <= 0) {
+      setPhotoErrors(['Limite de 3 fotos alcanzado. Elimina una para agregar otra.']);
+      return;
+    }
 
-    const newFiles = files.slice(0, remaining).map((file) => ({
+    const rejectionReasons: string[] = [];
+
+    const validFiles = files.filter((file) => {
+      if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+        rejectionReasons.push(`${file.name}: tipo no permitido (solo JPG, JPEG, PNG, WEBP).`);
+        return false;
+      }
+      if (file.size > MAX_PHOTO_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        rejectionReasons.push(`${file.name}: excede 5MB (${sizeMB}MB).`);
+        return false;
+      }
+      return true;
+    });
+
+    const accepted = validFiles.slice(0, remaining);
+
+    if (accepted.length < validFiles.length) {
+      rejectionReasons.push(
+        `Se omitieron ${validFiles.length - accepted.length} foto(s) por exceder el limite de ${MAX_PHOTOS}.`,
+      );
+    }
+
+    if (rejectionReasons.length > 0) {
+      setPhotoErrors(rejectionReasons);
+    } else {
+      setPhotoErrors([]);
+    }
+
+    if (accepted.length === 0) return;
+
+    const newFiles = accepted.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
     }));
 
     setPhotos((prev) => [...prev, ...newFiles]);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   const removePhoto = (index: number) => {
@@ -194,6 +267,7 @@ export function RecordForm({
       }
       return prev.filter((_, i) => i !== index);
     });
+    setPhotoErrors([]);
   };
 
   useEffect(() => {
@@ -207,7 +281,8 @@ export function RecordForm({
       className="panel stack-md"
       onSubmit={handleSubmit(async (values) => {
         const photoFiles = photos.map((p) => p.file);
-        await onSubmit(values, photoFiles);
+        const submitValues = toSubmitValues(values, fieldCatalogs);
+        await onSubmit(submitValues, photoFiles);
 
         if (mode === 'create') {
           reset({
@@ -215,6 +290,7 @@ export function RecordForm({
             delegationId: delegations[0]?.id ?? '',
           });
           setPhotos([]);
+          setPhotoErrors([]);
         }
       })}
     >
@@ -297,11 +373,19 @@ export function RecordForm({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
               multiple
               onChange={handlePhotoChange}
               disabled={photos.length >= MAX_PHOTOS}
             />
+            <small>JPG, JPEG, PNG o WEBP. Maximo 5MB por archivo.</small>
+            {photoErrors.length > 0 && (
+              <small className="photo-error" style={{ color: '#dc2626' }}>
+                {photoErrors.map((err, i) => (
+                  <span key={i}>{err}{' '}</span>
+                ))}
+              </small>
+            )}
             {photos.length >= MAX_PHOTOS && (
               <small>Limite de fotos alcanzado (3)</small>
             )}

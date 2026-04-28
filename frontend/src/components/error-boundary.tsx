@@ -38,20 +38,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="error-boundary-fallback">
           <div className="error-boundary-card">
             <p className="eyebrow">Error inesperado</p>
-            <h2>Algo sali&oacute; mal al cargar esta secci&oacute;n</h2>
+            <h2>Algo salió mal al cargar esta sección</h2>
             <p>
-              La aplicaci&oacute;n encontr&oacute; un error al intentar mostrar el contenido.
-              Puedes intentar recargar la p&aacute;gina.
+              La aplicación encontró un error al intentar mostrar el contenido.
+              Puedes intentar recargar la página.
             </p>
             {this.state.error && (
               <details className="error-boundary-details">
-                <summary>Detalles t&eacute;cnicos</summary>
+                <summary>Detalles técnicos</summary>
                 <pre>{this.state.error.message}</pre>
               </details>
             )}
             <div className="error-boundary-actions">
               <button className="primary-button" type="button" onClick={() => window.location.reload()}>
-                Recargar p&aacute;gina
+                Recargar página
               </button>
               <button className="ghost-button" type="button" onClick={this.handleReset}>
                 Intentar de nuevo

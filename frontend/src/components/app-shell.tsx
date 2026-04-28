@@ -3,6 +3,9 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { formatUserName } from '../lib/format-user-name';
 import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
+import { MessageNotification } from '../modules/messages/components/MessageNotification';
+import { MessengerPanel } from '../modules/messages/components/MessengerPanel';
+import { MESSENGER_ROLES, ROUTE_ROLES, hasAnyRole } from '../lib/role-access';
 
 const roleLabels = {
   enlace: 'Enlace',
@@ -56,10 +59,13 @@ export function AppShell() {
   const { session, logoutWithApi } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMessengerOpen, setIsMessengerOpen] = useState(false);
 
   if (!session) {
     return null;
   }
+
+  const canUseMessenger = hasAnyRole(session.user.role, MESSENGER_ROLES);
 
   const currentPage = pageTitles[location.pathname] ?? pageTitles[APP_ROUTES.home];
 
@@ -114,53 +120,45 @@ export function AppShell() {
               Inicio
             </NavLink>
 
-            {session.user.role === 'enlace' && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.workspace) && (
               <NavLink end to={APP_ROUTES.workspace}>
                 Capturar
               </NavLink>
             )}
-            {session.user.role === 'enlace' && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.archive) && (
               <NavLink to={APP_ROUTES.archive}>Todas mis capturas</NavLink>
             )}
 
-            {session.user.role === 'director_operativo' && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.monitor) && (
               <NavLink end to={APP_ROUTES.monitor}>
                 Delegaciones
               </NavLink>
             )}
 
-            {(session.user.role === 'plantilla_vehicular' || session.user.role === 'superadmin' || session.user.role === 'coordinacion' || session.user.role === 'director_operativo') && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.overview) && (
               <NavLink end to={APP_ROUTES.overview}>
                 Vista general
               </NavLink>
             )}
 
-            {(session.user.role === 'director_general' ||
-              session.user.role === 'plantilla_vehicular' ||
-              session.user.role === 'superadmin' ||
-              session.user.role === 'coordinacion' ||
-              session.user.role === 'director_operativo') && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.insights) && (
               <NavLink end to={APP_ROUTES.insights}>
                 Dashboard directivo
               </NavLink>
             )}
 
-            {(session.user.role === 'director_general' ||
-              session.user.role === 'plantilla_vehicular' ||
-              session.user.role === 'superadmin' ||
-              session.user.role === 'coordinacion' ||
-              session.user.role === 'director_operativo') && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.insightsMap) && (
               <NavLink end to={APP_ROUTES.insightsMap}>
                 Mapa directivo
               </NavLink>
             )}
 
-            {(session.user.role === 'superadmin' || session.user.role === 'coordinacion') && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.control) && (
               <NavLink end to={APP_ROUTES.control}>
                 Usuarios
               </NavLink>
             )}
-            {(session.user.role === 'superadmin' || session.user.role === 'coordinacion') && (
+            {hasAnyRole(session.user.role, ROUTE_ROLES.controlActivity) && (
               <NavLink to={APP_ROUTES.controlActivity}>Bitácora</NavLink>
             )}
           </nav>
@@ -180,6 +178,16 @@ export function AppShell() {
             <p>{currentPage.description}</p>
           </div>
           <div className="header-actions">
+            {canUseMessenger && (
+              <button
+                className="messenger-toggle-btn"
+                type="button"
+                onClick={() => setIsMessengerOpen((prev) => !prev)}
+                title="Mensajero"
+              >
+                Mensajes
+              </button>
+            )}
             <div className="live-pill">
               <span className="live-dot" />
               Sesión activa
@@ -191,6 +199,23 @@ export function AppShell() {
           <Outlet />
         </section>
       </main>
+
+      {canUseMessenger && isMessengerOpen && (
+        <div className="messenger-overlay" onClick={() => setIsMessengerOpen(false)}>
+          <div className="messenger-float-panel" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="messenger-close-btn"
+              type="button"
+              onClick={() => setIsMessengerOpen(false)}
+            >
+              ×
+            </button>
+            <MessengerPanel />
+          </div>
+        </div>
+      )}
+
+      {canUseMessenger && <MessageNotification />}
     </div>
   );
 }

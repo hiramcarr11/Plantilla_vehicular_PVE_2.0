@@ -35,12 +35,13 @@ export function useConversations() {
         );
 
         if (existingIndex >= 0) {
+          const existing = prev[existingIndex];
           const updated = [...prev];
           updated[existingIndex] = {
-            ...updated[existingIndex],
+            ...existing,
             lastMessage: message,
             lastMessageAt: message.createdAt,
-            unreadCount: (updated[existingIndex].unreadCount ?? 0) + 1,
+            unreadCount: (existing.unreadCount ?? 0) + 1,
           };
           return updated.sort(
             (a, b) =>
@@ -57,12 +58,22 @@ export function useConversations() {
       void loadConversations();
     };
 
+    const handleConversationRead = (payload: { conversationId: string }) => {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === payload.conversationId ? { ...c, unreadCount: 0 } : c,
+        ),
+      );
+    };
+
     socket.on('messages:new', handleNewMessage);
     socket.on('conversations:updated', handleConversationUpdated);
+    socket.on('conversations:read', handleConversationRead);
 
     return () => {
       socket.off('messages:new', handleNewMessage);
       socket.off('conversations:updated', handleConversationUpdated);
+      socket.off('conversations:read', handleConversationRead);
     };
   }, [session]);
 

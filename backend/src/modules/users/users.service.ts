@@ -48,7 +48,7 @@ export class UsersService {
     });
 
     if (existingUser) {
-      throw new ConflictException('Email is already registered.');
+      throw new ConflictException('El correo electronico ya esta registrado.');
     }
 
     const region = dto.regionId
@@ -134,7 +134,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found.');
+      throw new NotFoundException('No se encontro el usuario.');
     }
 
     return this.toSafeUser(user);
@@ -152,7 +152,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found.');
+      throw new NotFoundException('No se encontro el usuario.');
     }
 
     return user;
@@ -174,7 +174,7 @@ export class UsersService {
     const user = await this.findOneEntity(id);
 
     if (user.role === Role.SuperAdmin || user.role === Role.Coordinacion) {
-      throw new ForbiddenException('Coordinacion users cannot be edited.');
+      throw new ForbiddenException('No se permite editar usuarios de coordinacion o superadministrador.');
     }
 
     if (dto.email) {
@@ -187,7 +187,7 @@ export class UsersService {
         });
 
         if (existingUser) {
-          throw new ConflictException('Email is already registered.');
+          throw new ConflictException('El correo electronico ya esta registrado.');
         }
 
         user.email = normalizedEmail;
@@ -247,7 +247,7 @@ export class UsersService {
     const user = await this.findOneEntity(id);
 
     if (user.role === Role.SuperAdmin || user.role === Role.Coordinacion) {
-      throw new ForbiddenException('Coordinacion users cannot be deleted.');
+      throw new ForbiddenException('No se permite eliminar usuarios de coordinacion o superadministrador.');
     }
 
     await this.userRepository.softDelete(id);

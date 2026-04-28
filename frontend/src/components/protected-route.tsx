@@ -14,7 +14,7 @@ export function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) 
   const { session, isHydrating } = useAuth();
 
   if (isHydrating) {
-    return <LoadingSpinner message="Verificando sesi&oacute;n..." />;
+    return <LoadingSpinner message="Verificando sesión..." />;
   }
 
   if (!session) {

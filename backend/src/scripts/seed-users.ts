@@ -8,7 +8,7 @@ import { RegionEntity } from 'src/modules/catalog/entities/region.entity';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
 
 type SeedUserDefinition = {
-  role: Exclude<Role, Role.SuperAdmin | Role.Coordinacion>;
+  role: Role;
   firstName: string;
   lastName: string;
   grade: string;
@@ -26,6 +26,16 @@ const SEED_USERS: SeedUserDefinition[] = [
     grade: 'OFICIAL',
     phone: '5550000001',
     email: 'enlace.seed@example.local',
+    useRegion: false,
+    useDelegation: true,
+  },
+  {
+    role: Role.Enlace,
+    firstName: 'Enlace',
+    lastName: 'Dos',
+    grade: 'OFICIAL',
+    phone: '5550000011',
+    email: 'enlace2.seed@example.local',
     useRegion: false,
     useDelegation: true,
   },
@@ -56,6 +66,26 @@ const SEED_USERS: SeedUserDefinition[] = [
     grade: 'DIRECTOR',
     phone: '5550000004',
     email: 'director_general.seed@example.local',
+    useRegion: false,
+    useDelegation: false,
+  },
+  {
+    role: Role.SuperAdmin,
+    firstName: 'Super',
+    lastName: 'Administrador',
+    grade: 'SUPERADMIN',
+    phone: '5550000005',
+    email: 'superadmin.seed@example.local',
+    useRegion: false,
+    useDelegation: false,
+  },
+  {
+    role: Role.Coordinacion,
+    firstName: 'Usuario',
+    lastName: 'Coordinacion',
+    grade: 'COORDINADOR',
+    phone: '5550000006',
+    email: 'coordinacion.seed@example.local',
     useRegion: false,
     useDelegation: false,
   },
@@ -98,7 +128,7 @@ async function run() {
     });
 
     if (!firstRegion || !firstDelegation) {
-      throw new Error('No hay catalogo base. Ejecuta migraciones y bootstrap de catalogo antes del seed.');
+      throw new Error('No hay catalogo base. Ejecuta el bootstrap de catalogo antes del seed.');
     }
 
     const passwordHash = await bcrypt.hash(password, 10);

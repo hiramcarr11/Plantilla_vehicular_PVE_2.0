@@ -74,7 +74,7 @@ export function ConversationList({
                     )}
                   </div>
                   <div className="conversation-role">{role}</div>
-                  {conv.lastMessage && (
+                  {conv.lastMessage && conv.lastMessage.content && (
                     <div className="last-message-preview">
                       {conv.lastMessage.content.substring(0, 30)}
                       {conv.lastMessage.content.length > 30 ? '...' : ''}

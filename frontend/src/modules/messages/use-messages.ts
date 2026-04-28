@@ -43,9 +43,11 @@ export function useMessages(conversationId: string | null) {
     if (!conversationId) return;
 
     const handleNewMessage = (message: Message) => {
-      if (message.conversation.id === conversationId) {
-        setMessages((prev) => [...prev, message]);
-      }
+      if (message.conversation.id !== conversationId) return;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
     };
 
     socket.on('messages:new', handleNewMessage);

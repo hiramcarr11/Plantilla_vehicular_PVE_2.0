@@ -39,14 +39,14 @@ export class AuthService {
 
     if (!user) {
       this.registerFailedAttempt(attemptKey);
-      throw new UnauthorizedException('Invalid credentials.');
+      throw new UnauthorizedException('Credenciales invalidas.');
     }
 
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
 
     if (!isValidPassword) {
       this.registerFailedAttempt(attemptKey);
-      throw new UnauthorizedException('Invalid credentials.');
+      throw new UnauthorizedException('Credenciales invalidas.');
     }
 
     this.clearAttempt(attemptKey);
@@ -105,7 +105,7 @@ export class AuthService {
 
     if (currentAttempt.attempts >= MAX_LOGIN_ATTEMPTS) {
       throw new HttpException(
-        'Too many login attempts. Please try again later.',
+        'Demasiados intentos de inicio de sesion. Intenta nuevamente mas tarde.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

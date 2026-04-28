@@ -49,7 +49,7 @@ function validateCatalogFields(values: NormalizedRecordValues): string | null {
       }
 
       const fieldLabel = catalogEntry.label;
-      return `${fieldLabel}: '${value}' is not a valid option. Allowed: ${validValues.join(', ')}.`;
+      return `${fieldLabel}: '${value}' no es una opcion valida. Valores permitidos: ${validValues.join(', ')}.`;
     }
   }
 
@@ -195,7 +195,7 @@ export class RecordsService {
     });
 
     if (!createdBy || !delegation) {
-      throw new NotFoundException('User or delegation not found.');
+      throw new NotFoundException('No se encontro el usuario o la delegacion.');
     }
 
     this.ensureEnlaceDelegationAccess(liveAuthUser, delegation.id);
@@ -311,13 +311,13 @@ export class RecordsService {
     });
 
     if (!movedBy || !toDelegation) {
-      throw new NotFoundException('User or target delegation not found.');
+      throw new NotFoundException('No se encontro el usuario o la delegacion de destino.');
     }
 
     this.ensureRecordTransferAccess(record, toDelegation, liveAuthUser);
 
     if (record.delegation.id === toDelegation.id) {
-      throw new BadRequestException('Target delegation must be different.');
+      throw new BadRequestException('La delegacion de destino debe ser diferente.');
     }
 
     const fromDelegation = record.delegation;
@@ -362,7 +362,7 @@ export class RecordsService {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
 
     if (!liveAuthUser.delegationId) {
-      throw new ForbiddenException('User does not have an assigned delegation.');
+      throw new ForbiddenException('El usuario no tiene una delegacion asignada.');
     }
 
     const submittedBy = await this.userRepository.findOneBy({ id: authUser.sub });
@@ -372,7 +372,7 @@ export class RecordsService {
     });
 
     if (!submittedBy || !delegation) {
-      throw new NotFoundException('User or delegation not found.');
+      throw new NotFoundException('No se encontro el usuario o la delegacion.');
     }
 
     const lastReport = await this.findLastRosterReportByDelegation(delegation.id);
@@ -420,7 +420,7 @@ export class RecordsService {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
 
     if (!liveAuthUser.regionId) {
-      throw new ForbiddenException('User does not have an assigned region.');
+      throw new ForbiddenException('El usuario no tiene una region asignada.');
     }
 
     const submittedBy = await this.userRepository.findOne({
@@ -432,7 +432,7 @@ export class RecordsService {
     });
 
     if (!submittedBy || !region) {
-      throw new NotFoundException('User or region not found.');
+      throw new NotFoundException('No se encontro el usuario o la region.');
     }
 
     const lastReport = await this.findLastRosterReportByRegion(region.id, 'REGION');
@@ -554,7 +554,7 @@ export class RecordsService {
     });
 
     if (!record) {
-      throw new NotFoundException('Record not found.');
+      throw new NotFoundException('No se encontro la captura vehicular.');
     }
 
     return record;
@@ -909,7 +909,7 @@ export class RecordsService {
     });
 
     if (!report) {
-      throw new NotFoundException('Roster report not found.');
+      throw new NotFoundException('No se encontro el reporte de plantilla.');
     }
 
     return report;
@@ -1001,7 +1001,7 @@ export class RecordsService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found.');
+      throw new NotFoundException('No se encontro el usuario.');
     }
 
     return {
@@ -1018,7 +1018,7 @@ export class RecordsService {
     }
 
     if (authUser.delegationId !== delegationId) {
-      throw new ForbiddenException('Enlaces can only use their assigned delegation.');
+      throw new ForbiddenException('El enlace solo puede usar su delegacion asignada.');
     }
   }
 
@@ -1045,8 +1045,13 @@ export class RecordsService {
       const existing = await query.getOne();
 
       if (existing) {
-        const fieldLabel = field === 'plates' ? 'Plates' : field === 'engineNumber' ? 'Engine number' : 'Serial number';
-        conflicts.push(`${fieldLabel} '${fieldValue}' is already in use by an active record.`);
+        const fieldLabel =
+          field === 'plates'
+            ? 'Las placas'
+            : field === 'engineNumber'
+              ? 'El numero de motor'
+              : 'El numero de serie';
+        conflicts.push(`${fieldLabel} '${fieldValue}' ya esta en uso en una captura activa.`);
       }
     }
 
@@ -1061,7 +1066,7 @@ export class RecordsService {
     }
 
     if (record.delegation.id !== authUser.delegationId) {
-      throw new ForbiddenException('Enlaces can only edit records from their delegation.');
+      throw new ForbiddenException('El enlace solo puede editar capturas de su delegacion.');
     }
   }
 
@@ -1080,7 +1085,7 @@ export class RecordsService {
 
     if (authUser.role === Role.Enlace) {
       if (record.delegation.id !== authUser.delegationId) {
-        throw new ForbiddenException('Enlaces can only transfer records from their delegation.');
+        throw new ForbiddenException('El enlace solo puede trasladar capturas de su delegacion.');
       }
 
       return;
@@ -1092,14 +1097,14 @@ export class RecordsService {
         toDelegation.region.id !== authUser.regionId
       ) {
         throw new ForbiddenException(
-          'Directores operativos can only transfer records within their assigned region.',
+          'El director operativo solo puede trasladar capturas dentro de su region asignada.',
         );
       }
 
       return;
     }
 
-    throw new ForbiddenException('User is not allowed to transfer records.');
+    throw new ForbiddenException('El usuario no tiene permiso para trasladar capturas.');
   }
 
   private normalizeRecordValues(values: NormalizedRecordValues): NormalizedRecordValues {

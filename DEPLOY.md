@@ -29,11 +29,13 @@ cp backend/.env.example backend/.env
 cd backend
 npm install
 npm run build          # Compilar
-npm run start:dev      # Desarrollo con hot-reload
-npm run migration:run  # Ejecutar migraciones (primera vez)
+npm run start:dev      # Desarrollo con hot-reload (migraciones automáticas)
 npm run seed:users     # Crear cuenta superadmin (primera vez)
 npm run test           # Ejecutar tests
 ```
+
+Las migraciones se ejecutan automáticamente al arrancar (`migrationsRun: true` en `typeorm.config.ts`).
+Para ejecutarlas manualmente sin arrancar la app: `npm run migration:run`.
 
 El backend queda en `http://localhost:3000`.
 
@@ -82,11 +84,17 @@ Los servicios quedan en:
 
 ### Primer despliegue
 
-Despues de `docker compose up -d`, ejecuta las migraciones y seed dentro del container:
+Despues de `docker compose up -d`, ejecuta el seed dentro del container (las migraciones corren automáticamente al arrancar):
 
 ```bash
-docker compose exec backend npm run migration:run
 docker compose exec backend npm run seed:users
+```
+
+Si necesitas ejecutar migraciones manualmente:
+
+```bash
+docker compose exec backend npm run migration:show
+docker compose exec backend npm run migration:run
 ```
 
 ### Logs
@@ -191,8 +199,7 @@ export FRONTEND_ORIGINS="https://tu-dominio.com"
 
 docker compose up -d --build
 
-# Primer despliegue:
-docker compose exec backend npm run migration:run
+# Primer despliegue (seed de usuarios, las migraciones corren al arrancar):
 docker compose exec backend npm run seed:users  # solo si es necesario
 ```
 
@@ -202,9 +209,9 @@ docker compose exec backend npm run seed:users  # solo si es necesario
 cd backend
 npm install
 npm run build
-npm run migration:run
-npm run seed:users  # solo si es necesario
-npm start &
+npm start &  # Las migraciones corren automáticamente al arrancar
+
+npm run seed:users  # solo si es necesario (primer despliegue)
 
 cd ../frontend
 npm install
@@ -266,4 +273,3 @@ npm run migration:revert  # revertir ultima migracion
 | No hay monitoreo externo | No se detecta caida automaticamente | Health endpoint disponible | Uptime robot, Pingdom, etc. |
 | Logs van a stdout solo | Se pierden al reiniciar container | `docker compose logs -f` los recupera | Log aggregation (ELK, Loki) |
 | No hay tests E2E reales con browser | Solo tests unitarios de backend | Tests de servicio cubren logica critica | Playwright/Cypress para flujos completos |
-

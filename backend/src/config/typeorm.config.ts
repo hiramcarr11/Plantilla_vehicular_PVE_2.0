@@ -87,7 +87,9 @@ export function createTypeOrmOptions(configService?: ConfigService): DataSourceO
     username: readValue('DATABASE_USER', 'postgres'),
     password: readValue('DATABASE_PASSWORD', 'change_me'),
     entities: ENTITIES,
-    synchronize: true,
+    migrations: [path.join(__dirname, '..', 'database', 'migrations', '*{.ts,.js}')],
+    synchronize: false,
+    migrationsRun: true,
     dropSchema: false,
   };
 }

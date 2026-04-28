@@ -20,7 +20,7 @@ export class CreateUserDto {
   @IsString()
   @MinLength(8)
   @Matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^\w\s]).+$/, {
-    message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+    message: 'La contrasena debe contener al menos una mayuscula, una minuscula, un numero y un caracter especial.',
   })
   password!: string;
 

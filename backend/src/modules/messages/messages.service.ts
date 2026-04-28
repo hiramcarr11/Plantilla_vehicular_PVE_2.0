@@ -47,12 +47,12 @@ export class MessagesService {
     const participants = await this.userRepository.findBy({ id: In(dto.participantIds) });
 
     if (participants.length !== dto.participantIds.length) {
-      throw new NotFoundException('One or more participants not found.');
+      throw new NotFoundException('No se encontro uno o mas participantes.');
     }
 
     const creator = await this.userRepository.findOneBy({ id: authUser.sub });
     if (!creator) {
-      throw new NotFoundException('Authenticated user not found.');
+      throw new NotFoundException('No se encontro el usuario autenticado.');
     }
 
     if (!participants.some((p) => p.id === authUser.sub)) {
@@ -108,20 +108,36 @@ export class MessagesService {
   async getMyConversations(authUser: AuthUser) {
     const conversations = await this.conversationRepository
       .createQueryBuilder('conversation')
+      .innerJoin('conversation.participants', 'filterParticipant', 'filterParticipant.id = :userId', { userId: authUser.sub })
       .leftJoinAndSelect('conversation.participants', 'participants')
-      .leftJoinAndSelect('conversation.messages', 'latestMessage')
-      .leftJoinAndSelect('latestMessage.sender', 'sender')
-      .where('participants.id = :userId', { userId: authUser.sub })
       .orderBy('conversation.lastMessageAt', 'DESC')
       .getMany();
 
-    return conversations.map((conv) => ({
-      ...conv,
-      unreadCount: conv.messages?.filter(
-        (m) => m.sender?.id !== authUser.sub && !m.isRead,
-      ).length ?? 0,
-      lastMessage: conv.messages?.[conv.messages.length - 1] ?? null,
-    }));
+    const result = await Promise.all(
+      conversations.map(async (conv) => {
+        const lastMessage = await this.messageRepository.findOne({
+          where: { conversation: { id: conv.id } },
+          relations: { sender: true, photos: { uploadedBy: true } },
+          order: { createdAt: 'DESC' },
+        });
+
+        const unreadCount = await this.messageRepository
+          .createQueryBuilder('message')
+          .leftJoin('message.sender', 'sender')
+          .where('message.conversationId = :convId', { convId: conv.id })
+          .andWhere('message.isRead = false')
+          .andWhere('sender.id != :userId', { userId: authUser.sub })
+          .getCount();
+
+        return {
+          ...conv,
+          unreadCount,
+          lastMessage: lastMessage ?? null,
+        };
+      }),
+    );
+
+    return result;
   }
 
   async getConversationMessages(conversationId: string, authUser: AuthUser) {
@@ -144,7 +160,7 @@ export class MessagesService {
     const sender = await this.userRepository.findOneBy({ id: authUser.sub });
 
     if (!sender) {
-      throw new NotFoundException('User not found.');
+      throw new NotFoundException('No se encontro el usuario.');
     }
 
     const message = await this.messageRepository.save(
@@ -204,13 +220,13 @@ export class MessagesService {
     });
 
     if (!message) {
-      throw new NotFoundException('Message not found.');
+      throw new NotFoundException('No se encontro el mensaje.');
     }
 
     this.validateConversationAccess(message.conversation, authUser.sub);
 
     if (message.sender.id === authUser.sub) {
-      throw new ForbiddenException('Cannot mark your own message as read.');
+      throw new ForbiddenException('No puedes marcar como leido un mensaje propio.');
     }
 
     message.isRead = true;
@@ -246,7 +262,7 @@ export class MessagesService {
     });
 
     if (!conversation) {
-      throw new NotFoundException('Conversation not found.');
+      throw new NotFoundException('No se encontro la conversacion.');
     }
 
     return conversation;
@@ -259,7 +275,7 @@ export class MessagesService {
     });
 
     if (!message) {
-      throw new NotFoundException('Message not found.');
+      throw new NotFoundException('No se encontro el mensaje.');
     }
 
     return message;
@@ -293,7 +309,7 @@ export class MessagesService {
   private validateRoleAccess(role: Role) {
     if (!ALLOWED_ROLES.includes(role)) {
       throw new ForbiddenException(
-        'Your role does not have permission to use messaging.',
+        'Tu rol no tiene permiso para usar la mensajeria.',
       );
     }
   }
@@ -303,7 +319,7 @@ export class MessagesService {
 
     if (!isParticipant) {
       throw new ForbiddenException(
-        'You are not a participant in this conversation.',
+        'No formas parte de esta conversacion.',
       );
     }
   }

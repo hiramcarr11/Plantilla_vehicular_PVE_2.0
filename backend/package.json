@@ -12,7 +12,12 @@
     "test:coverage": "jest --coverage",
     "seed:users": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-users.ts",
     "seed:vehicles": "node -r ts-node/register -r tsconfig-paths/register src/scripts/seed-vehicles.ts",
-    "validate:release": "node -r ts-node/register -r tsconfig-paths/register src/scripts/validate-release.ts"
+    "validate:release": "node -r ts-node/register -r tsconfig-paths/register src/scripts/validate-release.ts",
+    "migration:generate": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:generate -d src/data-source.ts",
+    "migration:create": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:create",
+    "migration:run": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:run -d src/data-source.ts",
+    "migration:revert": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d src/data-source.ts",
+    "migration:show": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:show -d src/data-source.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.3",

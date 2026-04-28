@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { api } from '../../../lib/api';
+import { hasAnyRole, MESSENGER_ROLES } from '../../../lib/role-access';
 import type { User } from '../../../types';
 import { useAuth } from '../../auth/auth-context';
 import { ConversationList } from './ConversationList';
@@ -31,9 +32,8 @@ export function MessengerPanel() {
 
   if (!session) return null;
 
-  const allowedRoles = ['enlace', 'plantilla_vehicular', 'coordinacion'];
   const availableUsers = users.filter(
-    (u) => u.id !== session.user.id && allowedRoles.includes(u.role),
+    (u) => u.id !== session.user.id && hasAnyRole(u.role, MESSENGER_ROLES),
   );
 
   const selectedConversation = conversations.find(

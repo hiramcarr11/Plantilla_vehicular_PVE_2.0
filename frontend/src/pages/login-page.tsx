@@ -15,7 +15,7 @@ export function LoginPage() {
   }
 
   if (isLoggingIn) {
-    return <LoadingSpinner message="Iniciando sesi&oacute;n..." />;
+    return <LoadingSpinner message="Iniciando sesión..." />;
   }
 
   return (
@@ -37,7 +37,7 @@ export function LoginPage() {
           } catch (requestError) {
             await Swal.fire({
               icon: 'error',
-              title: 'No se pudo iniciar sesi&oacute;n',
+              title: 'No se pudo iniciar sesión',
               text: (requestError as Error).message,
               confirmButtonText: 'Entendido',
             });

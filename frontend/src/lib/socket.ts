@@ -10,11 +10,11 @@ function resolveSocketUrl() {
   }
 
   if (typeof window === 'undefined') {
-    return 'http://localhost:3000';
+    return 'http://localhost:3101';
   }
 
   const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:3000`;
+  return `${protocol}//${hostname}:3101`;
 }
 
 const SOCKET_URL = resolveSocketUrl();

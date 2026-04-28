@@ -8,6 +8,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
+import { MessagesModule } from './modules/messages/messages.module';
 import { RecordsModule } from './modules/records/records.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { UsersModule } from './modules/users/users.module';
@@ -28,6 +29,7 @@ import { UsersModule } from './modules/users/users.module';
     CatalogModule,
     UsersModule,
     RecordsModule,
+    MessagesModule,
   ],
   providers: [
     {

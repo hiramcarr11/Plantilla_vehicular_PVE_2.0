@@ -12,6 +12,7 @@ import { DirectorGeneralPage } from './pages/director-general-page';
 import { DirectorGeneralMapPage } from './pages/director-general-map-page';
 import { DirectorOperativoPage } from './pages/director-operativo-page';
 import { APP_ROUTES, LEGACY_ROUTE_REDIRECTS } from './lib/routes';
+import { ALL_ROLES, ROUTE_ROLES } from './lib/role-access';
 
 export function App() {
   return (
@@ -20,9 +21,7 @@ export function App() {
       <Route
         path={APP_ROUTES.home}
         element={
-          <ProtectedRoute
-            allowedRoles={['enlace', 'director_operativo', 'plantilla_vehicular', 'director_general', 'superadmin', 'coordinacion']}
-          >
+          <ProtectedRoute allowedRoles={ALL_ROLES}>
             <AppShell />
           </ProtectedRoute>
         }
@@ -31,7 +30,7 @@ export function App() {
         <Route
           path={APP_ROUTES.workspace.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['enlace']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.workspace}>
               <EnlacePage />
             </ProtectedRoute>
           }
@@ -39,7 +38,7 @@ export function App() {
         <Route
           path={APP_ROUTES.archive.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['enlace']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.archive}>
               <EnlaceRecordsPage />
             </ProtectedRoute>
           }
@@ -47,7 +46,7 @@ export function App() {
         <Route
           path={APP_ROUTES.monitor.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['director_operativo']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.monitor}>
               <DirectorOperativoPage />
             </ProtectedRoute>
           }
@@ -55,7 +54,7 @@ export function App() {
         <Route
           path={APP_ROUTES.overview.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['plantilla_vehicular', 'superadmin', 'coordinacion', 'director_operativo']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.overview}>
               <PlantillaVehicularPage />
             </ProtectedRoute>
           }
@@ -63,7 +62,7 @@ export function App() {
         <Route
           path={APP_ROUTES.control.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['superadmin', 'coordinacion']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.control}>
               <CoordinacionPage />
             </ProtectedRoute>
           }
@@ -71,7 +70,7 @@ export function App() {
         <Route
           path={APP_ROUTES.insights.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['director_general', 'plantilla_vehicular', 'superadmin', 'coordinacion', 'director_operativo']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.insights}>
               <DirectorGeneralPage />
             </ProtectedRoute>
           }
@@ -79,7 +78,7 @@ export function App() {
         <Route
           path={APP_ROUTES.insightsMap.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['director_general', 'plantilla_vehicular', 'superadmin', 'coordinacion', 'director_operativo']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.insightsMap}>
               <DirectorGeneralMapPage />
             </ProtectedRoute>
           }
@@ -87,7 +86,7 @@ export function App() {
         <Route
           path={APP_ROUTES.controlActivity.slice(1)}
           element={
-            <ProtectedRoute allowedRoles={['superadmin', 'coordinacion']}>
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.controlActivity}>
               <CoordinacionAuditPage />
             </ProtectedRoute>
           }
