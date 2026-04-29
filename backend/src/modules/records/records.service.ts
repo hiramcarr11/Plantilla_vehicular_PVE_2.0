@@ -1,35 +1,48 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 
-import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, In, Repository } from 'typeorm';
-import { Role } from 'src/common/enums/role.enum';
-import { AuditLogsService } from 'src/modules/audit-logs/audit-logs.service';
-import { AuditLogEntity } from 'src/modules/audit-logs/entities/audit-log.entity';
-import { RECORD_FIELD_CATALOG } from 'src/modules/catalog/record-field-catalog';
-import { DelegationEntity } from 'src/modules/catalog/entities/delegation.entity';
-import { RegionEntity } from 'src/modules/catalog/entities/region.entity';
-import { RealtimeGateway } from 'src/modules/realtime/realtime.gateway';
-import { UserEntity } from 'src/modules/users/entities/user.entity';
-import { CreateRecordDto } from './dto/create-record.dto';
-import { SubmitRosterReportDto } from './dto/submit-roster-report.dto';
-import { TransferRecordDto } from './dto/transfer-record.dto';
-import { UpdateRecordDto } from './dto/update-record.dto';
-import { RecordEntity } from './entities/record.entity';
+import { InjectRepository } from "@nestjs/typeorm";
+import { Brackets, In, Repository } from "typeorm";
+import { Role } from "src/common/enums/role.enum";
+import { AuditLogsService } from "src/modules/audit-logs/audit-logs.service";
+import { AuditLogEntity } from "src/modules/audit-logs/entities/audit-log.entity";
+import { RECORD_FIELD_CATALOG } from "src/modules/catalog/record-field-catalog";
+import { DelegationEntity } from "src/modules/catalog/entities/delegation.entity";
+import { RegionEntity } from "src/modules/catalog/entities/region.entity";
+import { RealtimeGateway } from "src/modules/realtime/realtime.gateway";
+import { UserEntity } from "src/modules/users/entities/user.entity";
+import { CreateRecordDto } from "./dto/create-record.dto";
+import { SubmitRosterReportDto } from "./dto/submit-roster-report.dto";
+import { TransferRecordDto } from "./dto/transfer-record.dto";
+import { UpdateRecordDto } from "./dto/update-record.dto";
+import { RecordEntity } from "./entities/record.entity";
 import {
   VehicleRosterReportEntity,
   type VehicleRosterReportScope,
-} from './entities/vehicle-roster-report.entity';
-import { VehiclePhotoEntity } from './entities/vehicle-photo.entity';
-import { VehicleTransferEntity } from './entities/vehicle-transfer.entity';
+} from "./entities/vehicle-roster-report.entity";
+import { VehiclePhotoEntity } from "./entities/vehicle-photo.entity";
+import { VehicleTransferEntity } from "./entities/vehicle-transfer.entity";
+import { StorageService } from "../storage/storage.service";
 
 type UploadedFile = {
   originalname: string;
-  filename: string;
   mimetype: string;
+  buffer: Buffer;
   size: number;
 };
 
-const catalogValidatedFields = ['useType', 'vehicleClass', 'physicalStatus', 'status', 'assetClassification'] as const;
+const catalogValidatedFields = [
+  "useType",
+  "vehicleClass",
+  "physicalStatus",
+  "status",
+  "assetClassification",
+] as const;
 type CatalogValidatedField = (typeof catalogValidatedFields)[number];
 
 function validateCatalogFields(values: NormalizedRecordValues): string | null {
@@ -41,7 +54,9 @@ function validateCatalogFields(values: NormalizedRecordValues): string | null {
     }
 
     const catalogEntry = RECORD_FIELD_CATALOG[field];
-    const validValues = catalogEntry.options.map((opt: { value: string }) => opt.value);
+    const validValues = catalogEntry.options.map(
+      (opt: { value: string }) => opt.value,
+    );
 
     if (!validValues.includes(value)) {
       if (catalogEntry.allowsCustom) {
@@ -49,7 +64,7 @@ function validateCatalogFields(values: NormalizedRecordValues): string | null {
       }
 
       const fieldLabel = catalogEntry.label;
-      return `${fieldLabel}: '${value}' no es una opcion valida. Valores permitidos: ${validValues.join(', ')}.`;
+      return `${fieldLabel}: '${value}' no es una opcion valida. Valores permitidos: ${validValues.join(", ")}.`;
     }
   }
 
@@ -57,15 +72,18 @@ function validateCatalogFields(values: NormalizedRecordValues): string | null {
 }
 
 function normalizeText(value: string) {
-  return value.trim().replace(/\s+/g, ' ');
+  return value.trim().replace(/\s+/g, " ");
 }
 
-function calculateNetActive(totalUnits: number, statusBreakdown: Record<string, number>) {
+function calculateNetActive(
+  totalUnits: number,
+  statusBreakdown: Record<string, number>,
+) {
   return Math.max(
     totalUnits -
       (statusBreakdown.INCATIVO ?? 0) -
       (statusBreakdown.SINIESTRADO ?? 0) -
-      (statusBreakdown['PARA BAJA'] ?? 0),
+      (statusBreakdown["PARA BAJA"] ?? 0),
     0,
   );
 }
@@ -84,27 +102,27 @@ type LiveAuthUser = {
 };
 
 const reportableMovementActions = [
-  'RECORD_CREATED',
-  'RECORD_UPDATED',
-  'RECORD_SOFT_DELETED',
-  'RECORD_TRANSFERRED',
+  "RECORD_CREATED",
+  "RECORD_UPDATED",
+  "RECORD_SOFT_DELETED",
+  "RECORD_TRANSFERRED",
 ];
 
 const editableRecordFields = [
-  'plates',
-  'brand',
-  'type',
-  'useType',
-  'vehicleClass',
-  'model',
-  'engineNumber',
-  'serialNumber',
-  'custodian',
-  'patrolNumber',
-  'physicalStatus',
-  'status',
-  'assetClassification',
-  'observation',
+  "plates",
+  "brand",
+  "type",
+  "useType",
+  "vehicleClass",
+  "model",
+  "engineNumber",
+  "serialNumber",
+  "custodian",
+  "patrolNumber",
+  "physicalStatus",
+  "status",
+  "assetClassification",
+  "observation",
 ] as const;
 
 type EditableRecordField = (typeof editableRecordFields)[number];
@@ -142,7 +160,7 @@ type RecordEditView = {
 };
 type RecordView = RecordEntity & {
   viewDelegation: ViewDelegation;
-  recordState: 'CURRENT' | 'TRANSFERRED_OUT';
+  recordState: "CURRENT" | "TRANSFERRED_OUT";
   latestTransfer: RecordTransferView | null;
   latestEdit: RecordEditView | null;
   transferHistory: RecordTransferView[];
@@ -153,14 +171,22 @@ type DelegationReportOverviewRow = {
   delegationName: string;
   regionId: string;
   regionName: string;
-  status: 'NOT_REPORTED' | 'PENDING_CHANGES' | 'REPORTED_WITH_CHANGES' | 'REPORTED_WITHOUT_CHANGES';
+  status:
+    | "NOT_REPORTED"
+    | "PENDING_CHANGES"
+    | "REPORTED_WITH_CHANGES"
+    | "REPORTED_WITHOUT_CHANGES";
   pendingChanges: number;
   lastReport: VehicleRosterReportEntity | null;
 };
 type RegionReportOverviewRow = {
   regionId: string;
   regionName: string;
-  status: 'NOT_REPORTED' | 'PENDING_CHANGES' | 'REPORTED_WITH_CHANGES' | 'REPORTED_WITHOUT_CHANGES';
+  status:
+    | "NOT_REPORTED"
+    | "PENDING_CHANGES"
+    | "REPORTED_WITH_CHANGES"
+    | "REPORTED_WITHOUT_CHANGES";
   pendingDelegationReports: number;
   lastReport: VehicleRosterReportEntity | null;
 };
@@ -184,9 +210,14 @@ export class RecordsService {
     private readonly vehiclePhotoRepository: Repository<VehiclePhotoEntity>,
     private readonly auditLogsService: AuditLogsService,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly storageService: StorageService,
   ) {}
 
-  async create(dto: CreateRecordDto, authUser: AuthUser, photos?: UploadedFile[]) {
+  async create(
+    dto: CreateRecordDto,
+    authUser: AuthUser,
+    photos?: UploadedFile[],
+  ) {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
     const createdBy = await this.userRepository.findOneBy({ id: authUser.sub });
     const delegation = await this.delegationRepository.findOne({
@@ -195,7 +226,7 @@ export class RecordsService {
     });
 
     if (!createdBy || !delegation) {
-      throw new NotFoundException('No se encontro el usuario o la delegacion.');
+      throw new NotFoundException("No se encontro el usuario o la delegacion.");
     }
 
     this.ensureEnlaceDelegationAccess(liveAuthUser, delegation.id);
@@ -222,15 +253,34 @@ export class RecordsService {
     );
 
     if (photos && photos.length > 0) {
-      const photoEntities = photos.map((photo) =>
+      const storedPhotos = await Promise.all(
+        photos.map((photo) =>
+          this.storageService.saveFile({
+            folder: "vehicle-photos",
+            file: {
+              originalname: photo.originalname,
+              mimetype: photo.mimetype,
+              buffer: photo.buffer,
+              size: photo.size,
+            },
+          }),
+        ),
+      );
+
+      const photoEntities = storedPhotos.map((storedPhoto) =>
         this.vehiclePhotoRepository.create({
-          fileName: photo.originalname,
-          filePath: photo.filename,
-          mimeType: photo.mimetype,
+          fileName: storedPhoto.originalName,
+          filePath: storedPhoto.fileName,
+          objectKey: storedPhoto.objectKey,
+          publicUrl: storedPhoto.publicUrl,
+          mimeType: storedPhoto.mimeType,
+          size: storedPhoto.size,
+          storageProvider: storedPhoto.storageProvider,
           record,
           uploadedBy: createdBy,
         }),
       );
+
       await this.vehiclePhotoRepository.save(photoEntities);
     }
 
@@ -238,8 +288,8 @@ export class RecordsService {
 
     await this.auditLogsService.register({
       actorId: authUser.sub,
-      action: 'RECORD_CREATED',
-      entityType: 'record',
+      action: "RECORD_CREATED",
+      entityType: "record",
       entityId: record.id,
       metadata: {
         delegationId: delegation.id,
@@ -282,16 +332,21 @@ export class RecordsService {
 
     await this.auditLogsService.register({
       actorId: authUser.sub,
-      action: 'RECORD_UPDATED',
-      entityType: 'record',
+      action: "RECORD_UPDATED",
+      entityType: "record",
       entityId: id,
       metadata: {
         delegationId: record.delegation.id,
         regionId: record.delegation.region.id,
         changedFields,
-        before: Object.fromEntries(changedFields.map((fieldName) => [fieldName, before[fieldName]])),
+        before: Object.fromEntries(
+          changedFields.map((fieldName) => [fieldName, before[fieldName]]),
+        ),
         after: Object.fromEntries(
-          changedFields.map((fieldName) => [fieldName, normalizedValues[fieldName]]),
+          changedFields.map((fieldName) => [
+            fieldName,
+            normalizedValues[fieldName],
+          ]),
         ),
       },
     });
@@ -311,13 +366,17 @@ export class RecordsService {
     });
 
     if (!movedBy || !toDelegation) {
-      throw new NotFoundException('No se encontro el usuario o la delegacion de destino.');
+      throw new NotFoundException(
+        "No se encontro el usuario o la delegacion de destino.",
+      );
     }
 
     this.ensureRecordTransferAccess(record, toDelegation, liveAuthUser);
 
     if (record.delegation.id === toDelegation.id) {
-      throw new BadRequestException('La delegacion de destino debe ser diferente.');
+      throw new BadRequestException(
+        "La delegacion de destino debe ser diferente.",
+      );
     }
 
     const fromDelegation = record.delegation;
@@ -340,8 +399,8 @@ export class RecordsService {
 
     await this.auditLogsService.register({
       actorId: authUser.sub,
-      action: 'RECORD_TRANSFERRED',
-      entityType: 'record',
+      action: "RECORD_TRANSFERRED",
+      entityType: "record",
       entityId: id,
       metadata: {
         delegationId: toDelegation.id,
@@ -362,34 +421,40 @@ export class RecordsService {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
 
     if (!liveAuthUser.delegationId) {
-      throw new ForbiddenException('El usuario no tiene una delegacion asignada.');
+      throw new ForbiddenException(
+        "El usuario no tiene una delegacion asignada.",
+      );
     }
 
-    const submittedBy = await this.userRepository.findOneBy({ id: authUser.sub });
+    const submittedBy = await this.userRepository.findOneBy({
+      id: authUser.sub,
+    });
     const delegation = await this.delegationRepository.findOne({
       where: { id: liveAuthUser.delegationId },
       relations: { region: true },
     });
 
     if (!submittedBy || !delegation) {
-      throw new NotFoundException('No se encontro el usuario o la delegacion.');
+      throw new NotFoundException("No se encontro el usuario o la delegacion.");
     }
 
-    const lastReport = await this.findLastRosterReportByDelegation(delegation.id);
+    const lastReport = await this.findLastRosterReportByDelegation(
+      delegation.id,
+    );
     const changesSinceLastReport = await this.countDelegationMovementsSince(
       delegation.id,
       lastReport?.submittedAt ?? null,
     );
     const report = await this.rosterReportRepository.save(
       this.rosterReportRepository.create({
-        reportScope: 'DELEGATION',
+        reportScope: "DELEGATION",
         delegation,
         region: delegation.region,
         submittedBy,
         hasChanges: changesSinceLastReport > 0,
         changesSinceLastReport,
         confirmedDelegationReports: 0,
-        notes: normalizeText(dto.notes ?? ''),
+        notes: normalizeText(dto.notes ?? ""),
         submittedAt: new Date(),
       }),
     );
@@ -398,15 +463,15 @@ export class RecordsService {
       actorId: authUser.sub,
       action:
         changesSinceLastReport > 0
-          ? 'DELEGATION_ROSTER_REPORT_SUBMITTED_WITH_CHANGES'
-          : 'DELEGATION_ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES',
-      entityType: 'vehicle_roster_report',
+          ? "DELEGATION_ROSTER_REPORT_SUBMITTED_WITH_CHANGES"
+          : "DELEGATION_ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES",
+      entityType: "vehicle_roster_report",
       entityId: report.id,
       metadata: {
         delegationId: delegation.id,
         regionId: delegation.region.id,
         changesSinceLastReport,
-        reportScope: 'DELEGATION',
+        reportScope: "DELEGATION",
       },
     });
 
@@ -416,40 +481,49 @@ export class RecordsService {
     return hydratedReport;
   }
 
-  async submitRegionalRosterReport(dto: SubmitRosterReportDto, authUser: AuthUser) {
+  async submitRegionalRosterReport(
+    dto: SubmitRosterReportDto,
+    authUser: AuthUser,
+  ) {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
 
     if (!liveAuthUser.regionId) {
-      throw new ForbiddenException('El usuario no tiene una region asignada.');
+      throw new ForbiddenException("El usuario no tiene una region asignada.");
     }
 
     const submittedBy = await this.userRepository.findOne({
       where: { id: authUser.sub },
       relations: { region: true },
     });
-    const region = await this.delegationRepository.manager.findOne(RegionEntity, {
-      where: { id: liveAuthUser.regionId },
-    });
+    const region = await this.delegationRepository.manager.findOne(
+      RegionEntity,
+      {
+        where: { id: liveAuthUser.regionId },
+      },
+    );
 
     if (!submittedBy || !region) {
-      throw new NotFoundException('No se encontro el usuario o la region.');
+      throw new NotFoundException("No se encontro el usuario o la region.");
     }
 
-    const lastReport = await this.findLastRosterReportByRegion(region.id, 'REGION');
+    const lastReport = await this.findLastRosterReportByRegion(
+      region.id,
+      "REGION",
+    );
     const confirmedDelegationReports = await this.countDelegationReportsSince(
       region.id,
       lastReport?.submittedAt ?? null,
     );
     const report = await this.rosterReportRepository.save(
       this.rosterReportRepository.create({
-        reportScope: 'REGION',
+        reportScope: "REGION",
         delegation: null,
         region,
         submittedBy,
         hasChanges: confirmedDelegationReports > 0,
         changesSinceLastReport: confirmedDelegationReports,
         confirmedDelegationReports,
-        notes: normalizeText(dto.notes ?? ''),
+        notes: normalizeText(dto.notes ?? ""),
         submittedAt: new Date(),
       }),
     );
@@ -458,14 +532,14 @@ export class RecordsService {
       actorId: authUser.sub,
       action:
         confirmedDelegationReports > 0
-          ? 'REGION_ROSTER_REPORT_SUBMITTED_WITH_CHANGES'
-          : 'REGION_ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES',
-      entityType: 'vehicle_roster_report',
+          ? "REGION_ROSTER_REPORT_SUBMITTED_WITH_CHANGES"
+          : "REGION_ROSTER_REPORT_SUBMITTED_WITHOUT_CHANGES",
+      entityType: "vehicle_roster_report",
       entityId: report.id,
       metadata: {
         regionId: region.id,
         confirmedDelegationReports,
-        reportScope: 'REGION',
+        reportScope: "REGION",
       },
     });
 
@@ -484,7 +558,7 @@ export class RecordsService {
 
     return this.rosterReportRepository.find({
       where: {
-        reportScope: 'DELEGATION',
+        reportScope: "DELEGATION",
         delegation: {
           id: liveAuthUser.delegationId,
         },
@@ -497,7 +571,7 @@ export class RecordsService {
         submittedBy: true,
       },
       order: {
-        submittedAt: 'DESC',
+        submittedAt: "DESC",
       },
       take: 20,
     });
@@ -512,7 +586,7 @@ export class RecordsService {
 
     return this.rosterReportRepository.find({
       where: {
-        reportScope: 'REGION',
+        reportScope: "REGION",
         region: {
           id: liveAuthUser.regionId,
         },
@@ -522,7 +596,7 @@ export class RecordsService {
         submittedBy: true,
       },
       order: {
-        submittedAt: 'DESC',
+        submittedAt: "DESC",
       },
       take: 20,
     });
@@ -533,9 +607,15 @@ export class RecordsService {
     return this.buildRegionRosterReportOverview(regions);
   }
 
-  async findRegionalRosterReportOverview(authUser: AuthUser, delegationId?: string) {
+  async findRegionalRosterReportOverview(
+    authUser: AuthUser,
+    delegationId?: string,
+  ) {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
-    const delegations = await this.findScopedDelegations(liveAuthUser.regionId ?? '', delegationId);
+    const delegations = await this.findScopedDelegations(
+      liveAuthUser.regionId ?? "",
+      delegationId,
+    );
     return this.buildDelegationRosterReportOverview(delegations);
   }
 
@@ -554,7 +634,7 @@ export class RecordsService {
     });
 
     if (!record) {
-      throw new NotFoundException('No se encontro la captura vehicular.');
+      throw new NotFoundException("No se encontro la captura vehicular.");
     }
 
     return record;
@@ -574,7 +654,9 @@ export class RecordsService {
 
   async findRegionalView(authUser: AuthUser) {
     const liveAuthUser = await this.resolveLiveAuthUser(authUser);
-    const scopeDelegationIds = await this.findDelegationIdsByRegion(liveAuthUser.regionId ?? '');
+    const scopeDelegationIds = await this.findDelegationIdsByRegion(
+      liveAuthUser.regionId ?? "",
+    );
     const records = await this.findScopedRecordViews({ scopeDelegationIds });
     return this.groupRecords(records);
   }
@@ -585,7 +667,10 @@ export class RecordsService {
     dateFrom?: string,
     dateTo?: string,
   ) {
-    const scopeDelegationIds = await this.resolveScopeDelegationIds(regionId, delegationId);
+    const scopeDelegationIds = await this.resolveScopeDelegationIds(
+      regionId,
+      delegationId,
+    );
     const records = await this.findScopedRecordViews({
       scopeDelegationIds,
       dateFrom,
@@ -601,42 +686,49 @@ export class RecordsService {
     dateTo?: string,
   ) {
     const query = this.recordRepository
-      .createQueryBuilder('record')
-      .leftJoinAndSelect('record.delegation', 'delegation')
-      .leftJoinAndSelect('delegation.region', 'region')
-      .leftJoinAndSelect('record.createdBy', 'createdBy')
-      .orderBy('record.createdAt', 'DESC');
+      .createQueryBuilder("record")
+      .leftJoinAndSelect("record.delegation", "delegation")
+      .leftJoinAndSelect("delegation.region", "region")
+      .leftJoinAndSelect("record.createdBy", "createdBy")
+      .orderBy("record.createdAt", "DESC");
 
     if (regionId) {
-      query.andWhere('region.id = :regionId', { regionId });
+      query.andWhere("region.id = :regionId", { regionId });
     }
 
     if (delegationId) {
-      query.andWhere('delegation.id = :delegationId', { delegationId });
+      query.andWhere("delegation.id = :delegationId", { delegationId });
     }
 
     if (dateFrom) {
-      query.andWhere('record.createdAt >= :dateFrom', { dateFrom: `${dateFrom}T00:00:00.000Z` });
+      query.andWhere("record.createdAt >= :dateFrom", {
+        dateFrom: `${dateFrom}T00:00:00.000Z`,
+      });
     }
 
     if (dateTo) {
-      query.andWhere('record.createdAt <= :dateTo', { dateTo: `${dateTo}T23:59:59.999Z` });
+      query.andWhere("record.createdAt <= :dateTo", {
+        dateTo: `${dateTo}T23:59:59.999Z`,
+      });
     }
 
     const records = await query.getMany();
     const reportOverview = await this.findRosterReportOverview(regionId);
     const reportKpis = {
-      notReported: reportOverview.filter((row) => row.status === 'NOT_REPORTED').length,
-      pendingChanges: reportOverview.filter((row) => row.status === 'PENDING_CHANGES').length,
+      notReported: reportOverview.filter((row) => row.status === "NOT_REPORTED")
+        .length,
+      pendingChanges: reportOverview.filter(
+        (row) => row.status === "PENDING_CHANGES",
+      ).length,
       reportedWithoutChanges: reportOverview.filter(
-        (row) => row.status === 'REPORTED_WITHOUT_CHANGES',
+        (row) => row.status === "REPORTED_WITHOUT_CHANGES",
       ).length,
       reportedWithChanges: reportOverview.filter(
-        (row) => row.status === 'REPORTED_WITH_CHANGES',
+        (row) => row.status === "REPORTED_WITH_CHANGES",
       ).length,
     };
 
-    const statuses = ['INCATIVO', 'SINIESTRADO', 'PARA BAJA', 'OTRO'];
+    const statuses = ["INCATIVO", "SINIESTRADO", "PARA BAJA", "OTRO"];
     const physicalStatuses: string[] = [];
     const allowedStatusValues = new Set<string>(
       RECORD_FIELD_CATALOG.status.options.map((option) => option.value),
@@ -681,7 +773,9 @@ export class RecordsService {
           vehicleClass,
           totalUnits: 0,
           totalActive: 0,
-          statusBreakdown: Object.fromEntries(statuses.map((status) => [status, 0])),
+          statusBreakdown: Object.fromEntries(
+            statuses.map((status) => [status, 0]),
+          ),
           physicalStatusBreakdown: Object.fromEntries(
             physicalStatuses.map((status) => [status, 0]),
           ),
@@ -709,17 +803,20 @@ export class RecordsService {
         delegationRow.vehicleClasses.set(vehicleClass, {
           vehicleClass,
           totalUnits: 0,
-          statusBreakdown: Object.fromEntries(statuses.map((status) => [status, 0])),
+          statusBreakdown: Object.fromEntries(
+            statuses.map((status) => [status, 0]),
+          ),
         });
       }
 
-      const delegationVehicleClassRow = delegationRow.vehicleClasses.get(vehicleClass)!;
+      const delegationVehicleClassRow =
+        delegationRow.vehicleClasses.get(vehicleClass)!;
       delegationVehicleClassRow.totalUnits += 1;
 
       if (record.status in row.statusBreakdown) {
         row.statusBreakdown[record.status] += 1;
         delegationVehicleClassRow.statusBreakdown[record.status] += 1;
-      } else if (record.status !== 'ACTIVO') {
+      } else if (record.status !== "ACTIVO") {
         row.statusBreakdown.OTRO += 1;
         delegationVehicleClassRow.statusBreakdown.OTRO += 1;
       }
@@ -746,7 +843,9 @@ export class RecordsService {
         ...row,
         totalActive: calculateNetActive(row.totalUnits, row.statusBreakdown),
       }))
-      .sort((left, right) => left.vehicleClass.localeCompare(right.vehicleClass));
+      .sort((left, right) =>
+        left.vehicleClass.localeCompare(right.vehicleClass),
+      );
 
     const resume = {
       totalUnits: rows.reduce((total, row) => total + row.totalUnits, 0),
@@ -760,7 +859,10 @@ export class RecordsService {
       physicalStatusBreakdown: Object.fromEntries(
         physicalStatuses.map((status) => [
           status,
-          rows.reduce((total, row) => total + row.physicalStatusBreakdown[status], 0),
+          rows.reduce(
+            (total, row) => total + row.physicalStatusBreakdown[status],
+            0,
+          ),
         ]),
       ),
     };
@@ -771,13 +873,20 @@ export class RecordsService {
       },
       order: {
         region: {
-          sortOrder: 'ASC',
+          sortOrder: "ASC",
         },
-        sortOrder: 'ASC',
+        sortOrder: "ASC",
       },
     });
 
-    const regionsMap = new Map<string, { regionId: string; regionName: string; delegations: { id: string; name: string }[] }>();
+    const regionsMap = new Map<
+      string,
+      {
+        regionId: string;
+        regionName: string;
+        delegations: { id: string; name: string }[];
+      }
+    >();
 
     for (const delegation of availableFilters) {
       if (!regionsMap.has(delegation.region.id)) {
@@ -830,7 +939,10 @@ export class RecordsService {
           regionId: delegationRow.regionId,
           regionName: delegationRow.regionName,
           totalUnits: delegationRow.totalUnits,
-          totalActive: vehicleClasses.reduce((total, row) => total + row.totalActive, 0),
+          totalActive: vehicleClasses.reduce(
+            (total, row) => total + row.totalActive,
+            0,
+          ),
           dominantVehicleClass: vehicleClasses[0]?.vehicleClass ?? null,
           vehicleClasses,
         };
@@ -846,8 +958,11 @@ export class RecordsService {
     return {
       kpis: {
         totalRecords: records.length,
-        totalRegions: new Set(records.map((record) => record.delegation.region.id)).size,
-        totalDelegations: new Set(records.map((record) => record.delegation.id)).size,
+        totalRegions: new Set(
+          records.map((record) => record.delegation.region.id),
+        ).size,
+        totalDelegations: new Set(records.map((record) => record.delegation.id))
+          .size,
         totalActive: calculateNetActive(records.length, resume.statusBreakdown),
         ...reportKpis,
       },
@@ -886,8 +1001,8 @@ export class RecordsService {
 
     await this.auditLogsService.register({
       actorId: authUser.sub,
-      action: 'RECORD_SOFT_DELETED',
-      entityType: 'record',
+      action: "RECORD_SOFT_DELETED",
+      entityType: "record",
       entityId: record.id,
       metadata: {
         delegationId: record.delegation.id,
@@ -909,7 +1024,7 @@ export class RecordsService {
     });
 
     if (!report) {
-      throw new NotFoundException('No se encontro el reporte de plantilla.');
+      throw new NotFoundException("No se encontro el reporte de plantilla.");
     }
 
     return report;
@@ -918,7 +1033,7 @@ export class RecordsService {
   private findLastRosterReportByDelegation(delegationId: string) {
     return this.rosterReportRepository.findOne({
       where: {
-        reportScope: 'DELEGATION',
+        reportScope: "DELEGATION",
         delegation: {
           id: delegationId,
         },
@@ -929,12 +1044,15 @@ export class RecordsService {
         submittedBy: true,
       },
       order: {
-        submittedAt: 'DESC',
+        submittedAt: "DESC",
       },
     });
   }
 
-  private findLastRosterReportByRegion(regionId: string, reportScope: VehicleRosterReportScope) {
+  private findLastRosterReportByRegion(
+    regionId: string,
+    reportScope: VehicleRosterReportScope,
+  ) {
     return this.rosterReportRepository.findOne({
       where: {
         reportScope,
@@ -950,26 +1068,38 @@ export class RecordsService {
         submittedBy: true,
       },
       order: {
-        submittedAt: 'DESC',
+        submittedAt: "DESC",
       },
     });
   }
 
-  private countDelegationMovementsSince(delegationId: string, since: Date | null) {
+  private countDelegationMovementsSince(
+    delegationId: string,
+    since: Date | null,
+  ) {
     const query = this.auditLogRepository
-      .createQueryBuilder('auditLog')
-      .where('auditLog.action IN (:...actions)', { actions: reportableMovementActions })
+      .createQueryBuilder("auditLog")
+      .where("auditLog.action IN (:...actions)", {
+        actions: reportableMovementActions,
+      })
       .andWhere(
         new Brackets((whereBuilder) => {
           whereBuilder
-            .where("auditLog.metadata ->> 'delegationId' = :delegationId", { delegationId })
-            .orWhere("auditLog.metadata ->> 'fromDelegationId' = :delegationId", { delegationId })
-            .orWhere("auditLog.metadata ->> 'toDelegationId' = :delegationId", { delegationId });
+            .where("auditLog.metadata ->> 'delegationId' = :delegationId", {
+              delegationId,
+            })
+            .orWhere(
+              "auditLog.metadata ->> 'fromDelegationId' = :delegationId",
+              { delegationId },
+            )
+            .orWhere("auditLog.metadata ->> 'toDelegationId' = :delegationId", {
+              delegationId,
+            });
         }),
       );
 
     if (since) {
-      query.andWhere('auditLog.createdAt > :since', { since });
+      query.andWhere("auditLog.createdAt > :since", { since });
     }
 
     return query.getCount();
@@ -977,13 +1107,13 @@ export class RecordsService {
 
   private countDelegationReportsSince(regionId: string, since: Date | null) {
     const query = this.rosterReportRepository
-      .createQueryBuilder('report')
-      .leftJoin('report.region', 'region')
-      .where('report.reportScope = :reportScope', { reportScope: 'DELEGATION' })
-      .andWhere('region.id = :regionId', { regionId });
+      .createQueryBuilder("report")
+      .leftJoin("report.region", "region")
+      .where("report.reportScope = :reportScope", { reportScope: "DELEGATION" })
+      .andWhere("region.id = :regionId", { regionId });
 
     if (since) {
-      query.andWhere('report.submittedAt > :since', { since });
+      query.andWhere("report.submittedAt > :since", { since });
     }
 
     return query.getCount();
@@ -1001,7 +1131,7 @@ export class RecordsService {
     });
 
     if (!user) {
-      throw new NotFoundException('No se encontro el usuario.');
+      throw new NotFoundException("No se encontro el usuario.");
     }
 
     return {
@@ -1012,18 +1142,26 @@ export class RecordsService {
     };
   }
 
-  private ensureEnlaceDelegationAccess(authUser: AuthUser, delegationId: string) {
+  private ensureEnlaceDelegationAccess(
+    authUser: AuthUser,
+    delegationId: string,
+  ) {
     if (authUser.role !== Role.Enlace) {
       return;
     }
 
     if (authUser.delegationId !== delegationId) {
-      throw new ForbiddenException('El enlace solo puede usar su delegacion asignada.');
+      throw new ForbiddenException(
+        "El enlace solo puede usar su delegacion asignada.",
+      );
     }
   }
 
-  private async ensureNoDuplicateRecords(values: NormalizedRecordValues, excludeId?: string) {
-    const uniqueFields = ['plates', 'engineNumber', 'serialNumber'] as const;
+  private async ensureNoDuplicateRecords(
+    values: NormalizedRecordValues,
+    excludeId?: string,
+  ) {
+    const uniqueFields = ["plates", "engineNumber", "serialNumber"] as const;
     const conflicts: string[] = [];
 
     for (const field of uniqueFields) {
@@ -1034,29 +1172,31 @@ export class RecordsService {
       }
 
       const query = this.recordRepository
-        .createQueryBuilder('record')
+        .createQueryBuilder("record")
         .where(`record.${field} = :value`, { value: fieldValue })
-        .andWhere('record.deletedAt IS NULL');
+        .andWhere("record.deletedAt IS NULL");
 
       if (excludeId) {
-        query.andWhere('record.id != :excludeId', { excludeId });
+        query.andWhere("record.id != :excludeId", { excludeId });
       }
 
       const existing = await query.getOne();
 
       if (existing) {
         const fieldLabel =
-          field === 'plates'
-            ? 'Las placas'
-            : field === 'engineNumber'
-              ? 'El numero de motor'
-              : 'El numero de serie';
-        conflicts.push(`${fieldLabel} '${fieldValue}' ya esta en uso en una captura activa.`);
+          field === "plates"
+            ? "Las placas"
+            : field === "engineNumber"
+              ? "El numero de motor"
+              : "El numero de serie";
+        conflicts.push(
+          `${fieldLabel} '${fieldValue}' ya esta en uso en una captura activa.`,
+        );
       }
     }
 
     if (conflicts.length > 0) {
-      throw new ConflictException(conflicts.join(' '));
+      throw new ConflictException(conflicts.join(" "));
     }
   }
 
@@ -1066,7 +1206,9 @@ export class RecordsService {
     }
 
     if (record.delegation.id !== authUser.delegationId) {
-      throw new ForbiddenException('El enlace solo puede editar capturas de su delegacion.');
+      throw new ForbiddenException(
+        "El enlace solo puede editar capturas de su delegacion.",
+      );
     }
   }
 
@@ -1085,7 +1227,9 @@ export class RecordsService {
 
     if (authUser.role === Role.Enlace) {
       if (record.delegation.id !== authUser.delegationId) {
-        throw new ForbiddenException('El enlace solo puede trasladar capturas de su delegacion.');
+        throw new ForbiddenException(
+          "El enlace solo puede trasladar capturas de su delegacion.",
+        );
       }
 
       return;
@@ -1097,17 +1241,21 @@ export class RecordsService {
         toDelegation.region.id !== authUser.regionId
       ) {
         throw new ForbiddenException(
-          'El director operativo solo puede trasladar capturas dentro de su region asignada.',
+          "El director operativo solo puede trasladar capturas dentro de su region asignada.",
         );
       }
 
       return;
     }
 
-    throw new ForbiddenException('El usuario no tiene permiso para trasladar capturas.');
+    throw new ForbiddenException(
+      "El usuario no tiene permiso para trasladar capturas.",
+    );
   }
 
-  private normalizeRecordValues(values: NormalizedRecordValues): NormalizedRecordValues {
+  private normalizeRecordValues(
+    values: NormalizedRecordValues,
+  ): NormalizedRecordValues {
     return {
       plates: normalizeText(values.plates).toUpperCase(),
       brand: normalizeText(values.brand).toUpperCase(),
@@ -1121,7 +1269,9 @@ export class RecordsService {
       patrolNumber: normalizeText(values.patrolNumber).toUpperCase(),
       physicalStatus: normalizeText(values.physicalStatus).toUpperCase(),
       status: normalizeText(values.status).toUpperCase(),
-      assetClassification: normalizeText(values.assetClassification).toUpperCase(),
+      assetClassification: normalizeText(
+        values.assetClassification,
+      ).toUpperCase(),
       observation: normalizeText(values.observation),
     };
   }
@@ -1199,9 +1349,9 @@ export class RecordsService {
       },
       order: {
         region: {
-          sortOrder: 'ASC',
+          sortOrder: "ASC",
         },
-        sortOrder: 'ASC',
+        sortOrder: "ASC",
       },
     });
   }
@@ -1210,7 +1360,7 @@ export class RecordsService {
     return this.delegationRepository.manager.find(RegionEntity, {
       where: regionId ? { id: regionId } : {},
       order: {
-        sortOrder: 'ASC',
+        sortOrder: "ASC",
       },
     });
   }
@@ -1221,7 +1371,9 @@ export class RecordsService {
     const rows: DelegationReportOverviewRow[] = [];
 
     for (const delegation of delegations) {
-      const lastReport = await this.findLastRosterReportByDelegation(delegation.id);
+      const lastReport = await this.findLastRosterReportByDelegation(
+        delegation.id,
+      );
       const pendingChanges = await this.countDelegationMovementsSince(
         delegation.id,
         lastReport?.submittedAt ?? null,
@@ -1234,11 +1386,11 @@ export class RecordsService {
         regionName: delegation.region.name,
         status: lastReport
           ? pendingChanges > 0
-            ? 'PENDING_CHANGES'
+            ? "PENDING_CHANGES"
             : lastReport.hasChanges
-              ? 'REPORTED_WITH_CHANGES'
-              : 'REPORTED_WITHOUT_CHANGES'
-          : 'NOT_REPORTED',
+              ? "REPORTED_WITH_CHANGES"
+              : "REPORTED_WITHOUT_CHANGES"
+          : "NOT_REPORTED",
         pendingChanges,
         lastReport,
       });
@@ -1253,7 +1405,10 @@ export class RecordsService {
     const rows: RegionReportOverviewRow[] = [];
 
     for (const region of regions) {
-      const lastReport = await this.findLastRosterReportByRegion(region.id, 'REGION');
+      const lastReport = await this.findLastRosterReportByRegion(
+        region.id,
+        "REGION",
+      );
       const pendingDelegationReports = await this.countDelegationReportsSince(
         region.id,
         lastReport?.submittedAt ?? null,
@@ -1264,11 +1419,11 @@ export class RecordsService {
         regionName: region.name,
         status: lastReport
           ? pendingDelegationReports > 0
-            ? 'PENDING_CHANGES'
+            ? "PENDING_CHANGES"
             : lastReport.hasChanges
-              ? 'REPORTED_WITH_CHANGES'
-              : 'REPORTED_WITHOUT_CHANGES'
-          : 'NOT_REPORTED',
+              ? "REPORTED_WITH_CHANGES"
+              : "REPORTED_WITHOUT_CHANGES"
+          : "NOT_REPORTED",
         pendingDelegationReports,
         lastReport,
       });
@@ -1277,7 +1432,10 @@ export class RecordsService {
     return rows;
   }
 
-  private async resolveScopeDelegationIds(regionId?: string, delegationId?: string) {
+  private async resolveScopeDelegationIds(
+    regionId?: string,
+    delegationId?: string,
+  ) {
     if (delegationId) {
       return [delegationId];
     }
@@ -1301,48 +1459,50 @@ export class RecordsService {
     }
 
     const historicalRecordIds = await this.vehicleTransferRepository
-      .createQueryBuilder('transfer')
-      .leftJoin('transfer.record', 'record')
-      .select('record.id', 'id')
-      .where('transfer.fromDelegationId IN (:...scopeDelegationIds)', {
+      .createQueryBuilder("transfer")
+      .leftJoin("transfer.record", "record")
+      .select("record.id", "id")
+      .where("transfer.fromDelegationId IN (:...scopeDelegationIds)", {
         scopeDelegationIds: filters.scopeDelegationIds,
       })
-      .orWhere('transfer.toDelegationId IN (:...scopeDelegationIds)', {
+      .orWhere("transfer.toDelegationId IN (:...scopeDelegationIds)", {
         scopeDelegationIds: filters.scopeDelegationIds,
       })
       .getRawMany<{ id: string }>();
 
-    const recordIds = Array.from(new Set(historicalRecordIds.map((row) => row.id)));
+    const recordIds = Array.from(
+      new Set(historicalRecordIds.map((row) => row.id)),
+    );
     const query = this.recordRepository
-      .createQueryBuilder('record')
-      .leftJoinAndSelect('record.delegation', 'delegation')
-      .leftJoinAndSelect('delegation.region', 'region')
-      .leftJoinAndSelect('record.createdBy', 'createdBy')
-      .leftJoinAndSelect('record.photos', 'photos')
-      .leftJoinAndSelect('photos.uploadedBy', 'photoUploadedBy')
+      .createQueryBuilder("record")
+      .leftJoinAndSelect("record.delegation", "delegation")
+      .leftJoinAndSelect("delegation.region", "region")
+      .leftJoinAndSelect("record.createdBy", "createdBy")
+      .leftJoinAndSelect("record.photos", "photos")
+      .leftJoinAndSelect("photos.uploadedBy", "photoUploadedBy")
       .where(
         new Brackets((whereBuilder) => {
-          whereBuilder.where('delegation.id IN (:...scopeDelegationIds)', {
+          whereBuilder.where("delegation.id IN (:...scopeDelegationIds)", {
             scopeDelegationIds: filters.scopeDelegationIds,
           });
 
           if (recordIds.length > 0) {
-            whereBuilder.orWhere('record.id IN (:...recordIds)', {
+            whereBuilder.orWhere("record.id IN (:...recordIds)", {
               recordIds,
             });
           }
         }),
       )
-      .orderBy('record.createdAt', 'DESC');
+      .orderBy("record.createdAt", "DESC");
 
     if (filters.dateFrom) {
-      query.andWhere('record.createdAt >= :dateFrom', {
+      query.andWhere("record.createdAt >= :dateFrom", {
         dateFrom: `${filters.dateFrom}T00:00:00.000Z`,
       });
     }
 
     if (filters.dateTo) {
-      query.andWhere('record.createdAt <= :dateTo', {
+      query.andWhere("record.createdAt <= :dateTo", {
         dateTo: `${filters.dateTo}T23:59:59.999Z`,
       });
     }
@@ -1351,7 +1511,10 @@ export class RecordsService {
     return this.hydrateRecordViews(records, filters.scopeDelegationIds);
   }
 
-  private async hydrateRecordViews(records: RecordEntity[], scopeDelegationIds: string[]) {
+  private async hydrateRecordViews(
+    records: RecordEntity[],
+    scopeDelegationIds: string[],
+  ) {
     if (records.length === 0) {
       return [];
     }
@@ -1374,20 +1537,20 @@ export class RecordsService {
         movedBy: true,
       },
       order: {
-        movedAt: 'DESC',
+        movedAt: "DESC",
       },
     });
     const editLogs = await this.auditLogRepository.find({
       where: {
-        entityType: 'record',
+        entityType: "record",
         entityId: In(recordIds),
-        action: 'RECORD_UPDATED',
+        action: "RECORD_UPDATED",
       },
       relations: {
         actor: true,
       },
       order: {
-        createdAt: 'DESC',
+        createdAt: "DESC",
       },
     });
     const transfersByRecordId = new Map<string, VehicleTransferEntity[]>();
@@ -1413,7 +1576,10 @@ export class RecordsService {
       const viewDelegations = new Map<string, ViewDelegation>();
 
       if (scopeDelegationIds.includes(record.delegation.id)) {
-        viewDelegations.set(record.delegation.id, this.mapDelegation(record.delegation));
+        viewDelegations.set(
+          record.delegation.id,
+          this.mapDelegation(record.delegation),
+        );
       }
 
       for (const transfer of recordTransfers) {
@@ -1425,7 +1591,10 @@ export class RecordsService {
         }
 
         if (scopeDelegationIds.includes(transfer.toDelegation.id)) {
-          viewDelegations.set(transfer.toDelegation.id, this.mapDelegation(transfer.toDelegation));
+          viewDelegations.set(
+            transfer.toDelegation.id,
+            this.mapDelegation(transfer.toDelegation),
+          );
         }
       }
 
@@ -1449,16 +1618,23 @@ export class RecordsService {
         rows.push({
           ...record,
           viewDelegation,
-          recordState: record.delegation.id === viewDelegation.id ? 'CURRENT' : 'TRANSFERRED_OUT',
+          recordState:
+            record.delegation.id === viewDelegation.id
+              ? "CURRENT"
+              : "TRANSFERRED_OUT",
           latestTransfer,
           latestEdit: recordEdits[0] ? this.mapEditLog(recordEdits[0]) : null,
-          transferHistory: recordTransfers.map((transfer) => this.mapTransfer(transfer)),
+          transferHistory: recordTransfers.map((transfer) =>
+            this.mapTransfer(transfer),
+          ),
           editHistory: recordEdits.map((editLog) => this.mapEditLog(editLog)),
         });
       }
     }
 
-    return rows.sort((left, right) => +new Date(right.createdAt) - +new Date(left.createdAt));
+    return rows.sort(
+      (left, right) => +new Date(right.createdAt) - +new Date(left.createdAt),
+    );
   }
 
   private mapDelegation(delegation: DelegationEntity): ViewDelegation {
@@ -1493,11 +1669,11 @@ export class RecordsService {
         ? editLog.metadata.changedFields.map((fieldName) => String(fieldName))
         : [],
       before:
-        editLog.metadata.before && typeof editLog.metadata.before === 'object'
+        editLog.metadata.before && typeof editLog.metadata.before === "object"
           ? (editLog.metadata.before as Record<string, unknown>)
           : {},
       after:
-        editLog.metadata.after && typeof editLog.metadata.after === 'object'
+        editLog.metadata.after && typeof editLog.metadata.after === "object"
           ? (editLog.metadata.after as Record<string, unknown>)
           : {},
       actor: editLog.actor ?? null,

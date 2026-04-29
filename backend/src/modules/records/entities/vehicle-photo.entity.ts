@@ -1,9 +1,9 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
-import { BaseEntity } from 'src/common/entities/base.entity';
-import { RecordEntity } from 'src/modules/records/entities/record.entity';
-import { UserEntity } from 'src/modules/users/entities/user.entity';
+import { Column, Entity, ManyToOne } from "typeorm";
+import { BaseEntity } from "src/common/entities/base.entity";
+import { RecordEntity } from "src/modules/records/entities/record.entity";
+import { UserEntity } from "src/modules/users/entities/user.entity";
 
-@Entity('vehicle_photos')
+@Entity("vehicle_photos")
 export class VehiclePhotoEntity extends BaseEntity {
   @Column()
   fileName!: string;
@@ -12,17 +12,29 @@ export class VehiclePhotoEntity extends BaseEntity {
   filePath!: string;
 
   @Column()
+  objectKey!: string;
+
+  @Column()
+  publicUrl!: string;
+
+  @Column()
   mimeType!: string;
+
+  @Column({ type: "integer", default: 0 })
+  size!: number;
+
+  @Column()
+  storageProvider!:string;
 
   @ManyToOne(() => RecordEntity, (record) => record.photos, {
     nullable: false,
-    onDelete: 'CASCADE',
+    onDelete: "CASCADE",
   })
   record!: RecordEntity;
 
   @ManyToOne(() => UserEntity, {
     nullable: false,
-    onDelete: 'RESTRICT',
+    onDelete: "RESTRICT",
   })
   uploadedBy!: UserEntity;
 }

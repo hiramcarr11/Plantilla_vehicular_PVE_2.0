@@ -10,6 +10,7 @@ import { VehicleRosterReportEntity } from './entities/vehicle-roster-report.enti
 import { VehicleTransferEntity } from './entities/vehicle-transfer.entity';
 import { RecordsController } from './records.controller';
 import { RecordsService } from './records.service';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RecordsService } from './records.service';
       VehicleTransferEntity,
     ]),
     AuditLogsModule,
+    StorageModule,
   ],
   controllers: [RecordsController],
   providers: [RecordsService],
