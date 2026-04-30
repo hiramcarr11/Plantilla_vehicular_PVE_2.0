@@ -1,22 +1,36 @@
-import { useEffect, useRef, useState } from 'react';
-import type { Conversation, Message, User } from '../../../types';
-import { useAuth } from '../../auth/auth-context';
-import { useMessages } from '../use-messages';
-import { resolveConfiguredNetworkUrl } from '../../../lib/resolve-network-url';
+import { useEffect, useRef, useState } from "react";
+import type { Conversation, Message, User } from "../../../types";
+import { useAuth } from "../../auth/auth-context";
+import { useMessages } from "../use-messages";
+import { resolveConfiguredNetworkUrl } from "../../../lib/resolve-network-url";
 
 function resolveApiBaseUrl() {
-  const configuredUrl = resolveConfiguredNetworkUrl(import.meta.env.VITE_API_URL, '/api');
+  const configuredUrl = resolveConfiguredNetworkUrl(
+    import.meta.env.VITE_API_URL,
+    "/api",
+  );
   if (configuredUrl) {
-    return configuredUrl.replace(/\/api$/, '');
+    return configuredUrl.replace(/\/api$/, "");
   }
-  if (typeof window === 'undefined') {
-    return 'http://localhost:3000';
+  if (typeof window === "undefined") {
+    return "http://localhost:3000";
   }
   const { protocol, hostname } = window.location;
   return `${protocol}//${hostname}:3000`;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
+
+function resolveMessagePhotoUrl(photo: Message["photos"][number]) {
+  if (
+    photo.publicUrl.startsWith("http://") ||
+    photo.publicUrl.startsWith("https://")
+  ) {
+    return photo.publicUrl;
+  }
+
+  return `${API_BASE_URL}${photo.publicUrl}`;
+}
 
 type ChatViewProps = {
   conversation: Conversation;
@@ -34,14 +48,14 @@ export function ChatView({ conversation, users }: ChatViewProps) {
   const { session } = useAuth();
   const { messages, loading, sending, sendMessage, markAllAsRead } =
     useMessages(conversation.id);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasMarkedRead = useRef(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
@@ -75,7 +89,7 @@ export function ChatView({ conversation, users }: ChatViewProps) {
     setPhotos((prev) => [...prev, ...newFiles]);
 
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -98,7 +112,7 @@ export function ChatView({ conversation, users }: ChatViewProps) {
 
     try {
       await sendMessage(newMessage, photoFiles);
-      setNewMessage('');
+      setNewMessage("");
       setPhotos([]);
     } catch {
       // Error handled by hook
@@ -119,7 +133,7 @@ export function ChatView({ conversation, users }: ChatViewProps) {
       ? `Grupo (${otherParticipants.length} participantes)`
       : otherParticipants.length > 0
         ? `${otherParticipants[0].firstName} ${otherParticipants[0].lastName}`
-        : 'Conversacion';
+        : "Conversacion";
 
   return (
     <div className="chat-view">
@@ -138,7 +152,9 @@ export function ChatView({ conversation, users }: ChatViewProps) {
         {loading ? (
           <div className="loading-messages">Cargando mensajes...</div>
         ) : messages.length === 0 ? (
-          <div className="no-messages">No hay mensajes aun. Inicia la conversacion.</div>
+          <div className="no-messages">
+            No hay mensajes aun. Inicia la conversacion.
+          </div>
         ) : (
           <ul>
             {messages.map((msg) => {
@@ -147,7 +163,7 @@ export function ChatView({ conversation, users }: ChatViewProps) {
               return (
                 <li
                   key={msg.id}
-                  className={`message ${isOwn ? 'own' : 'other'}`}
+                  className={`message ${isOwn ? "own" : "other"}`}
                 >
                   <div className="message-bubble">
                     {!isOwn && (
@@ -161,11 +177,14 @@ export function ChatView({ conversation, users }: ChatViewProps) {
                     {msg.photos && msg.photos.length > 0 && (
                       <div className="message-photos">
                         {msg.photos.map((photo) => {
-                          const photoUrl = `${API_BASE_URL}/uploads/message-photos/${photo.filePath}`;
-                          const isImage = photo.mimeType.startsWith('image/');
+                          const photoUrl = resolveMessagePhotoUrl(photo);
+                          const isImage = photo.mimeType.startsWith("image/");
 
                           return (
-                            <div key={photo.id} className="message-photo-wrapper">
+                            <div
+                              key={photo.id}
+                              className="message-photo-wrapper"
+                            >
                               {isImage ? (
                                 <img
                                   className="message-photo"
@@ -176,13 +195,15 @@ export function ChatView({ conversation, users }: ChatViewProps) {
                               ) : (
                                 <div className="message-document">
                                   <div className="document-icon">
-                                    {photo.mimeType.includes('pdf')
-                                      ? '📄'
-                                      : photo.mimeType.includes('spreadsheetml')
-                                        ? '📊'
-                                        : '📝'}
+                                    {photo.mimeType.includes("pdf")
+                                      ? "📄"
+                                      : photo.mimeType.includes("spreadsheetml")
+                                        ? "📊"
+                                        : "📝"}
                                   </div>
-                                  <div className="document-name">{photo.fileName}</div>
+                                  <div className="document-name">
+                                    {photo.fileName}
+                                  </div>
                                 </div>
                               )}
                               <a
@@ -202,8 +223,8 @@ export function ChatView({ conversation, users }: ChatViewProps) {
                     )}
                     <div className="message-time">
                       {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </div>
                   </div>
@@ -218,7 +239,7 @@ export function ChatView({ conversation, users }: ChatViewProps) {
       {photos.length > 0 && (
         <div className="photo-preview-bar">
           {photos.map((photo, index) => {
-            const isImage = photo.file.type.startsWith('image/');
+            const isImage = photo.file.type.startsWith("image/");
             return (
               <div key={index} className="photo-preview-thumb">
                 {isImage ? (
@@ -226,11 +247,11 @@ export function ChatView({ conversation, users }: ChatViewProps) {
                 ) : (
                   <div className="document-preview">
                     <div className="document-icon-small">
-                      {photo.file.type.includes('pdf')
-                        ? '📄'
-                        : photo.file.type.includes('spreadsheetml')
-                          ? '📊'
-                          : '📝'}
+                      {photo.file.type.includes("pdf")
+                        ? "📄"
+                        : photo.file.type.includes("spreadsheetml")
+                          ? "📊"
+                          : "📝"}
                     </div>
                     <div className="document-name-small">{photo.file.name}</div>
                   </div>
@@ -254,7 +275,11 @@ export function ChatView({ conversation, users }: ChatViewProps) {
           className="attach-photo-btn"
           onClick={() => fileInputRef.current?.click()}
           disabled={sending || photos.length >= MAX_PHOTOS}
-          title={photos.length >= MAX_PHOTOS ? 'Limite de archivos alcanzado' : 'Adjuntar archivo'}
+          title={
+            photos.length >= MAX_PHOTOS
+              ? "Limite de archivos alcanzado"
+              : "Adjuntar archivo"
+          }
         >
           📎
         </button>
@@ -264,7 +289,7 @@ export function ChatView({ conversation, users }: ChatViewProps) {
           accept="image/*,application/pdf,.xlsx,.docx"
           multiple
           onChange={handlePhotoChange}
-          style={{ display: 'none' }}
+          style={{ display: "none" }}
         />
         <input
           type="text"
@@ -279,7 +304,7 @@ export function ChatView({ conversation, users }: ChatViewProps) {
           className="send-button"
           disabled={(!newMessage.trim() && photos.length === 0) || sending}
         >
-          {sending ? 'Enviando...' : 'Enviar'}
+          {sending ? "Enviando..." : "Enviar"}
         </button>
       </form>
     </div>

@@ -80,7 +80,11 @@ export type VehiclePhoto = {
   id: string;
   fileName: string;
   filePath: string;
+  objectKey: string;
+  publicUrl: string;
   mimeType: string;
+  size: number;
+  storageProvider: 'local' | 'r2';
   uploadedBy: User;
   createdAt: string;
 };
@@ -310,7 +314,11 @@ export type MessagePhoto = {
   id: string;
   fileName: string;
   filePath: string;
+  objectKey: string;
+  publicUrl: string;
   mimeType: string;
+  size: number;
+  storageProvider: 'local' | 'r2';
   uploadedBy: User;
   createdAt: string;
 };

@@ -72,6 +72,10 @@ const dataSource = new DataSource({
   synchronize: false,
   migrationsRun: false,
   dropSchema: false,
+  ssl:
+  process.env.DATABASE_SSL === 'true'
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 export default dataSource;
