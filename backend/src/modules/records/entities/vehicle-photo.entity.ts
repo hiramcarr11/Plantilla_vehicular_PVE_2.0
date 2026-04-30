@@ -23,8 +23,8 @@ export class VehiclePhotoEntity extends BaseEntity {
   @Column({ type: "integer", default: 0 })
   size!: number;
 
-  @Column()
-  storageProvider!:string;
+  @Column({ default: "local" })
+  storageProvider!: string;
 
   @ManyToOne(() => RecordEntity, (record) => record.photos, {
     nullable: false,
