@@ -1,4 +1,4 @@
-import { EmptyState } from '../components/empty-state';
+﻿import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { useAuth } from '../modules/auth/auth-context';
@@ -61,12 +61,12 @@ export function DirectorGeneralPage() {
         <PageIntro
           eyebrow="Dirección"
           title="Dashboard directivo"
-          description="Monitorea KPIs globales y resume la operación por tipo de vehículo según la región y delegación filtradas."
+          description="Consulta indicadores globales de la plantilla vehicular y su comportamiento operativo."
         />
 
         <div className="form-grid director-filter-grid">
           <label className="field">
-            <span>Región</span>
+            <span>RegiÃ³n</span>
             <select
               value={selectedRegionId}
               onChange={(event) => {
@@ -84,7 +84,7 @@ export function DirectorGeneralPage() {
           </label>
 
           <label className="field">
-            <span>Delegación</span>
+            <span>DelegaciÃ³n</span>
             <select
               value={selectedDelegationId}
               onChange={(event) => setSelectedDelegationId(event.target.value)}
@@ -134,13 +134,13 @@ export function DirectorGeneralPage() {
         <StatsGrid
           items={[
             { label: 'Alcance regional', value: selectedRegionName },
-            { label: 'Alcance por delegación', value: selectedDelegationName },
+            { label: 'Alcance por delegaciÃ³n', value: selectedDelegationName },
             {
               label: 'Corte al',
               value: table.rows.length > 0 ? formatReportDate(table.date) : '-',
             },
             {
-              label: 'Vehículos con estatus OTRO',
+              label: 'VehÃ­culos con estatus OTRO',
               value: table.resume.statusBreakdown.OTRO ?? 0,
             },
           ]}
@@ -197,7 +197,7 @@ export function DirectorGeneralPage() {
           </div>
 
           <section className="director-report-observations">
-            <strong>DESCRIPCIÓN OTRO:</strong>
+            <strong>DESCRIPCIÃ“N OTRO:</strong>
             {table.customStatusDescriptions.length > 0 ? (
               <div className="director-report-observations-list">
                 {table.customStatusDescriptions.map((description, index) => (
@@ -234,3 +234,4 @@ export function DirectorGeneralPage() {
     </div>
   );
 }
+

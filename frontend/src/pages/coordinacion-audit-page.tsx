@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
@@ -47,21 +47,21 @@ export function CoordinacionAuditPage() {
     <div className="stack-lg">
       <section className="panel">
         <PageIntro
-          eyebrow="Bitácora"
-          title="Actividad del sistema"
-          description="Consulta movimientos críticos con visibilidad inmediata y orden cronológico."
+          eyebrow="Auditoría"
+          title="Bitácora"
+          description="Consulta movimientos críticos y actividad registrada en el sistema."
         />
 
         <StatsGrid
           items={[
             { label: 'Eventos registrados', value: totalItems },
             {
-              label: 'Último movimiento',
+              label: 'Ãšltimo movimiento',
               value: auditLogs[0] ? new Date(auditLogs[0].createdAt).toLocaleTimeString() : '-',
               helper: auditLogs[0]?.action ?? 'Sin actividad',
             },
             {
-              label: 'Último actor',
+              label: 'Ãšltimo actor',
               value: auditLogs[0]?.actor ? formatUserName(auditLogs[0].actor) : 'Sistema',
             },
             {
@@ -83,8 +83,8 @@ export function CoordinacionAuditPage() {
 
         {auditLogs.length === 0 ? (
           <EmptyState
-            title="No hay eventos en la bitácora"
-            description="La actividad crítica aparecerá aquí en cuanto el sistema registre movimientos."
+            title="No hay eventos en la bitÃ¡cora"
+            description="La actividad crÃ­tica aparecerÃ¡ aquÃ­ en cuanto el sistema registre movimientos."
           />
         ) : (
           <div className="activity-list">
@@ -108,8 +108,8 @@ export function CoordinacionAuditPage() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">Paginación</p>
-              <h2>Bitácora</h2>
+              <p className="eyebrow">PaginaciÃ³n</p>
+              <h2>BitÃ¡cora</h2>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -121,7 +121,7 @@ export function CoordinacionAuditPage() {
             >
               Anterior
             </button>
-            <span>Página {currentPage} de {totalPages}</span>
+            <span>PÃ¡gina {currentPage} de {totalPages}</span>
             <button
               className="secondary-button"
               type="button"
@@ -136,3 +136,4 @@ export function CoordinacionAuditPage() {
     </div>
   );
 }
+

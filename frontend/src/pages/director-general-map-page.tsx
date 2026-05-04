@@ -1,4 +1,4 @@
-import { DirectorOaxacaMap } from '../components/director-oaxaca-map';
+﻿import { DirectorOaxacaMap } from '../components/director-oaxaca-map';
 import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
@@ -45,12 +45,12 @@ export function DirectorGeneralMapPage() {
         <PageIntro
           eyebrow="Dirección"
           title="Mapa directivo"
-          description="Consulta la distribución territorial de vehículos en un mapa dinámico con filtros por fecha, región y delegación."
+          description="Consulta la distribución territorial de la plantilla vehicular por región y delegación."
         />
 
         <div className="form-grid director-filter-grid">
           <label className="field">
-            <span>Región</span>
+            <span>RegiÃ³n</span>
             <select
               value={selectedRegionId}
               onChange={(event) => {
@@ -68,7 +68,7 @@ export function DirectorGeneralMapPage() {
           </label>
 
           <label className="field">
-            <span>Delegación</span>
+            <span>DelegaciÃ³n</span>
             <select
               value={selectedDelegationId}
               onChange={(event) => setSelectedDelegationId(event.target.value)}
@@ -97,8 +97,8 @@ export function DirectorGeneralMapPage() {
           items={[
             { label: 'Regiones visibles', value: selectedRegionName },
             { label: 'Delegaciones visibles', value: selectedDelegationName },
-            { label: 'Vehículos totales', value: kpis.totalRecords },
-            { label: 'Vehículos activos', value: kpis.totalActive },
+            { label: 'VehÃ­culos totales', value: kpis.totalRecords },
+            { label: 'VehÃ­culos activos', value: kpis.totalActive },
           ]}
         />
       </section>
@@ -109,3 +109,4 @@ export function DirectorGeneralMapPage() {
     </div>
   );
 }
+

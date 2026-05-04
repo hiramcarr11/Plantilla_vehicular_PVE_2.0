@@ -21,56 +21,56 @@ const roleLabels = {
 
 const pageTitles: Record<string, { title: string; description: string }> = {
   [APP_ROUTES.home]: {
-    title: "Resumen operativo",
+    title: "Inicio",
     description:
-      "Consulta tu espacio de trabajo y accede rÃ¡pido a las acciones principales.",
+      "Consulta tus accesos principales y el resumen correspondiente a tu rol.",
   },
   [APP_ROUTES.workspace]: {
-    title: "Captura de delegaciÃ³n",
-    description: "Registra nuevos bienes vehiculares desde tu delegaciÃ³n.",
+    title: "Captura vehicular",
+    description: "Registra unidades vehiculares desde tu delegación asignada.",
   },
   [APP_ROUTES.archive]: {
-    title: "Todas mis capturas",
+    title: "Mi plantilla vehicular",
     description:
-      "Consulta el historial completo de capturas registradas por tu usuario.",
+      "Consulta, edita, traslada y confirma la plantilla vigente de tu delegación.",
   },
   [APP_ROUTES.monitor]: {
-    title: "Monitoreo regional",
+    title: "Supervisión regional",
     description:
-      "Sigue la actividad de las delegaciones asignadas en tiempo real.",
+      "Consulta las unidades vehiculares registradas por las delegaciones de tu región.",
   },
   [APP_ROUTES.overview]: {
-    title: "Vista administrativa",
+    title: "Vista general vehicular",
     description:
-      "Observa la operaciÃ³n completa organizada por regiÃ³n y delegaciÃ³n.",
+      "Consulta la operación vehicular general organizada por región y delegación.",
   },
   [APP_ROUTES.insights]: {
     title: "Dashboard directivo",
     description:
-      "Consulta KPIs globales y el desglose por regiÃ³n y delegaciÃ³n.",
+      "Consulta indicadores globales de la plantilla vehicular.",
   },
   [APP_ROUTES.insightsMap]: {
     title: "Mapa directivo",
     description:
-      "Explora la distribuciÃ³n territorial de vehÃ­culos con filtros operativos.",
+      "Explora la distribución territorial de la plantilla vehicular.",
   },
   [APP_ROUTES.control]: {
     title: "Usuarios",
     description:
-      "Administra accesos, perfiles y cobertura operativa del sistema.",
+      "Administra accesos, roles y cobertura operativa del sistema.",
   },
   [APP_ROUTES.controlActivity]: {
     title: "BitÃ¡cora",
     description:
-      "Supervisa en tiempo real los movimientos crÃ­ticos del sistema.",
+      "Consulta movimientos críticos y actividad registrada en el sistema.",
   },
   [APP_ROUTES.reportsRegional]: {
-    title: "Reportes regionales",
-    description: "Consulta el estado de cierre y confirmaciÃ³n por regiÃ³n.",
+    title: "Validación mensual",
+    description: "Consulta el estado de validación mensual por región.",
   },
   [APP_ROUTES.reportsDelegations]: {
-    title: "ValidaciÃ³n regional",
-    description: "Confirma el cierre mensual de las delegaciones bajo tu regiÃ³n.",
+    title: "Validación regional",
+    description: "Confirma el cierre mensual de las delegaciones bajo tu región.",
   },
 };
 
@@ -102,7 +102,7 @@ const sidebarSections: SidebarSection[] = [
         allowedRoles: ROUTE_ROLES.archive,
       },
       {
-        label: "Vista general",
+        label: "Vista general vehicular",
         route: APP_ROUTES.overview,
         allowedRoles: ROUTE_ROLES.overview,
         end: true,
@@ -124,13 +124,13 @@ const sidebarSections: SidebarSection[] = [
     title: "Validaciones mensuales",
     items: [
       {
-        label: "ValidaciÃ³n regional",
+        label: "Validación regional",
         route: APP_ROUTES.reportsDelegations,
         allowedRoles: ROUTE_ROLES.reportsDelegations,
         end: true,
       },
       {
-        label: "Reportes regionales",
+        label: "Validación mensual",
         route: APP_ROUTES.reportsRegional,
         allowedRoles: ROUTE_ROLES.reportsRegional,
         end: true,

@@ -96,9 +96,9 @@ export function DirectorOperativoPage() {
     <GroupedRecords
       regions={regions}
       fieldCatalogs={fieldCatalogs}
-      eyebrow="Vista regional"
-      title="Delegaciones bajo tu responsabilidad"
-      description="Revisa el flujo de captura de tu region y consulta el historial operativo por delegacion."
+      eyebrow="Supervisión regional"
+      title="Delegaciones bajo mi región"
+      description="Consulta la plantilla vehicular registrada por las delegaciones asignadas a tu región."
       onRecordSelect={(record) => void openRecordDetails(record)}
       renderRecordActions={(record) =>
         record.recordState === 'CURRENT' ? (

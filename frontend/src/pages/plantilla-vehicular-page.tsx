@@ -132,9 +132,9 @@ export function PlantillaVehicularPage() {
     <GroupedRecords
       regions={regions}
       fieldCatalogs={fieldCatalogs}
-      eyebrow="Vista global"
-      title="Operacion completa del sistema"
-      description="Supervisa la captura de todas las regiones y su operación vehicular."
+      eyebrow="Vista general vehicular"
+      title="Operación vehicular general"
+      description="Consulta la plantilla vehicular registrada por región y delegación."
       vehicleClassAfterDate
       onRecordSelect={(record) => void openRecordDetails(record)}
       renderRecordActions={(record) =>

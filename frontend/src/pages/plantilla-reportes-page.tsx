@@ -132,8 +132,8 @@ export function PlantillaReportesPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Reportes regionales</p>
-            <h2>Seguimiento de cierre por regiÃ³n</h2>
+            <p className="eyebrow">Validación mensual</p>
+            <h2>Seguimiento mensual por región</h2>
           </div>
 
           <div className="panel-meta">{reportOverview.length} regiones</div>
@@ -183,7 +183,7 @@ export function PlantillaReportesPage() {
         <div className="panel-header">
           <div>
             <p className="eyebrow">Estado operativo</p>
-            <h2>Validación mensual de plantilla</h2>
+            <h2>Estado de validación mensual</h2>
           </div>
         </div>
 
@@ -198,7 +198,7 @@ export function PlantillaReportesPage() {
               <thead>
                 <tr>
                   <th>RegiÃ³n</th>
-                  <th>Estado operativo</th>
+                  <th>Estado de validación</th>
                   <th>Delegaciones sin confirmar</th>
                   <th>Última validación regional</th>
                   <th>Validado por</th>

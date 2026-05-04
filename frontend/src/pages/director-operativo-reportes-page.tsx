@@ -124,7 +124,7 @@ export function DirectorOperativoReportesPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Validación de delegaciones</p>
+            <p className="eyebrow">Validación regional</p>
             <h2>Confirmación mensual regional</h2>
           </div>
           <div className="panel-actions">

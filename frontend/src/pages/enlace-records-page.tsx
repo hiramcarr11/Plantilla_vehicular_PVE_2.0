@@ -59,9 +59,9 @@ export function EnlaceRecordsPage() {
     <div className="stack-lg">
       <section className="panel">
         <PageIntro
-          eyebrow="Seguimiento"
+          eyebrow="Plantilla vehicular"
           title="Mi plantilla vehicular"
-          description="Consulta, edita y traslada los registros visibles para tu delegacion."
+          description="Consulta, edita, traslada y confirma la plantilla vehicular vigente de tu delegación."
         />
 
         <StatsGrid
@@ -105,13 +105,13 @@ export function EnlaceRecordsPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Plantilla</p>
-            <h2>Vehiculos registrados</h2>
+            <p className="eyebrow">Unidades registradas</p>
+            <h2>Vehículos de mi delegación</h2>
           </div>
           <div className="panel-actions">
             <div className="panel-meta">{records.length} registros</div>
             <button className="primary-button" type="button" onClick={submitRosterReport}>
-              Enviar reporte de plantilla
+              Confirmar plantilla mensual
             </button>
           </div>
         </div>
@@ -204,8 +204,8 @@ export function EnlaceRecordsPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Reportes enviados</p>
-            <h2>Confirmaciones de plantilla</h2>
+            <p className="eyebrow">Validaciones enviadas</p>
+            <h2>Historial de confirmaciones mensuales</h2>
           </div>
           <div className="panel-meta">{rosterReports.length} reportes</div>
         </div>

@@ -23,9 +23,9 @@ export function EnlacePage() {
     <div className="stack-lg">
       <section className="panel">
         <PageIntro
-          eyebrow="Captura operativa"
-          title="Registro de bienes vehiculares"
-          description="Captura la informacion desde tu delegacion con apoyo de catalogos controlados."
+          eyebrow="Captura vehicular"
+          title="Registrar unidad vehicular"
+          description="Captura los datos de la unidad asignada a tu delegación y adjunta evidencia fotográfica cuando corresponda."
         />
 
         <StatsGrid
