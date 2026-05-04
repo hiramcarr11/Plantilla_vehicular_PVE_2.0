@@ -326,16 +326,12 @@ export function GroupedRecords({
                           <th>Modelo</th>
                           <th>Resguardante</th>
                           <th>Actividad</th>
-                          {renderRecordActions && <th>Acciones</th>}
+                          {(onRecordSelect || renderRecordActions) && <th>Acciones</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {delegation.records.map((record) => (
-                          <tr
-                            key={`${delegation.delegationId}-${record.id}`}
-                            onClick={() => onRecordSelect?.(record)}
-                            style={onRecordSelect ? { cursor: 'pointer' } : undefined}
-                          >
+                          <tr key={`${delegation.delegationId}-${record.id}`}>
                             <td>{new Date(record.createdAt).toLocaleString()}</td>
                             {vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
                             <td>{record.plates}</td>
@@ -361,9 +357,20 @@ export function GroupedRecords({
                                 </span>
                               </div>
                             </td>
-                            {renderRecordActions && (
-                              <td onClick={(event) => event.stopPropagation()}>
-                                {renderRecordActions(record)}
+                            {(onRecordSelect || renderRecordActions) && (
+                              <td>
+                                <div className="table-actions">
+                                  {onRecordSelect && (
+                                    <button
+                                      className="inline-button"
+                                      type="button"
+                                      onClick={() => onRecordSelect(record)}
+                                    >
+                                      Detalle
+                                    </button>
+                                  )}
+                                  {renderRecordActions?.(record)}
+                                </div>
                               </td>
                             )}
                           </tr>

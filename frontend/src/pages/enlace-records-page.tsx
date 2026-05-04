@@ -139,11 +139,7 @@ export function EnlaceRecordsPage() {
               </thead>
               <tbody>
                 {records.map((record) => (
-                  <tr
-                    key={`${record.viewDelegation.id}-${record.id}`}
-                    onClick={() => void openRecordDetails(record)}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <tr key={`${record.viewDelegation.id}-${record.id}`}>
                     <td>{new Date(record.createdAt).toLocaleString()}</td>
                     <td>{record.plates}</td>
                     <td>{record.brand}</td>
@@ -164,7 +160,7 @@ export function EnlaceRecordsPage() {
                         </span>
                       </div>
                     </td>
-                    <td onClick={(event) => event.stopPropagation()}>
+                    <td>
                       <div className="table-actions">
                         {record.recordState === 'CURRENT' && (
                           <>
