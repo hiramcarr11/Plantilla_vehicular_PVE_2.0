@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { EmptyState } from '../components/empty-state';
 import { GroupedRecords } from '../components/grouped-records';
@@ -123,7 +123,7 @@ export function DirectorOperativoPage() {
 
     const confirmation = await Swal.fire({
       icon: 'question',
-      title: 'Enviar reporte regional',
+      title: 'Validar cierre regional',
       text: 'Se confirmaran los reportes capturados por las delegaciones de tu region.',
       input: 'textarea',
       inputPlaceholder: 'Observaciones opcionales',
@@ -178,34 +178,34 @@ export function DirectorOperativoPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Reportes de delegacion</p>
-            <h2>Seguimiento regional</h2>
+            <p className="eyebrow">Validación de delegaciones</p>
+            <h2>Confirmación mensual regional</h2>
           </div>
           <div className="panel-actions">
             <div className="panel-meta">
               Ultimo reporte regional: {latestRegionalReport ? new Date(latestRegionalReport.submittedAt).toLocaleDateString() : 'Sin reporte'}
             </div>
             <button className="primary-button" type="button" onClick={submitRegionalReport}>
-              Enviar reporte regional
+              Validar cierre regional
             </button>
           </div>
         </div>
 
         <div className="report-status-grid">
           <div className="report-status-card">
-            <span>Delegaciones sin reporte</span>
+            <span>Sin validación mensual</span>
             <strong>{reportStatusTotals.notReported}</strong>
           </div>
           <div className="report-status-card">
-            <span>Delegaciones con cambios pendientes</span>
+            <span>Cambios sin validar</span>
             <strong>{reportStatusTotals.pendingChanges}</strong>
           </div>
           <div className="report-status-card">
-            <span>Delegaciones sin cambios</span>
+            <span>Validadas sin cambios</span>
             <strong>{reportStatusTotals.reportedWithoutChanges}</strong>
           </div>
           <div className="report-status-card">
-            <span>Delegaciones con cambios</span>
+            <span>Validadas con cambios</span>
             <strong>{reportStatusTotals.reportedWithChanges}</strong>
           </div>
         </div>
@@ -221,10 +221,10 @@ export function DirectorOperativoPage() {
               <thead>
                 <tr>
                   <th>Delegacion</th>
-                  <th>Estado</th>
-                  <th>Cambios pendientes</th>
-                  <th>Ultimo envio</th>
-                  <th>Enlace</th>
+                  <th>Estado de validación</th>
+                  <th>Movimientos sin validar</th>
+                  <th>Última validación</th>
+                  <th>Validado por</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,8 +250,8 @@ export function DirectorOperativoPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Reportes regionales enviados</p>
-            <h2>Confirmaciones de la region</h2>
+            <p className="eyebrow">Validaciones regionales enviadas</p>
+            <h2>Historial de cierre regional</h2>
           </div>
           <div className="panel-meta">{regionalReports.length} reportes</div>
         </div>
@@ -266,8 +266,8 @@ export function DirectorOperativoPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Fecha de envio</th>
-                  <th>Resultado</th>
+                  <th>Fecha de validación</th>
+                  <th>Resultado de validación</th>
                   <th>Delegaciones confirmadas</th>
                   <th>Observaciones</th>
                 </tr>
@@ -309,3 +309,4 @@ export function DirectorOperativoPage() {
     </div>
   );
 }
+

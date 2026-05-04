@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '../components/empty-state';
 import { LoadingSpinner } from '../components/loading-spinner';
 import { api } from '../lib/api';
@@ -18,23 +18,23 @@ const REPORT_STATUS_UI: Record<
   }
 > = {
   NOT_REPORTED: {
-    label: 'Sin reporte',
-    description: 'La región aún no ha enviado cierre.',
+    label: 'Sin validación mensual',
+    description: 'La región aún no tiene cierre mensual registrado.',
     tone: 'neutral',
   },
   PENDING_CHANGES: {
-    label: 'Pendiente por cambios',
-    description: 'Existen movimientos posteriores al último cierre.',
+    label: 'Cambios sin validar',
+    description: 'Existen movimientos posteriores a la última validación.',
     tone: 'warning',
   },
   REPORTED_WITH_CHANGES: {
-    label: 'Reportado con cambios',
-    description: 'La región confirmó movimientos recientes.',
+    label: 'Validado con cambios',
+    description: 'La región cerró el periodo con movimientos confirmados.',
     tone: 'info',
   },
   REPORTED_WITHOUT_CHANGES: {
-    label: 'Reportado sin cambios',
-    description: 'La región confirmó sin movimientos nuevos.',
+    label: 'Validado sin cambios',
+    description: 'La región cerró el periodo sin movimientos nuevos.',
     tone: 'success',
   },
 };
@@ -45,7 +45,7 @@ function getReportStatusUi(status: ReportStatus) {
 
 function getPendingDelegationText(row: RegionRosterReportOverviewRow) {
   if (row.pendingDelegationReports === 0) {
-    return 'Sin pendientes';
+    return 'Todas confirmadas';
   }
 
   return `${row.pendingDelegationReports} pendiente${
@@ -133,7 +133,7 @@ export function PlantillaReportesPage() {
         <div className="panel-header">
           <div>
             <p className="eyebrow">Reportes regionales</p>
-            <h2>Seguimiento de cierre por región</h2>
+            <h2>Seguimiento de cierre por regiÃ³n</h2>
           </div>
 
           <div className="panel-meta">{reportOverview.length} regiones</div>
@@ -163,7 +163,7 @@ export function PlantillaReportesPage() {
 
         <div className="form-grid director-filter-grid">
           <label className="field">
-            <span>Región</span>
+            <span>RegiÃ³n</span>
             <select
               value={selectedRegionId}
               onChange={(event) => setSelectedRegionId(event.target.value)}
@@ -183,7 +183,7 @@ export function PlantillaReportesPage() {
         <div className="panel-header">
           <div>
             <p className="eyebrow">Estado operativo</p>
-            <h2>Detalle de reportes</h2>
+            <h2>Validación mensual de plantilla</h2>
           </div>
         </div>
 
@@ -197,11 +197,11 @@ export function PlantillaReportesPage() {
             <table className="report-overview-table">
               <thead>
                 <tr>
-                  <th>Región</th>
+                  <th>RegiÃ³n</th>
                   <th>Estado operativo</th>
-                  <th>Delegaciones pendientes</th>
-                  <th>Último envío regional</th>
-                  <th>Director operativo</th>
+                  <th>Delegaciones sin confirmar</th>
+                  <th>Última validación regional</th>
+                  <th>Validado por</th>
                 </tr>
               </thead>
               <tbody>

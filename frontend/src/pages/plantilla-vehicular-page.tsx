@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import { GroupedRecords } from "../components/grouped-records";
 import { LoadingSpinner } from "../components/loading-spinner";
@@ -29,23 +29,23 @@ const REPORT_STATUS_UI: Record<
   }
 > = {
   NOT_REPORTED: {
-    label: "Sin reporte",
-    description: "La región aún no ha enviado cierre.",
+    label: "Sin validación mensual",
+    description: "La región aún no tiene cierre mensual registrado.",
     tone: "neutral",
   },
   PENDING_CHANGES: {
-    label: "Pendiente por cambios",
-    description: "Existen movimientos posteriores al último cierre.",
+    label: "Cambios sin validar",
+    description: "Existen movimientos posteriores a la última validación.",
     tone: "warning",
   },
   REPORTED_WITH_CHANGES: {
-    label: "Reportado con cambios",
-    description: "La región confirmó movimientos recientes.",
+    label: "Validado con cambios",
+    description: "La región cerró el periodo con movimientos confirmados.",
     tone: "info",
   },
   REPORTED_WITHOUT_CHANGES: {
-    label: "Reportado sin cambios",
-    description: "La región confirmó sin movimientos nuevos.",
+    label: "Validado sin cambios",
+    description: "La región cerró el periodo sin movimientos nuevos.",
     tone: "success",
   },
 };
@@ -56,12 +56,10 @@ function getReportStatusUi(status: ReportStatus) {
 
 function getPendingDelegationText(row: RegionRosterReportOverviewRow) {
   if (row.pendingDelegationReports === 0) {
-    return "Sin pendientes";
+    return "Todas confirmadas";
   }
 
-  return `${row.pendingDelegationReports} pendiente${
-    row.pendingDelegationReports === 1 ? "" : "s"
-  }`;
+  return `${row.pendingDelegationReports} sin confirmar`;
 }
 
 function getLastRegionalReportText(row: RegionRosterReportOverviewRow) {
@@ -264,8 +262,8 @@ export function PlantillaVehicularPage() {
           <section className="report-overview-block">
             <div className="report-table-header">
               <div>
-                <p className="eyebrow">Reportes regionales</p>
-                <h3>Seguimiento de cierre por región</h3>
+                <p className="eyebrow">Validación mensual</p>
+                <h3>Validación mensual por región</h3>
               </div>
               <span className="panel-meta">
                 {reportOverview.length} regiones
@@ -276,11 +274,11 @@ export function PlantillaVehicularPage() {
               <table className="report-overview-table">
                 <thead>
                   <tr>
-                    <th>Región</th>
+                    <th>RegiÃ³n</th>
                     <th>Estado operativo</th>
-                    <th>Delegaciones pendientes</th>
-                    <th>Último envío regional</th>
-                    <th>Director operativo</th>
+                    <th>Delegaciones sin confirmar</th>
+                    <th>Última validación regional</th>
+                    <th>Validado por</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,3 +374,4 @@ export function PlantillaVehicularPage() {
     />
   );
 }
+
