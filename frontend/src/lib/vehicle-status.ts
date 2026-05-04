@@ -9,3 +9,16 @@
 
   return 'is-neutral';
 }
+
+
+export function resolveVehiclePhysicalStatusTone(physicalStatus: string): string {
+  const normalizedStatus = physicalStatus.trim().toUpperCase();
+
+  if (normalizedStatus === 'BUENO') return 'is-success';
+  if (normalizedStatus === 'REGULAR') return 'is-warning';
+  if (normalizedStatus === 'MALO') return 'is-danger';
+  if (normalizedStatus === 'OTRO') return 'is-info';
+
+  return 'is-neutral';
+}
+
