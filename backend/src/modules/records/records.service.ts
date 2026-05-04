@@ -679,6 +679,27 @@ export class RecordsService {
     return this.groupRecords(records);
   }
 
+  async findDirectorDelegationVehicles(
+    delegationId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const delegation = await this.delegationRepository.findOne({
+      where: { id: delegationId },
+      relations: { region: true },
+    });
+
+    if (!delegation) {
+      throw new NotFoundException("No se encontro la delegacion.");
+    }
+
+    return this.findScopedRecordViews({
+      scopeDelegationIds: [delegationId],
+      dateFrom,
+      dateTo,
+    });
+  }
+
   async findDirectorOverview(
     regionId?: string,
     delegationId?: string,

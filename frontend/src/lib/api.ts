@@ -367,6 +367,29 @@ export const api = {
 
     return request<DirectorOverview>(path, undefined, token);
   },
+  getDirectorDelegationVehicles(
+    token: string,
+    delegationId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const params = new URLSearchParams();
+
+    if (dateFrom) {
+      params.set('dateFrom', dateFrom);
+    }
+
+    if (dateTo) {
+      params.set('dateTo', dateTo);
+    }
+
+    const query = params.toString();
+    const path = query
+      ? `/records/director/delegations/${delegationId}/vehicles?${query}`
+      : `/records/director/delegations/${delegationId}/vehicles`;
+
+    return request<VehicleRecord[]>(path, undefined, token);
+  },
   getUsers(token: string, page?: number, limit?: number) {
     const params = new URLSearchParams();
 

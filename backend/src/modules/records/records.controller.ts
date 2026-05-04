@@ -192,6 +192,25 @@ export class RecordsController {
     );
   }
 
+  @Get("director/delegations/:delegationId/vehicles")
+  @RequireRoles(
+    Role.DirectorGeneral,
+    Role.PlantillaVehicular,
+    Role.SuperAdmin,
+    Role.Coordinacion,
+  )
+  findDirectorDelegationVehicles(
+    @Param("delegationId") delegationId: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+  ) {
+    return this.recordsService.findDirectorDelegationVehicles(
+      delegationId,
+      dateFrom,
+      dateTo,
+    );
+  }
+
   @Delete(":id")
   @RequireRoles(Role.PlantillaVehicular, Role.SuperAdmin, Role.Coordinacion)
   softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
