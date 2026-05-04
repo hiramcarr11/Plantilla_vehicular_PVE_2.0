@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "start": "nest start",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
     "start:dev": "nest start --watch",
     "lint": "tsc --noEmit",
     "test": "jest --passWithNoTests",
@@ -18,6 +19,9 @@
     "migration:run": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:run -d src/data-source.ts",
     "migration:revert": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d src/data-source.ts",
     "migration:show": "node -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:show -d src/data-source.ts"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
