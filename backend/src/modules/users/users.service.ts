@@ -160,15 +160,14 @@ export class UsersService {
   }
 
   findByEmail(email: string) {
-    return this.userRepository.findOne({
-      where: { email: email.toLowerCase() },
-      relations: {
-        region: true,
-        delegation: {
-          region: true,
-        },
-      },
-    });
+    return this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .leftJoinAndSelect('user.region', 'region')
+      .leftJoinAndSelect('user.delegation', 'delegation')
+      .leftJoinAndSelect('delegation.region', 'delegationRegion')
+      .where('user.email = :email', { email: email.toLowerCase() })
+      .getOne();
   }
 
   async update(id: string, dto: UpdateUserDto, actorId?: string) {

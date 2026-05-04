@@ -83,25 +83,63 @@ function renderEditLine(edit: VehicleEditEvent) {
   `;
 }
 
+function joinUrl(base: string, path: string) {
+  const cleanedBase = base.replace(/\/+$/, "");
+  const cleanedPath = path.replace(/^\/+/, "");
+  return `${cleanedBase}/${cleanedPath}`;
+}
+
 function resolvePhotoUrl(photo: VehiclePhoto) {
-  if (
-    photo.publicUrl.startsWith("http://") ||
-    photo.publicUrl.startsWith("https://")
-  ) {
-    return photo.publicUrl;
+  const publicUrl = photo.publicUrl?.trim();
+  const objectKey = photo.objectKey?.trim();
+  const filePath = photo.filePath?.trim();
+
+  if (publicUrl) {
+    if (
+      publicUrl.startsWith("http://") ||
+      publicUrl.startsWith("https://")
+    ) {
+      return publicUrl;
+    }
+
+    if (publicUrl.startsWith("/uploads/")) {
+      // Legacy/local files may no longer exist after stateless redeploys.
+      return joinUrl(API_BASE_URL, publicUrl);
+    }
+
+    if (
+      !publicUrl.includes("/") &&
+      (publicUrl.includes(".") || publicUrl.length > 0)
+    ) {
+      return joinUrl(API_BASE_URL, `/uploads/vehicle-photos/${publicUrl}`);
+    }
+
+    if (publicUrl.startsWith("/")) {
+      return joinUrl(API_BASE_URL, publicUrl);
+    }
+
+    return joinUrl(API_BASE_URL, `/uploads/vehicle-photos/${publicUrl}`);
   }
 
-  return `${API_BASE_URL}${photo.publicUrl}`;
+  if (objectKey) {
+    return joinUrl(API_BASE_URL, `/uploads/${objectKey}`);
+  }
+
+  if (filePath) {
+    return joinUrl(API_BASE_URL, `/uploads/vehicle-photos/${filePath}`);
+  }
+
+  return "";
 }
 
 function renderPhotoThumbnail(photo: VehiclePhoto) {
   const photoUrl = escapeHtml(resolvePhotoUrl(photo));
+  const photoName = escapeHtml(photo.fileName);
 
   return `
-    <div class="photo-thumb" data-photo-url="${photoUrl}" data-photo-name="${escapeHtml(
-      photo.fileName,
-    )}">
-      <img src="${photoUrl}" alt="${escapeHtml(photo.fileName)}" />
+    <div class="photo-thumb" data-photo-url="${photoUrl}" data-photo-name="${photoName}">
+      <img src="${photoUrl}" alt="${photoName}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+      <div class="photo-fallback" style="display:none;">Imagen no disponible</div>
     </div>
   `;
 }
