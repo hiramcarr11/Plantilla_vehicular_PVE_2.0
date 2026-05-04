@@ -137,6 +137,12 @@ export function PlantillaReportesPage() {
           <div className="panel-meta">{reportOverview.length} regiones</div>
         </div>
 
+        <p className="validation-help-text">
+          Esta vista concentra la validación mensual por región. Una región queda validada cuando
+          su cierre mensual fue registrado; si existen movimientos posteriores, el sistema la marca
+          como pendiente de nueva validación.
+        </p>
+
         <div className="report-status-grid">
           <div className="report-status-card is-neutral">
             <span>Sin validación mensual</span>

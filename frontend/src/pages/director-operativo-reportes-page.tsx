@@ -137,6 +137,11 @@ export function DirectorOperativoReportesPage() {
           </div>
         </div>
 
+        <p className="validation-help-text">
+          Esta vista permite revisar las confirmaciones mensuales de las delegaciones bajo tu
+          región y registrar el cierre regional correspondiente.
+        </p>
+
         <div className="report-status-grid">
           <div className="report-status-card">
             <span>Sin validación mensual</span>

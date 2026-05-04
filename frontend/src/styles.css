@@ -879,6 +879,17 @@ table {
   font-weight: 700;
   color: var(--slate-700);
 }
+
+.validation-help-text {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--blue-border);
+  border-radius: 10px;
+  background: #eff6ff;
+  color: var(--slate-700);
+  font-size: 13px;
+  line-height: 1.45;
+}
 .table-actions {
   display: flex;
   gap: 8px;
