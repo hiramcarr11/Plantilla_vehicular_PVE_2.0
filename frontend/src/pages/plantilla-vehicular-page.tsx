@@ -3,7 +3,6 @@ import Swal from "sweetalert2";
 import { GroupedRecords } from "../components/grouped-records";
 import { LoadingSpinner } from "../components/loading-spinner";
 import { api } from "../lib/api";
-import { formatUserName } from "../lib/format-user-name";
 import { socket } from "../lib/socket";
 import { useAuth } from "../modules/auth/auth-context";
 import {
@@ -14,61 +13,8 @@ import type {
   GroupedRegionRecords,
   RecordFieldCatalogMap,
   Region,
-  RegionRosterReportOverviewRow,
   VehicleRecord,
 } from "../types";
-
-type ReportStatus = RegionRosterReportOverviewRow["status"];
-
-const REPORT_STATUS_UI: Record<
-  ReportStatus,
-  {
-    label: string;
-    description: string;
-    tone: "neutral" | "warning" | "success" | "info";
-  }
-> = {
-  NOT_REPORTED: {
-    label: "Sin validación mensual",
-    description: "La región aún no tiene cierre mensual registrado.",
-    tone: "neutral",
-  },
-  PENDING_CHANGES: {
-    label: "Cambios sin validar",
-    description: "Existen movimientos posteriores a la última validación.",
-    tone: "warning",
-  },
-  REPORTED_WITH_CHANGES: {
-    label: "Validado con cambios",
-    description: "La región cerró el periodo con movimientos confirmados.",
-    tone: "info",
-  },
-  REPORTED_WITHOUT_CHANGES: {
-    label: "Validado sin cambios",
-    description: "La región cerró el periodo sin movimientos nuevos.",
-    tone: "success",
-  },
-};
-
-function getReportStatusUi(status: ReportStatus) {
-  return REPORT_STATUS_UI[status];
-}
-
-function getPendingDelegationText(row: RegionRosterReportOverviewRow) {
-  if (row.pendingDelegationReports === 0) {
-    return "Todas confirmadas";
-  }
-
-  return `${row.pendingDelegationReports} sin confirmar`;
-}
-
-function getLastRegionalReportText(row: RegionRosterReportOverviewRow) {
-  if (!row.lastReport) {
-    return "Sin reporte";
-  }
-
-  return new Date(row.lastReport.submittedAt).toLocaleString();
-}
 
 export function PlantillaVehicularPage() {
   const { session } = useAuth();
@@ -76,9 +22,6 @@ export function PlantillaVehicularPage() {
   const [catalogRegions, setCatalogRegions] = useState<Region[]>([]);
   const [fieldCatalogs, setFieldCatalogs] =
     useState<RecordFieldCatalogMap | null>(null);
-  const [reportOverview, setReportOverview] = useState<
-    RegionRosterReportOverviewRow[]
-  >([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>("");
   const [selectedDelegationId, setSelectedDelegationId] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -94,7 +37,6 @@ export function PlantillaVehicularPage() {
         loadedRegions,
         loadedFieldCatalogs,
         loadedCatalogRegions,
-        loadedReportOverview,
       ] = await Promise.all([
         api.getPlantillaVehicularOverview(
           session.accessToken,
@@ -105,16 +47,11 @@ export function PlantillaVehicularPage() {
         ),
         api.getRecordFieldCatalog(session.accessToken),
         api.getRegions(session.accessToken),
-        api.getRosterReportOverview(
-          session.accessToken,
-          selectedRegionId || undefined,
-        ),
       ]);
 
       setRegions(loadedRegions);
       setFieldCatalogs(loadedFieldCatalogs);
       setCatalogRegions(loadedCatalogRegions);
-      setReportOverview(loadedReportOverview);
     };
 
     void refresh();
@@ -140,23 +77,6 @@ export function PlantillaVehicularPage() {
     );
   }, [catalogRegions, selectedRegionId]);
 
-  const reportStatusTotals = useMemo(
-    () => ({
-      notReported: reportOverview.filter((row) => row.status === "NOT_REPORTED")
-        .length,
-      pendingChanges: reportOverview.filter(
-        (row) => row.status === "PENDING_CHANGES",
-      ).length,
-      reportedWithoutChanges: reportOverview.filter(
-        (row) => row.status === "REPORTED_WITHOUT_CHANGES",
-      ).length,
-      reportedWithChanges: reportOverview.filter(
-        (row) => row.status === "REPORTED_WITH_CHANGES",
-      ).length,
-    }),
-    [reportOverview],
-  );
-
   const transferRecord = async (record: VehicleRecord) => {
     if (!session) {
       return;
@@ -168,22 +88,15 @@ export function PlantillaVehicularPage() {
         regions: catalogRegions,
         token: session.accessToken,
         onTransferred: async () => {
-          const [loadedRegions, loadedReportOverview] = await Promise.all([
-            api.getPlantillaVehicularOverview(
-              session.accessToken,
-              selectedRegionId || undefined,
-              selectedDelegationId || undefined,
-              dateFrom || undefined,
-              dateTo || undefined,
-            ),
-            api.getRosterReportOverview(
-              session.accessToken,
-              selectedRegionId || undefined,
-            ),
-          ]);
+          const loadedRegions = await api.getPlantillaVehicularOverview(
+            session.accessToken,
+            selectedRegionId || undefined,
+            selectedDelegationId || undefined,
+            dateFrom || undefined,
+            dateTo || undefined,
+          );
 
           setRegions(loadedRegions);
-          setReportOverview(loadedReportOverview);
         },
       });
 
@@ -221,7 +134,7 @@ export function PlantillaVehicularPage() {
       fieldCatalogs={fieldCatalogs}
       eyebrow="Vista global"
       title="Operacion completa del sistema"
-      description="Supervisa la captura de todas las regiones y el estado de reportes regionales."
+      description="Supervisa la captura de todas las regiones y su operación vehicular."
       vehicleClassAfterDate
       onRecordSelect={(record) => void openRecordDetails(record)}
       renderRecordActions={(record) =>
@@ -237,83 +150,7 @@ export function PlantillaVehicularPage() {
       }
       headerFilters={
         <>
-          <div className="report-status-grid">
-            <div className="report-status-card is-neutral">
-              <span>Sin reporte</span>
-              <strong>{reportStatusTotals.notReported}</strong>
-            </div>
-
-            <div className="report-status-card is-warning">
-              <span>Pendientes por cambios</span>
-              <strong>{reportStatusTotals.pendingChanges}</strong>
-            </div>
-
-            <div className="report-status-card is-success">
-              <span>Reportadas sin cambios</span>
-              <strong>{reportStatusTotals.reportedWithoutChanges}</strong>
-            </div>
-
-            <div className="report-status-card is-info">
-              <span>Reportadas con cambios</span>
-              <strong>{reportStatusTotals.reportedWithChanges}</strong>
-            </div>
-          </div>
-
-          <section className="report-overview-block">
-            <div className="report-table-header">
-              <div>
-                <p className="eyebrow">Validación mensual</p>
-                <h3>Validación mensual por región</h3>
-              </div>
-              <span className="panel-meta">
-                {reportOverview.length} regiones
-              </span>
-            </div>
-
-            <div className="table-wrapper report-table-wrapper">
-              <table className="report-overview-table">
-                <thead>
-                  <tr>
-                    <th>RegiÃ³n</th>
-                    <th>Estado operativo</th>
-                    <th>Delegaciones sin confirmar</th>
-                    <th>Última validación regional</th>
-                    <th>Validado por</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportOverview.map((row) => {
-                    const statusInfo = getReportStatusUi(row.status);
-
-                    return (
-                      <tr key={row.regionId}>
-                        <td>
-                          <strong>{row.regionName}</strong>
-                        </td>
-                        <td>
-                          <div className="report-status-cell">
-                            <span
-                              className={`report-status-badge is-${statusInfo.tone}`}
-                            >
-                              {statusInfo.label}
-                            </span>
-                            <small>{statusInfo.description}</small>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="report-pending-text">
-                            {getPendingDelegationText(row)}
-                          </span>
-                        </td>
-                        <td>{getLastRegionalReportText(row)}</td>
-                        <td>{formatUserName(row.lastReport?.submittedBy)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <p className="eyebrow">Filtros de consulta</p>
 
           <div className="form-grid director-filter-grid">
             <label className="field">
