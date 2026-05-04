@@ -149,10 +149,28 @@ export function PlantillaVehicularPage() {
         ) : null
       }
       headerFilters={
-        <>
-          <p className="eyebrow">Filtros de consulta</p>
+        <section className="query-filter-panel">
+          <div className="query-filter-header">
+            <div>
+              <p className="eyebrow">Filtros de consulta</p>
+              <h3>Consulta general</h3>
+            </div>
 
-          <div className="form-grid director-filter-grid">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => {
+                setSelectedRegionId("");
+                setSelectedDelegationId("");
+                setDateFrom("");
+                setDateTo("");
+              }}
+            >
+              Limpiar consulta
+            </button>
+          </div>
+
+          <div className="form-grid director-filter-grid query-filter-grid">
             <label className="field">
               <span>Region</span>
               <select
@@ -206,7 +224,7 @@ export function PlantillaVehicularPage() {
               />
             </label>
           </div>
-        </>
+        </section>
       }
     />
   );
