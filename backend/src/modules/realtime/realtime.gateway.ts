@@ -56,6 +56,7 @@ type AuthenticatedSocketData = {
 };
 
 type RecordCreatedEvent = {
+  deletedAt?: Date | null;
   createdBy?: {
     id?: string;
   };
