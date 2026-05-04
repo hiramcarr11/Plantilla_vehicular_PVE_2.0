@@ -1,18 +1,19 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { AppShell } from './components/app-shell';
-import { ProtectedRoute } from './components/protected-route';
-import { HomePage } from './pages/home-page';
-import { LoginPage } from './pages/login-page';
-import { EnlacePage } from './pages/enlace-page';
-import { EnlaceRecordsPage } from './pages/enlace-records-page';
-import { PlantillaVehicularPage } from './pages/plantilla-vehicular-page';
-import { CoordinacionPage } from './pages/coordinacion-page';
-import { CoordinacionAuditPage } from './pages/coordinacion-audit-page';
-import { DirectorGeneralPage } from './pages/director-general-page';
-import { DirectorGeneralMapPage } from './pages/director-general-map-page';
-import { DirectorOperativoPage } from './pages/director-operativo-page';
-import { APP_ROUTES, LEGACY_ROUTE_REDIRECTS } from './lib/routes';
-import { ALL_ROLES, ROUTE_ROLES } from './lib/role-access';
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AppShell } from "./components/app-shell";
+import { ProtectedRoute } from "./components/protected-route";
+import { HomePage } from "./pages/home-page";
+import { LoginPage } from "./pages/login-page";
+import { EnlacePage } from "./pages/enlace-page";
+import { EnlaceRecordsPage } from "./pages/enlace-records-page";
+import { PlantillaVehicularPage } from "./pages/plantilla-vehicular-page";
+import { CoordinacionPage } from "./pages/coordinacion-page";
+import { CoordinacionAuditPage } from "./pages/coordinacion-audit-page";
+import { DirectorGeneralPage } from "./pages/director-general-page";
+import { DirectorGeneralMapPage } from "./pages/director-general-map-page";
+import { DirectorOperativoPage } from "./pages/director-operativo-page";
+import { APP_ROUTES, LEGACY_ROUTE_REDIRECTS } from "./lib/routes";
+import { ALL_ROLES, ROUTE_ROLES } from "./lib/role-access";
+import { PlantillaReportesPage } from "./pages/plantilla-reportes-page";
 
 export function App() {
   return (
@@ -56,6 +57,14 @@ export function App() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ROLES.overview}>
               <PlantillaVehicularPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={APP_ROUTES.reportsRegional.slice(1)}
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.reportsRegional}>
+              <PlantillaReportesPage />
             </ProtectedRoute>
           }
         />

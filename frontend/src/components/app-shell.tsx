@@ -64,6 +64,10 @@ const pageTitles: Record<string, { title: string; description: string }> = {
     description:
       "Supervisa en tiempo real los movimientos críticos del sistema.",
   },
+  [APP_ROUTES.reportsRegional]: {
+    title: "Reportes regionales",
+    description: "Consulta el estado de cierre y confirmación por región.",
+  },
 };
 
 type SidebarItem = {
@@ -115,6 +119,12 @@ const sidebarSections: SidebarSection[] = [
   {
     title: "Reportes y dirección",
     items: [
+      {
+        label: "Reportes regionales",
+        route: APP_ROUTES.reportsRegional,
+        allowedRoles: ROUTE_ROLES.reportsRegional,
+        end: true,
+      },
       {
         label: "Dashboard directivo",
         route: APP_ROUTES.insights,

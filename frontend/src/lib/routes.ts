@@ -9,6 +9,7 @@ export const APP_ROUTES = {
   insightsMap: '/insights/map',
   control: '/control',
   controlActivity: '/control/activity',
+  reportsRegional: '/reports/regional',
 } as const;
 
 export const LEGACY_ROUTE_REDIRECTS = [
@@ -27,4 +28,5 @@ export const LEGACY_ROUTE_REDIRECTS = [
   { from: '/director-operativo', to: APP_ROUTES.monitor },
   { from: '/coordinacion', to: APP_ROUTES.control },
   { from: '/coordinacion/audit', to: APP_ROUTES.controlActivity },
+  { from: '/reports', to: APP_ROUTES.reportsRegional },
 ] as const;
