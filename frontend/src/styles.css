@@ -1321,6 +1321,48 @@ tbody tr:hover {
   font-size: 12px;
 }
 
+.map-vehicle-list {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.map-vehicle-item {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+}
+
+.map-vehicle-item:hover {
+  border-color: var(--slate-400);
+  background: var(--slate-050);
+}
+
+.map-vehicle-item strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.map-vehicle-item span,
+.map-vehicle-item small,
+.map-vehicle-status {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.map-vehicle-error {
+  color: var(--danger-text);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
 .director-report-date {
   width: min(360px, 100%);
   border-collapse: collapse;

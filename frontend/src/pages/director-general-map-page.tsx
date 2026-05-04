@@ -134,7 +134,12 @@ export function DirectorGeneralMapPage() {
       </section>
 
       <section className="panel stack-md">
-        <DirectorOaxacaMap overview={overview} />
+        <DirectorOaxacaMap
+          overview={overview}
+          accessToken={session.accessToken}
+          dateFrom={dateFrom || undefined}
+          dateTo={dateTo || undefined}
+        />
       </section>
     </div>
   );
