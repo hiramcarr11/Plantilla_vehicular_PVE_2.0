@@ -4,6 +4,21 @@ import { socket } from '../../lib/socket';
 import type { Conversation, Message, User } from '../../types';
 import { useAuth } from '../auth/auth-context';
 
+const SOCKET_DEBUG_ENABLED = import.meta.env.VITE_SOCKET_DEBUG === 'true';
+
+function conversationsDebugLog(event: string, payload?: Record<string, unknown>) {
+  if (!SOCKET_DEBUG_ENABLED) {
+    return;
+  }
+
+  if (payload) {
+    console.info(`[conversations] ${event}`, payload);
+    return;
+  }
+
+  console.info(`[conversations] ${event}`);
+}
+
 export function useConversations() {
   const { session } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -29,6 +44,11 @@ export function useConversations() {
     void loadConversations();
 
     const handleNewMessage = (message: Message) => {
+      conversationsDebugLog('messages:new_received', {
+        messageId: message.id,
+        conversationId: message.conversation.id,
+      });
+
       setConversations((prev) => {
         const existingIndex = prev.findIndex(
           (c) => c.id === message.conversation.id,
@@ -41,7 +61,10 @@ export function useConversations() {
             ...existing,
             lastMessage: message,
             lastMessageAt: message.createdAt,
-            unreadCount: (existing.unreadCount ?? 0) + 1,
+            unreadCount:
+              message.sender.id === session.user.id
+                ? existing.unreadCount ?? 0
+                : (existing.unreadCount ?? 0) + 1,
           };
           return updated.sort(
             (a, b) =>
@@ -55,10 +78,12 @@ export function useConversations() {
     };
 
     const handleConversationUpdated = () => {
+      conversationsDebugLog('conversations:updated_received');
       void loadConversations();
     };
 
     const handleConversationRead = (payload: { conversationId: string }) => {
+      conversationsDebugLog('conversations:read_received', payload);
       setConversations((prev) =>
         prev.map((c) =>
           c.id === payload.conversationId ? { ...c, unreadCount: 0 } : c,

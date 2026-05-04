@@ -4,6 +4,21 @@ import { socket } from '../../lib/socket';
 import type { Message } from '../../types';
 import { useAuth } from '../auth/auth-context';
 
+const SOCKET_DEBUG_ENABLED = import.meta.env.VITE_SOCKET_DEBUG === 'true';
+
+function messagesDebugLog(event: string, payload?: Record<string, unknown>) {
+  if (!SOCKET_DEBUG_ENABLED) {
+    return;
+  }
+
+  if (payload) {
+    console.info(`[messages] ${event}`, payload);
+    return;
+  }
+
+  console.info(`[messages] ${event}`);
+}
+
 export function useMessages(conversationId: string | null) {
   const { session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,6 +58,12 @@ export function useMessages(conversationId: string | null) {
     if (!conversationId) return;
 
     const handleNewMessage = (message: Message) => {
+      messagesDebugLog('messages:new_received', {
+        incomingConversationId: message.conversation.id,
+        activeConversationId: conversationId,
+        messageId: message.id,
+      });
+
       if (message.conversation.id !== conversationId) return;
       setMessages((prev) => {
         if (prev.some((m) => m.id === message.id)) return prev;
@@ -63,17 +84,36 @@ export function useMessages(conversationId: string | null) {
 
     setSending(true);
     try {
+      const sentMessage =
+        photos.length > 0
+          ? await api.sendMessageWithPhotos(
+              conversationId,
+              content.trim(),
+              photos,
+              session.accessToken,
+            )
+          : await api.sendMessage(conversationId, content.trim(), session.accessToken);
+
+      setMessages((prev) => {
+        if (prev.some((message) => message.id === sentMessage.id)) {
+          return prev;
+        }
+
+        return [...prev, sentMessage];
+      });
+
       if (photos.length > 0) {
-        await api.sendMessageWithPhotos(
+        messagesDebugLog('message_sent_with_photos', {
           conversationId,
-          content.trim(),
-          photos,
-          session.accessToken,
-        );
+          messageId: sentMessage.id,
+          photoCount: photos.length,
+        });
       } else {
-        await api.sendMessage(conversationId, content.trim(), session.accessToken);
+        messagesDebugLog('message_sent', {
+          conversationId,
+          messageId: sentMessage.id,
+        });
       }
-      void loadMessages();
     } catch (error) {
       throw error;
     } finally {

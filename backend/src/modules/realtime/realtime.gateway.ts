@@ -66,6 +66,21 @@ type RecordCreatedEvent = {
   };
 };
 
+const REALTIME_DEBUG_ENABLED = process.env.REALTIME_DEBUG === 'true';
+
+function realtimeDebugLog(event: string, payload?: Record<string, unknown>) {
+  if (!REALTIME_DEBUG_ENABLED) {
+    return;
+  }
+
+  if (payload) {
+    console.info(`[realtime] ${event}`, payload);
+    return;
+  }
+
+  console.info(`[realtime] ${event}`);
+}
+
 function userRoom(userId: string) {
   return `user:${userId}`;
 }
@@ -94,8 +109,17 @@ export class RealtimeGateway
       try {
         const user = this.authenticateSocket(socket);
         (socket.data as AuthenticatedSocketData).user = user;
+        realtimeDebugLog('auth_ok', {
+          socketId: socket.id,
+          userId: user.sub,
+          role: user.role,
+        });
         next();
-      } catch {
+      } catch (error) {
+        realtimeDebugLog('auth_error', {
+          socketId: socket.id,
+          message: error instanceof Error ? error.message : 'Unknown socket auth error',
+        });
         next(new UnauthorizedException('Unauthorized socket connection.'));
       }
     });
@@ -117,9 +141,24 @@ export class RealtimeGateway
     if (this.canAccessOversightRecordsChannel(user.role)) {
       socket.join('records:oversight');
     }
+
+    realtimeDebugLog('connected', {
+      socketId: socket.id,
+      userId: user.sub,
+      role: user.role,
+      rooms: Array.from(socket.rooms),
+    });
   }
 
-  handleDisconnect() {}
+  handleDisconnect(socket: Socket) {
+    const user = (socket.data as AuthenticatedSocketData).user;
+
+    realtimeDebugLog('disconnected', {
+      socketId: socket.id,
+      userId: user?.sub,
+      role: user?.role,
+    });
+  }
 
   emitRecordCreated(payload: RecordCreatedEvent) {
     const creatorId = payload.createdBy?.id;
@@ -160,6 +199,10 @@ export class RealtimeGateway
   }
 
   emitMessageSent(payload: unknown, recipientIds: string[]) {
+    realtimeDebugLog('emit_messages_new', {
+      recipientIds,
+    });
+
     for (const recipientId of recipientIds) {
       this.server.to(userRoom(recipientId)).emit('messages:new', payload);
     }
