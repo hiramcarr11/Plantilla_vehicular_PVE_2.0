@@ -485,6 +485,33 @@ table {
   margin-bottom: 14px;
 }
 
+.vehicle-filter-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.vehicle-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.vehicle-filter-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.vehicle-filter-grid {
+  margin-bottom: 0;
+}
+
 .toolbar-search input {
   width: 100%;
 }
@@ -1543,6 +1570,16 @@ tbody tr:hover {
 
   .report-status-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .vehicle-filter-header {
+    flex-direction: column;
+  }
+
+  .vehicle-filter-header .ghost-button {
+    width: 100%;
   }
 }
 

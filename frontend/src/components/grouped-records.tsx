@@ -171,94 +171,106 @@ export function GroupedRecords({
 
         {headerFilters}
 
-        <div className="filter-grid">
-          <label className="field">
-            <span>{fieldCatalogs.useType.label}</span>
-            <select
-              value={filters.useType}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, useType: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.useType.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="vehicle-filter-panel">
+          <div className="vehicle-filter-header">
+            <div>
+              <p className="eyebrow">Filtros vehiculares</p>
+              <h3>Consulta por características</h3>
+            </div>
+            <button className="ghost-button" type="button" onClick={() => setFilters(initialFilters)}>
+              Limpiar filtros
+            </button>
+          </div>
 
-          <label className="field">
-            <span>{fieldCatalogs.vehicleClass.label}</span>
-            <select
-              value={filters.vehicleClass}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, vehicleClass: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.vehicleClass.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="filter-grid vehicle-filter-grid">
+            <label className="field">
+              <span>{fieldCatalogs.useType.label}</span>
+              <select
+                value={filters.useType}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, useType: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.useType.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>{fieldCatalogs.physicalStatus.label}</span>
-            <select
-              value={filters.physicalStatus}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, physicalStatus: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.physicalStatus.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="field">
+              <span>{fieldCatalogs.vehicleClass.label}</span>
+              <select
+                value={filters.vehicleClass}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, vehicleClass: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.vehicleClass.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>{fieldCatalogs.status.label}</span>
-            <select
-              value={filters.status}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, status: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.status.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="field">
+              <span>{fieldCatalogs.physicalStatus.label}</span>
+              <select
+                value={filters.physicalStatus}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, physicalStatus: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.physicalStatus.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>{fieldCatalogs.assetClassification.label}</span>
-            <select
-              value={filters.assetClassification}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  assetClassification: event.target.value,
-                }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.assetClassification.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="field">
+              <span>{fieldCatalogs.status.label}</span>
+              <select
+                value={filters.status}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, status: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.status.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>{fieldCatalogs.assetClassification.label}</span>
+              <select
+                value={filters.assetClassification}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    assetClassification: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.assetClassification.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         <StatsGrid
