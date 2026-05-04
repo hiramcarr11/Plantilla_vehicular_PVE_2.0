@@ -1022,7 +1022,17 @@ export class RecordsService {
   async softDelete(id: string, authUser: AuthUser) {
     const record = await this.findOne(id);
     await this.recordRepository.softDelete(id);
-    const deletedAt = new Date();
+    const deletedRecord =
+      (await this.recordRepository.findOne({
+        where: { id },
+        withDeleted: true,
+        relations: {
+          delegation: {
+            region: true,
+          },
+          createdBy: true,
+        },
+      })) ?? record;
 
     await this.auditLogsService.register({
       actorId: authUser.sub,
@@ -1040,9 +1050,10 @@ export class RecordsService {
     });
 
     this.realtimeGateway.emitRecordChanged({
-      ...record,
-      deletedAt,
+      ...deletedRecord,
     });
+
+    return { success: true };
   }
 
   private async findRosterReport(id: string) {
