@@ -83,7 +83,8 @@ function calculateNetActive(
     totalUnits -
       (statusBreakdown.INCATIVO ?? 0) -
       (statusBreakdown.SINIESTRADO ?? 0) -
-      (statusBreakdown["PARA BAJA"] ?? 0),
+      (statusBreakdown["PARA BAJA"] ?? 0) -
+      (statusBreakdown["OTRO"] ?? 0),
     0,
   );
 }
