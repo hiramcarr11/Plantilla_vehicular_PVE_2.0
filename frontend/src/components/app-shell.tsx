@@ -1,62 +1,187 @@
-import { useEffect, useMemo, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { formatUserName } from '../lib/format-user-name';
-import { api } from '../lib/api';
-import { APP_ROUTES } from '../lib/routes';
-import { socket } from '../lib/socket';
-import { useAuth } from '../modules/auth/auth-context';
-import { MessageNotification } from '../modules/messages/components/MessageNotification';
-import { MessengerPanel } from '../modules/messages/components/MessengerPanel';
-import { MESSENGER_ROLES, ROUTE_ROLES, hasAnyRole } from '../lib/role-access';
-import type { Message } from '../types';
+﻿import { useEffect, useMemo, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { formatUserName } from "../lib/format-user-name";
+import { api } from "../lib/api";
+import { APP_ROUTES } from "../lib/routes";
+import { socket } from "../lib/socket";
+import { useAuth } from "../modules/auth/auth-context";
+import { MessageNotification } from "../modules/messages/components/MessageNotification";
+import { MessengerPanel } from "../modules/messages/components/MessengerPanel";
+import { MESSENGER_ROLES, ROUTE_ROLES, hasAnyRole } from "../lib/role-access";
+import type { Message } from "../types";
 
 const roleLabels = {
-  enlace: 'Enlace',
-  director_operativo: 'Director Operativo',
-  plantilla_vehicular: 'Admin Plantilla vehicular',
-  director_general: 'Director General',
-  superadmin: 'Superadministrador',
-  coordinacion: 'Coordinación',
+  enlace: "Enlace",
+  director_operativo: "Director Operativo",
+  plantilla_vehicular: "Admin Plantilla vehicular",
+  director_general: "Director General",
+  superadmin: "Superadministrador",
+  coordinacion: "Coordinación",
 };
 
 const pageTitles: Record<string, { title: string; description: string }> = {
   [APP_ROUTES.home]: {
-    title: 'Resumen operativo',
-    description: 'Consulta tu espacio de trabajo y accede rápido a las acciones principales.',
+    title: "Inicio",
+    description:
+      "Consulta tus accesos principales y el resumen correspondiente a tu rol.",
   },
   [APP_ROUTES.workspace]: {
-    title: 'Captura de delegación',
-    description: 'Registra nuevos bienes vehiculares desde tu delegación.',
+    title: "Captura vehicular",
+    description: "Registra unidades vehiculares desde tu delegación asignada.",
   },
   [APP_ROUTES.archive]: {
-    title: 'Todas mis capturas',
-    description: 'Consulta el historial completo de capturas registradas por tu usuario.',
+    title: "Mi plantilla vehicular",
+    description:
+      "Consulta, edita, traslada y confirma la plantilla vigente de tu delegación.",
   },
   [APP_ROUTES.monitor]: {
-    title: 'Monitoreo regional',
-    description: 'Sigue la actividad de las delegaciones asignadas en tiempo real.',
+    title: "Supervisión regional",
+    description:
+      "Consulta las unidades vehiculares registradas por las delegaciones de tu región.",
   },
   [APP_ROUTES.overview]: {
-    title: 'Vista administrativa',
-    description: 'Observa la operación completa organizada por región y delegación.',
+    title: "Vista general vehicular",
+    description:
+      "Consulta la operación vehicular general organizada por región y delegación.",
   },
   [APP_ROUTES.insights]: {
-    title: 'Dashboard directivo',
-    description: 'Consulta KPIs globales y el desglose por región y delegación.',
+    title: "Dashboard directivo",
+    description:
+      "Consulta indicadores globales de la plantilla vehicular.",
   },
   [APP_ROUTES.insightsMap]: {
-    title: 'Mapa directivo',
-    description: 'Explora la distribución territorial de vehículos con filtros operativos.',
+    title: "Mapa directivo",
+    description:
+      "Explora la distribución territorial de la plantilla vehicular.",
   },
   [APP_ROUTES.control]: {
-    title: 'Usuarios',
-    description: 'Administra accesos, perfiles y cobertura operativa del sistema.',
+    title: "Usuarios",
+    description:
+      "Administra accesos, roles y cobertura operativa del sistema.",
   },
   [APP_ROUTES.controlActivity]: {
-    title: 'Bitácora',
-    description: 'Supervisa en tiempo real los movimientos críticos del sistema.',
+    title: "Bitácora",
+    description:
+      "Consulta movimientos críticos y actividad registrada en el sistema.",
+  },
+  [APP_ROUTES.reportsRegional]: {
+    title: "Validación mensual",
+    description: "Consulta el estado de validación mensual por región.",
+  },
+  [APP_ROUTES.reportsDelegations]: {
+    title: "Validación regional",
+    description: "Confirma el cierre mensual de las delegaciones bajo tu región.",
   },
 };
+
+type SidebarItem = {
+  label: string;
+  route: string;
+  allowedRoles: (typeof ROUTE_ROLES)[keyof typeof ROUTE_ROLES];
+  end?: boolean;
+};
+
+type SidebarSection = {
+  title: string;
+  items: SidebarItem[];
+};
+
+const sidebarSections: SidebarSection[] = [
+  {
+    title: "Operación vehicular",
+    items: [
+      {
+        label: "Capturar vehículo",
+        route: APP_ROUTES.workspace,
+        allowedRoles: ROUTE_ROLES.workspace,
+        end: true,
+      },
+      {
+        label: "Mi plantilla vehicular",
+        route: APP_ROUTES.archive,
+        allowedRoles: ROUTE_ROLES.archive,
+      },
+      {
+        label: "Vista general vehicular",
+        route: APP_ROUTES.overview,
+        allowedRoles: ROUTE_ROLES.overview,
+        end: true,
+      },
+    ],
+  },
+  {
+    title: "Supervisión regional",
+    items: [
+      {
+        label: "Delegaciones",
+        route: APP_ROUTES.monitor,
+        allowedRoles: ROUTE_ROLES.monitor,
+        end: true,
+      },
+    ],
+  },
+  {
+    title: "Validaciones mensuales",
+    items: [
+      {
+        label: "Validación regional",
+        route: APP_ROUTES.reportsDelegations,
+        allowedRoles: ROUTE_ROLES.reportsDelegations,
+        end: true,
+      },
+      {
+        label: "Validación mensual",
+        route: APP_ROUTES.reportsRegional,
+        allowedRoles: ROUTE_ROLES.reportsRegional,
+        end: true,
+      },
+    ],
+  },
+  {
+    title: "Dirección",
+    items: [
+      {
+        label: "Dashboard directivo",
+        route: APP_ROUTES.insights,
+        allowedRoles: ROUTE_ROLES.insights,
+        end: true,
+      },
+      {
+        label: "Mapa directivo",
+        route: APP_ROUTES.insightsMap,
+        allowedRoles: ROUTE_ROLES.insightsMap,
+        end: true,
+      },
+    ],
+  },
+  {
+    title: "Administración",
+    items: [
+      {
+        label: "Usuarios",
+        route: APP_ROUTES.control,
+        allowedRoles: ROUTE_ROLES.control,
+        end: true,
+      },
+      {
+        label: "Bitácora",
+        route: APP_ROUTES.controlActivity,
+        allowedRoles: ROUTE_ROLES.controlActivity,
+      },
+    ],
+  },
+];
+
+function getVisibleSidebarSections(userRole: keyof typeof roleLabels) {
+  return sidebarSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) =>
+        hasAnyRole(userRole, item.allowedRoles),
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
+}
 
 export function AppShell() {
   const { session, logoutWithApi } = useAuth();
@@ -69,7 +194,8 @@ export function AppShell() {
     ? hasAnyRole(session.user.role, MESSENGER_ROLES)
     : false;
 
-  const currentPage = pageTitles[location.pathname] ?? pageTitles[APP_ROUTES.home];
+  const currentPage =
+    pageTitles[location.pathname] ?? pageTitles[APP_ROUTES.home];
 
   useEffect(() => {
     if (!session || !canUseMessenger) {
@@ -108,14 +234,14 @@ export function AppShell() {
 
     void loadUnreadMessages();
 
-    socket.on('messages:new', handleNewMessage);
-    socket.on('conversations:updated', handleConversationUpdated);
-    socket.on('conversations:read', handleConversationRead);
+    socket.on("messages:new", handleNewMessage);
+    socket.on("conversations:updated", handleConversationUpdated);
+    socket.on("conversations:read", handleConversationRead);
 
     return () => {
-      socket.off('messages:new', handleNewMessage);
-      socket.off('conversations:updated', handleConversationUpdated);
-      socket.off('conversations:read', handleConversationRead);
+      socket.off("messages:new", handleNewMessage);
+      socket.off("conversations:updated", handleConversationUpdated);
+      socket.off("conversations:read", handleConversationRead);
     };
   }, [canUseMessenger, session]);
 
@@ -124,7 +250,7 @@ export function AppShell() {
       return null;
     }
 
-    return unreadMessages > 99 ? '99+' : String(unreadMessages);
+    return unreadMessages > 99 ? "99+" : String(unreadMessages);
   }, [unreadMessages]);
 
   if (!session) {
@@ -134,19 +260,23 @@ export function AppShell() {
   return (
     <div className="dashboard-shell">
       <aside
-        className={`sidebar ${isSidebarOpen ? 'is-open' : 'is-collapsed'}`}
+        className={`sidebar ${isSidebarOpen ? "is-open" : "is-collapsed"}`}
         onMouseEnter={() => setIsSidebarOpen(true)}
         onMouseLeave={() => setIsSidebarOpen(false)}
         onFocusCapture={() => setIsSidebarOpen(true)}
         onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          if (
+            !event.currentTarget.contains(event.relatedTarget as Node | null)
+          ) {
             setIsSidebarOpen(false);
           }
         }}
       >
         <button
           aria-expanded={isSidebarOpen}
-          aria-label={isSidebarOpen ? 'Ocultar navegación' : 'Mostrar navegación'}
+          aria-label={
+            isSidebarOpen ? "Ocultar navegación" : "Mostrar navegación"
+          }
           className="sidebar-toggle"
           type="button"
           onClick={() => setIsSidebarOpen((current) => !current)}
@@ -173,7 +303,11 @@ export function AppShell() {
 
           <div className="sidebar-session-card">
             <span className="sidebar-session-label">Cobertura</span>
-            <strong>{session.user.region?.name ?? session.user.delegation?.name ?? 'General'}</strong>
+            <strong>
+              {session.user.region?.name ??
+                session.user.delegation?.name ??
+                "General"}
+            </strong>
             <span>{session.user.grade}</span>
           </div>
 
@@ -182,51 +316,27 @@ export function AppShell() {
               Inicio
             </NavLink>
 
-            {hasAnyRole(session.user.role, ROUTE_ROLES.workspace) && (
-              <NavLink end to={APP_ROUTES.workspace}>
-                Capturar
-              </NavLink>
-            )}
-            {hasAnyRole(session.user.role, ROUTE_ROLES.archive) && (
-              <NavLink to={APP_ROUTES.archive}>Todas mis capturas</NavLink>
-            )}
+            {getVisibleSidebarSections(session.user.role).map((section) => (
+              <div className="sidebar-nav-section" key={section.title}>
+                <span className="sidebar-nav-section-title">
+                  {section.title}
+                </span>
 
-            {hasAnyRole(session.user.role, ROUTE_ROLES.monitor) && (
-              <NavLink end to={APP_ROUTES.monitor}>
-                Delegaciones
-              </NavLink>
-            )}
-
-            {hasAnyRole(session.user.role, ROUTE_ROLES.overview) && (
-              <NavLink end to={APP_ROUTES.overview}>
-                Vista general
-              </NavLink>
-            )}
-
-            {hasAnyRole(session.user.role, ROUTE_ROLES.insights) && (
-              <NavLink end to={APP_ROUTES.insights}>
-                Dashboard directivo
-              </NavLink>
-            )}
-
-            {hasAnyRole(session.user.role, ROUTE_ROLES.insightsMap) && (
-              <NavLink end to={APP_ROUTES.insightsMap}>
-                Mapa directivo
-              </NavLink>
-            )}
-
-            {hasAnyRole(session.user.role, ROUTE_ROLES.control) && (
-              <NavLink end to={APP_ROUTES.control}>
-                Usuarios
-              </NavLink>
-            )}
-            {hasAnyRole(session.user.role, ROUTE_ROLES.controlActivity) && (
-              <NavLink to={APP_ROUTES.controlActivity}>Bitácora</NavLink>
-            )}
+                {section.items.map((item) => (
+                  <NavLink end={item.end} key={item.route} to={item.route}>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
           </nav>
 
           <div className="sidebar-footer">
-            <button className="secondary-button" type="button" onClick={logoutWithApi}>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={logoutWithApi}
+            >
               Cerrar sesión
             </button>
           </div>
@@ -246,26 +356,26 @@ export function AppShell() {
                 type="button"
                 onClick={() => setIsMessengerOpen((prev) => !prev)}
                 title="Mensajero"
-                style={{ position: 'relative' }}
+                style={{ position: "relative" }}
               >
                 Mensajes
                 {unreadIndicator && (
                   <span
                     style={{
-                      position: 'absolute',
-                      top: '-0.4rem',
-                      right: '-0.4rem',
-                      minWidth: '1.2rem',
-                      height: '1.2rem',
-                      padding: '0 0.25rem',
-                      borderRadius: '999px',
-                      background: '#dc2626',
-                      color: '#fff',
-                      fontSize: '0.75rem',
-                      lineHeight: '1.2rem',
+                      position: "absolute",
+                      top: "-0.4rem",
+                      right: "-0.4rem",
+                      minWidth: "1.2rem",
+                      height: "1.2rem",
+                      padding: "0 0.25rem",
+                      borderRadius: "999px",
+                      background: "#dc2626",
+                      color: "#fff",
+                      fontSize: "0.75rem",
+                      lineHeight: "1.2rem",
                       fontWeight: 700,
-                      textAlign: 'center',
-                      boxShadow: '0 0 0 2px #111827',
+                      textAlign: "center",
+                      boxShadow: "0 0 0 2px #111827",
                     }}
                   >
                     {unreadIndicator}
@@ -286,8 +396,14 @@ export function AppShell() {
       </main>
 
       {canUseMessenger && isMessengerOpen && (
-        <div className="messenger-overlay" onClick={() => setIsMessengerOpen(false)}>
-          <div className="messenger-float-panel" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="messenger-overlay"
+          onClick={() => setIsMessengerOpen(false)}
+        >
+          <div
+            className="messenger-float-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               className="messenger-close-btn"
               type="button"
@@ -304,3 +420,5 @@ export function AppShell() {
     </div>
   );
 }
+
+

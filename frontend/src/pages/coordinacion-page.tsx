@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
@@ -187,9 +187,9 @@ export function CoordinacionPage() {
     <div className="stack-lg">
       <section className="panel">
         <PageIntro
-          eyebrow="Supervisión"
-          title="Administración de usuarios"
-          description="Da de alta cuentas operativas y mantén control sobre los perfiles del sistema."
+          eyebrow="Administración"
+          title="Usuarios"
+          description="Administra usuarios, roles y cobertura operativa del sistema."
           actions={
             <label className="toolbar-search">
               <span>Buscar usuario</span>
@@ -576,3 +576,5 @@ export function CoordinacionPage() {
     </div>
   );
 }
+
+

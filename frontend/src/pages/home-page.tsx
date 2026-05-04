@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
@@ -6,39 +6,155 @@ import { api } from '../lib/api';
 import { formatUserName } from '../lib/format-user-name';
 import { APP_ROUTES } from '../lib/routes';
 import { useAuth } from '../modules/auth/auth-context';
-import type { VehicleRecord } from '../types';
+import type { Role, VehicleRecord } from '../types';
 
-const roleDescriptions = {
-  enlace: 'Registra información de tu delegación y consulta tus propias capturas.',
-  director_operativo: 'Monitorea en tiempo real las delegaciones asignadas a tu región.',
-  plantilla_vehicular: 'Consulta la operación completa organizada por región y delegación.',
-  director_general: 'Consulta KPIs globales y el comportamiento operativo por región y delegación.',
-  superadmin: 'Administra usuarios y consulta la bitácora en tiempo real.',
-  coordinacion: 'Administra usuarios y consulta la bitácora en tiempo real.',
+type QuickAction = {
+  label: string;
+  to: string;
+  helper: string;
 };
 
-const quickActions = {
+const roleDescriptions: Record<Role, string> = {
+  enlace: 'Captura y confirma la plantilla vehicular vigente de tu delegación.',
+  director_operativo:
+    'Supervisa las delegaciones de tu región y valida el cierre mensual regional.',
+  plantilla_vehicular:
+    'Consulta la operación vehicular general y el seguimiento mensual de regiones.',
+  director_general:
+    'Consulta indicadores directivos, mapa operativo y validaciones mensuales.',
+  superadmin:
+    'Administra usuarios, bitácora y supervisa la operación general del sistema.',
+  coordinacion:
+    'Administra usuarios, bitácora y da seguimiento operativo general.',
+};
+
+const quickActions: Record<Role, QuickAction[]> = {
+  enlace: [
+    {
+      label: 'Capturar vehículo',
+      to: APP_ROUTES.workspace,
+      helper: 'Registrar unidad vehicular',
+    },
+    {
+      label: 'Mi plantilla vehicular',
+      to: APP_ROUTES.archive,
+      helper: 'Consultar, editar, trasladar y confirmar plantilla',
+    },
+  ],
   director_operativo: [
-    { label: 'Ver delegaciones', to: APP_ROUTES.monitor, helper: 'Seguimiento en tiempo real' },
-    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Supervisión completa' },
-    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+    {
+      label: 'Delegaciones',
+      to: APP_ROUTES.monitor,
+      helper: 'Supervisión vehicular de tu región',
+    },
+    {
+      label: 'Validación regional',
+      to: APP_ROUTES.reportsDelegations,
+      helper: 'Confirmar cierre mensual regional',
+    },
   ],
   plantilla_vehicular: [
-    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Supervisión completa' },
-    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+    {
+      label: 'Vista general',
+      to: APP_ROUTES.overview,
+      helper: 'Operación vehicular general',
+    },
+    {
+      label: 'Reportes regionales',
+      to: APP_ROUTES.reportsRegional,
+      helper: 'Validación mensual por región',
+    },
+    {
+      label: 'Dashboard directivo',
+      to: APP_ROUTES.insights,
+      helper: 'Indicadores globales',
+    },
+    {
+      label: 'Mapa directivo',
+      to: APP_ROUTES.insightsMap,
+      helper: 'Distribución territorial',
+    },
   ],
   director_general: [
-    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+    {
+      label: 'Reportes regionales',
+      to: APP_ROUTES.reportsRegional,
+      helper: 'Validación mensual por región',
+    },
+    {
+      label: 'Dashboard directivo',
+      to: APP_ROUTES.insights,
+      helper: 'Indicadores globales',
+    },
+    {
+      label: 'Mapa directivo',
+      to: APP_ROUTES.insightsMap,
+      helper: 'Distribución territorial',
+    },
   ],
   superadmin: [
-    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisión de actividad' },
-    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Panorama operativo' },
-    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+    {
+      label: 'Vista general',
+      to: APP_ROUTES.overview,
+      helper: 'Operación vehicular general',
+    },
+    {
+      label: 'Reportes regionales',
+      to: APP_ROUTES.reportsRegional,
+      helper: 'Validación mensual por región',
+    },
+    {
+      label: 'Dashboard directivo',
+      to: APP_ROUTES.insights,
+      helper: 'Indicadores globales',
+    },
+    {
+      label: 'Mapa directivo',
+      to: APP_ROUTES.insightsMap,
+      helper: 'Distribución territorial',
+    },
+    {
+      label: 'Usuarios',
+      to: APP_ROUTES.control,
+      helper: 'Administración de accesos',
+    },
+    {
+      label: 'Bitácora',
+      to: APP_ROUTES.controlActivity,
+      helper: 'Auditoría de actividad',
+    },
   ],
   coordinacion: [
-    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisión de actividad' },
-    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Panorama operativo' },
-    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+    {
+      label: 'Vista general',
+      to: APP_ROUTES.overview,
+      helper: 'Operación vehicular general',
+    },
+    {
+      label: 'Reportes regionales',
+      to: APP_ROUTES.reportsRegional,
+      helper: 'Validación mensual por región',
+    },
+    {
+      label: 'Dashboard directivo',
+      to: APP_ROUTES.insights,
+      helper: 'Indicadores globales',
+    },
+    {
+      label: 'Mapa directivo',
+      to: APP_ROUTES.insightsMap,
+      helper: 'Distribución territorial',
+    },
+    {
+      label: 'Usuarios',
+      to: APP_ROUTES.control,
+      helper: 'Administración de accesos',
+    },
+    {
+      label: 'Bitácora',
+      to: APP_ROUTES.controlActivity,
+      helper: 'Auditoría de actividad',
+    },
   ],
 };
 
@@ -54,22 +170,19 @@ export function HomePage() {
     void api.getMyRecords(session.accessToken).then(setRecords);
   }, [session]);
 
-  if (!session) {
-    return null;
-  }
+  const monthCaptures = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
-  const latestRecord = records[0];
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-
-  const monthCaptures = useMemo(
-    () =>
-      records.filter((record) => {
-        const createdAt = new Date(record.createdAt);
-        return createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear;
-      }).length,
-    [currentMonth, currentYear, records],
-  );
+    return records.filter((record) => {
+      const createdAt = new Date(record.createdAt);
+      return (
+        createdAt.getMonth() === currentMonth &&
+        createdAt.getFullYear() === currentYear
+      );
+    }).length;
+  }, [records]);
 
   const statusBreakdown = useMemo(() => {
     return records.reduce<Record<string, number>>((totals, record) => {
@@ -78,8 +191,16 @@ export function HomePage() {
     }, {});
   }, [records]);
 
-  const topStatus = Object.entries(statusBreakdown).sort((left, right) => right[1] - left[1])[0];
-  const actions = session.user.role === 'enlace' ? [] : quickActions[session.user.role];
+  const topStatus = Object.entries(statusBreakdown).sort(
+    (left, right) => right[1] - left[1],
+  )[0];
+
+  if (!session) {
+    return null;
+  }
+
+  const latestRecord = records[0];
+  const actions = quickActions[session.user.role];
 
   return (
     <div className="stack-lg">
@@ -100,7 +221,7 @@ export function HomePage() {
         />
       </section>
 
-      {session.user.role === 'enlace' ? (
+      {session.user.role === 'enlace' && (
         <section className="quick-grid">
           <article className="quick-card">
             <span className="quick-card-label">Capturas totales</span>
@@ -120,20 +241,24 @@ export function HomePage() {
           <article className="quick-card">
             <span className="quick-card-label">Estatus dominante</span>
             <strong>{topStatus ? topStatus[0] : '-'}</strong>
-            <p>{topStatus ? `${topStatus[1]} capturas con ese estatus.` : 'Sin capturas aún.'}</p>
+            <p>
+              {topStatus
+                ? `${topStatus[1]} capturas con ese estatus.`
+                : 'Sin capturas aún.'}
+            </p>
           </article>
         </section>
-      ) : (
-        <section className="quick-grid">
-          {actions.map((action) => (
-            <Link className="quick-card" key={action.to} to={action.to}>
-              <span className="quick-card-label">Acceso rápido</span>
-              <strong>{action.label}</strong>
-              <p>{action.helper}</p>
-            </Link>
-          ))}
-        </section>
       )}
+
+      <section className="quick-grid">
+        {actions.map((action) => (
+          <Link className="quick-card" key={action.to} to={action.to}>
+            <span className="quick-card-label">Acceso rápido</span>
+            <strong>{action.label}</strong>
+            <p>{action.helper}</p>
+          </Link>
+        ))}
+      </section>
     </div>
   );
 }

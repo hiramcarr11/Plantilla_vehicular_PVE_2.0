@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { resolveVehiclePhysicalStatusTone, resolveVehicleStatusTone } from '../lib/vehicle-status';
 import { getRecordActivitySummary } from '../modules/records/record-activity';
 import type { GroupedRegionRecords, RecordFieldCatalogMap, VehicleRecord } from '../types';
 import { EmptyState } from './empty-state';
@@ -67,7 +68,6 @@ export function GroupedRecords({
   title,
   description,
   headerFilters,
-  vehicleClassAfterDate = false,
   renderRecordActions,
   onRecordSelect,
 }: GroupedRecordsProps) {
@@ -172,94 +172,106 @@ export function GroupedRecords({
 
         {headerFilters}
 
-        <div className="filter-grid">
-          <label className="field">
-            <span>{fieldCatalogs.useType.label}</span>
-            <select
-              value={filters.useType}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, useType: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.useType.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="vehicle-filter-panel">
+          <div className="vehicle-filter-header">
+            <div>
+              <p className="eyebrow">Filtros vehiculares</p>
+              <h3>Consulta por características</h3>
+            </div>
+            <button className="ghost-button" type="button" onClick={() => setFilters(initialFilters)}>
+              Limpiar filtros
+            </button>
+          </div>
 
-          <label className="field">
-            <span>{fieldCatalogs.vehicleClass.label}</span>
-            <select
-              value={filters.vehicleClass}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, vehicleClass: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.vehicleClass.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="filter-grid vehicle-filter-grid">
+            <label className="field">
+              <span>{fieldCatalogs.useType.label}</span>
+              <select
+                value={filters.useType}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, useType: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.useType.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>{fieldCatalogs.physicalStatus.label}</span>
-            <select
-              value={filters.physicalStatus}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, physicalStatus: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.physicalStatus.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="field">
+              <span>{fieldCatalogs.vehicleClass.label}</span>
+              <select
+                value={filters.vehicleClass}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, vehicleClass: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.vehicleClass.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>{fieldCatalogs.status.label}</span>
-            <select
-              value={filters.status}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, status: event.target.value }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.status.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="field">
+              <span>{fieldCatalogs.physicalStatus.label}</span>
+              <select
+                value={filters.physicalStatus}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, physicalStatus: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.physicalStatus.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>{fieldCatalogs.assetClassification.label}</span>
-            <select
-              value={filters.assetClassification}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  assetClassification: event.target.value,
-                }))
-              }
-            >
-              <option value="">Todos</option>
-              {fieldCatalogs.assetClassification.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="field">
+              <span>{fieldCatalogs.status.label}</span>
+              <select
+                value={filters.status}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, status: event.target.value }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.status.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>{fieldCatalogs.assetClassification.label}</span>
+              <select
+                value={filters.assetClassification}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    assetClassification: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Todos</option>
+                {fieldCatalogs.assetClassification.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         <StatsGrid
@@ -314,40 +326,40 @@ export function GroupedRecords({
                       <thead>
                         <tr>
                           <th>Fecha</th>
-                          {vehicleClassAfterDate && <th>Clase</th>}
-                          <th>Placas</th>
-                          <th>Marca</th>
-                          <th>Tipo</th>
-                          <th>Uso</th>
-                          {!vehicleClassAfterDate && <th>Clase</th>}
-                          <th>Estado fisico</th>
-                          <th>Estatus</th>
-                          <th>Clasificacion</th>
-                          <th>Modelo</th>
-                          <th>Resguardante</th>
+                          <th>Identificación</th>
+                          <th>Asignación</th>
+                          <th>Estado</th>
                           <th>Actividad</th>
-                          {renderRecordActions && <th>Acciones</th>}
+                          {(onRecordSelect || renderRecordActions) && <th>Acciones</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {delegation.records.map((record) => (
-                          <tr
-                            key={`${delegation.delegationId}-${record.id}`}
-                            onClick={() => onRecordSelect?.(record)}
-                            style={onRecordSelect ? { cursor: 'pointer' } : undefined}
-                          >
+                          <tr key={`${delegation.delegationId}-${record.id}`}>
                             <td>{new Date(record.createdAt).toLocaleString()}</td>
-                            {vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
-                            <td>{record.plates}</td>
-                            <td>{record.brand}</td>
-                            <td>{record.type}</td>
-                            <td>{record.useType}</td>
-                            {!vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
-                            <td>{record.physicalStatus}</td>
-                            <td>{record.status}</td>
-                            <td>{record.assetClassification}</td>
-                            <td>{record.model}</td>
-                            <td>{record.custodian}</td>
+                            <td>
+                              <div className="vehicle-main-cell">
+                                <strong>{record.plates}</strong>
+                                <span>{record.vehicleClass} · {record.useType}</span>
+                                <small>{record.brand} {record.type} · Modelo {record.model}</small>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="vehicle-main-cell">
+                                <strong>{record.custodian}</strong>
+                                <span>{record.delegation.name}</span>
+                                {record.recordState === 'TRANSFERRED_OUT' && (
+                                  <small>Registro trasladado</small>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="vehicle-main-cell">
+                                <span className={`record-chip ${resolveVehicleStatusTone(record.status)}`}>{record.status}</span>
+                                <span className={`record-chip ${resolveVehiclePhysicalStatusTone(record.physicalStatus)}`}>{record.physicalStatus}</span>
+                                <small>{record.assetClassification}</small>
+                              </div>
+                            </td>
                             <td>
                               <div className="record-activity-cell">
                                 {record.recordState === 'TRANSFERRED_OUT' && (
@@ -361,9 +373,20 @@ export function GroupedRecords({
                                 </span>
                               </div>
                             </td>
-                            {renderRecordActions && (
-                              <td onClick={(event) => event.stopPropagation()}>
-                                {renderRecordActions(record)}
+                            {(onRecordSelect || renderRecordActions) && (
+                              <td>
+                                <div className="table-actions">
+                                  {onRecordSelect && (
+                                    <button
+                                      className="inline-button"
+                                      type="button"
+                                      onClick={() => onRecordSelect(record)}
+                                    >
+                                      Detalle
+                                    </button>
+                                  )}
+                                  {renderRecordActions?.(record)}
+                                </div>
                               </td>
                             )}
                           </tr>
@@ -380,3 +403,6 @@ export function GroupedRecords({
     </div>
   );
 }
+
+
+

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { EmptyState } from '../components/empty-state';
 import { LoadingSpinner } from '../components/loading-spinner';
 import { PageIntro } from '../components/page-intro';
@@ -6,6 +6,7 @@ import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
 import { getRecordActivitySummary, openRecordDetails } from '../modules/records/record-activity';
 import { useEnlaceData } from '../modules/records/use-enlace-data';
+import { resolveVehiclePhysicalStatusTone, resolveVehicleStatusTone } from '../lib/vehicle-status';
 import type { VehicleRecord } from '../types';
 
 export function EnlaceRecordsPage() {
@@ -59,9 +60,9 @@ export function EnlaceRecordsPage() {
     <div className="stack-lg">
       <section className="panel">
         <PageIntro
-          eyebrow="Seguimiento"
+          eyebrow="Plantilla vehicular"
           title="Mi plantilla vehicular"
-          description="Consulta, edita y traslada los registros visibles para tu delegacion."
+          description="Consulta, edita, traslada y confirma la plantilla vehicular vigente de tu delegación."
         />
 
         <StatsGrid
@@ -74,10 +75,10 @@ export function EnlaceRecordsPage() {
               helper: latestRecord ? latestRecord.plates : 'Sin registros',
             },
             {
-              label: 'Ultimo reporte',
+              label: 'Última validación',
               value: latestRosterReport
                 ? new Date(latestRosterReport.submittedAt).toLocaleDateString()
-                : 'Sin reporte',
+                : 'Sin validación',
               helper: latestRosterReport
                 ? latestRosterReport.hasChanges
                   ? 'Con cambios'
@@ -105,13 +106,13 @@ export function EnlaceRecordsPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Plantilla</p>
-            <h2>Vehiculos registrados</h2>
+            <p className="eyebrow">Unidades registradas</p>
+            <h2>Vehículos de mi delegación</h2>
           </div>
           <div className="panel-actions">
             <div className="panel-meta">{records.length} registros</div>
             <button className="primary-button" type="button" onClick={submitRosterReport}>
-              Enviar reporte de plantilla
+              Confirmar plantilla mensual
             </button>
           </div>
         </div>
@@ -127,30 +128,40 @@ export function EnlaceRecordsPage() {
               <thead>
                 <tr>
                   <th>Fecha</th>
-                  <th>Placas</th>
-                  <th>Marca</th>
-                  <th>Tipo</th>
-                  <th>Delegacion actual</th>
-                  <th>Resguardante</th>
-                  <th>Estatus</th>
+                  <th>Identificación</th>
+                  <th>Asignación</th>
+                  <th>Estado</th>
                   <th>Actividad</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((record) => (
-                  <tr
-                    key={`${record.viewDelegation.id}-${record.id}`}
-                    onClick={() => void openRecordDetails(record)}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <tr key={`${record.viewDelegation.id}-${record.id}`}>
                     <td>{new Date(record.createdAt).toLocaleString()}</td>
-                    <td>{record.plates}</td>
-                    <td>{record.brand}</td>
-                    <td>{record.type}</td>
-                    <td>{record.delegation.name}</td>
-                    <td>{record.custodian}</td>
-                    <td>{record.status}</td>
+                    <td>
+                      <div className="vehicle-main-cell">
+                        <strong>{record.plates}</strong>
+                        <span>{record.vehicleClass} · {record.useType}</span>
+                        <small>{record.brand} {record.type} · Modelo {record.model}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="vehicle-main-cell">
+                        <strong>{record.custodian}</strong>
+                        <span>{record.delegation.name}</span>
+                        {record.recordState === 'TRANSFERRED_OUT' && (
+                          <small>Registro trasladado</small>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="vehicle-main-cell">
+                        <span className={`record-chip ${resolveVehicleStatusTone(record.status)}`}>{record.status}</span>
+                        <span className={`record-chip ${resolveVehiclePhysicalStatusTone(record.physicalStatus)}`}>{record.physicalStatus}</span>
+                        <small>{record.assetClassification}</small>
+                      </div>
+                    </td>
                     <td>
                       <div className="record-activity-cell">
                         {record.recordState === 'TRANSFERRED_OUT' && (
@@ -164,7 +175,7 @@ export function EnlaceRecordsPage() {
                         </span>
                       </div>
                     </td>
-                    <td onClick={(event) => event.stopPropagation()}>
+                    <td>
                       <div className="table-actions">
                         {record.recordState === 'CURRENT' && (
                           <>
@@ -204,15 +215,15 @@ export function EnlaceRecordsPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Reportes enviados</p>
-            <h2>Confirmaciones de plantilla</h2>
+            <p className="eyebrow">Validaciones enviadas</p>
+            <h2>Historial de confirmaciones mensuales</h2>
           </div>
-          <div className="panel-meta">{rosterReports.length} reportes</div>
+          <div className="panel-meta">{rosterReports.length} validaciones</div>
         </div>
 
         {rosterReports.length === 0 ? (
           <EmptyState
-            title="Sin reportes enviados"
+            title="Sin validaciones enviadas"
             description="El envio de reporte confirma el estado actual de la plantilla."
           />
         ) : (
@@ -220,8 +231,8 @@ export function EnlaceRecordsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Fecha de envio</th>
-                  <th>Resultado</th>
+                  <th>Fecha de validación</th>
+                  <th>Resultado de validación</th>
                   <th>Movimientos detectados</th>
                   <th>Observaciones</th>
                 </tr>
@@ -243,3 +254,6 @@ export function EnlaceRecordsPage() {
     </div>
   );
 }
+
+
+

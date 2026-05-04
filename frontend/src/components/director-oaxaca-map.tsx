@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { EmptyState } from './empty-state';
+import { api } from '../lib/api';
 import { getDelegationLatLng, OAXACA_MAP_BOUNDS } from '../modules/director-general/oaxaca-map-layout';
-import type { DirectorOverview } from '../types';
+import { openRecordDetails } from '../modules/records/record-activity';
+import type { DirectorOverview, VehicleRecord } from '../types';
 
 function CustomMarker({ icon, children, ...props }: React.ComponentProps<typeof Marker> & { icon: L.DivIcon }) {
   const markerRef = useRef<L.Marker>(null);
@@ -19,6 +21,9 @@ function CustomMarker({ icon, children, ...props }: React.ComponentProps<typeof 
 
 type DirectorOaxacaMapProps = {
   overview: DirectorOverview;
+  accessToken: string;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 const vehicleClassPalette = [
@@ -106,7 +111,12 @@ function buildMarkerIcon(
   });
 }
 
-export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
+export function DirectorOaxacaMap({
+  overview,
+  accessToken,
+  dateFrom,
+  dateTo,
+}: DirectorOaxacaMapProps) {
   const colorMap = useMemo(() => buildVehicleClassColorMap(overview), [overview]);
   const visibleDelegations = useMemo(() => {
     const { selectedRegionId, selectedDelegationId } = overview.filters;
@@ -129,18 +139,59 @@ export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
     [visibleDelegations],
   );
 
-  const [selectedDelegationId, setSelectedDelegationId] = useState<string>(
-    delegationsWithUnits[0]?.delegationId ?? '',
+  const [selectedDelegationId, setSelectedDelegationId] = useState<string | null>(
+    delegationsWithUnits[0]?.delegationId ?? null,
   );
+  const [selectedDelegationVehicles, setSelectedDelegationVehicles] = useState<VehicleRecord[]>([]);
+  const [isLoadingDelegationVehicles, setIsLoadingDelegationVehicles] = useState(false);
+  const [selectedDelegationVehiclesError, setSelectedDelegationVehiclesError] = useState<string | null>(null);
+  const delegationVehiclesRequestRef = useRef(0);
 
   useEffect(() => {
-    setSelectedDelegationId(delegationsWithUnits[0]?.delegationId ?? '');
+    setSelectedDelegationId(delegationsWithUnits[0]?.delegationId ?? null);
+    setSelectedDelegationVehicles([]);
+    setSelectedDelegationVehiclesError(null);
   }, [delegationsWithUnits]);
 
   const selectedDelegation =
     delegationsWithUnits.find((delegation) => delegation.delegationId === selectedDelegationId) ??
     delegationsWithUnits[0] ??
     null;
+
+  const loadDelegationVehicles = async (delegationId: string) => {
+    setSelectedDelegationId(delegationId);
+    setSelectedDelegationVehicles([]);
+    setSelectedDelegationVehiclesError(null);
+    setIsLoadingDelegationVehicles(true);
+
+    const requestId = delegationVehiclesRequestRef.current + 1;
+    delegationVehiclesRequestRef.current = requestId;
+
+    try {
+      const loadedVehicles = await api.getDirectorDelegationVehicles(
+        accessToken,
+        delegationId,
+        dateFrom,
+        dateTo,
+      );
+
+      if (delegationVehiclesRequestRef.current !== requestId) {
+        return;
+      }
+
+      setSelectedDelegationVehicles(loadedVehicles);
+    } catch {
+      if (delegationVehiclesRequestRef.current !== requestId) {
+        return;
+      }
+
+      setSelectedDelegationVehiclesError('No se pudieron cargar los vehículos de esta delegación.');
+    } finally {
+      if (delegationVehiclesRequestRef.current === requestId) {
+        setIsLoadingDelegationVehicles(false);
+      }
+    }
+  };
 
   if (visibleDelegations.length === 0) {
     return (
@@ -208,7 +259,9 @@ export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
                 <CustomMarker
                   key={delegation.delegationId}
                   eventHandlers={{
-                    click: () => setSelectedDelegationId(delegation.delegationId),
+                    click: () => {
+                      void loadDelegationVehicles(delegation.delegationId);
+                    },
                   }}
                   icon={buildMarkerIcon(delegation, colorMap, isSelected)}
                   position={position}
@@ -231,62 +284,49 @@ export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
                           </div>
                         ))}
                       </div>
+
+                      {selectedDelegationId === delegation.delegationId && (
+                        <>
+                          {isLoadingDelegationVehicles && (
+                            <p className="map-vehicle-status">Cargando vehículos...</p>
+                          )}
+
+                          {selectedDelegationVehiclesError && (
+                            <p className="map-vehicle-error">{selectedDelegationVehiclesError}</p>
+                          )}
+
+                          {!isLoadingDelegationVehicles && !selectedDelegationVehiclesError && (
+                            selectedDelegationVehicles.length > 0 ? (
+                              <div className="map-vehicle-list">
+                                {selectedDelegationVehicles.map((record) => (
+                                  <button
+                                    key={record.id}
+                                    type="button"
+                                    className="map-vehicle-item"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void openRecordDetails(record);
+                                    }}
+                                  >
+                                    <strong>{record.plates}</strong>
+                                    <span>{record.vehicleClass} · {record.status}</span>
+                                    <small>{record.brand} {record.type} · {record.custodian}</small>
+                                    <small>Ver detalle</small>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="map-vehicle-status">Sin vehículos para el filtro actual.</p>
+                            )
+                          )}
+                        </>
+                      )}
                     </div>
                   </Popup>
                 </CustomMarker>
               );
             })}
           </MapContainer>
-        </div>
-      </div>
-
-      <div className="director-map-details">
-        <div className="director-map-details-card">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Detalle territorial</p>
-              <h2>{selectedDelegation?.delegationName ?? 'Delegación'}</h2>
-            </div>
-            <div className="panel-meta">{selectedDelegation?.regionName ?? '-'}</div>
-          </div>
-
-          {selectedDelegation ? (
-            <div className="stack-md">
-              <div className="stats-grid director-map-stats">
-                <article className="stats-card">
-                  <div className="stats-label">Vehículos</div>
-                  <div className="stats-value">{selectedDelegation.totalUnits}</div>
-                </article>
-                <article className="stats-card">
-                  <div className="stats-label">Activos</div>
-                  <div className="stats-value">{selectedDelegation.totalActive}</div>
-                </article>
-              </div>
-
-              <div className="director-map-breakdown">
-                {selectedDelegation.vehicleClasses.map((vehicleClass) => (
-                  <div className="director-map-breakdown-row" key={vehicleClass.vehicleClass}>
-                    <div className="director-map-breakdown-label">
-                      <span
-                        className="director-map-legend-swatch"
-                        style={{ backgroundColor: colorMap[vehicleClass.vehicleClass] }}
-                      />
-                      <strong>{vehicleClass.vehicleClass}</strong>
-                    </div>
-                    <div className="director-map-breakdown-values">
-                      <span>{vehicleClass.totalUnits} unidades</span>
-                      <span>{vehicleClass.totalActive} activas</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <EmptyState
-              title="Selecciona una delegación"
-              description="Haz clic en un marcador del mapa para revisar su composición vehicular."
-            />
-          )}
         </div>
       </div>
     </div>

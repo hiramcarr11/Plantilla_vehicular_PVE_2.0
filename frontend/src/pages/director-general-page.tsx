@@ -1,4 +1,4 @@
-import { EmptyState } from '../components/empty-state';
+﻿import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
 import { useAuth } from '../modules/auth/auth-context';
@@ -61,53 +61,83 @@ export function DirectorGeneralPage() {
         <PageIntro
           eyebrow="Dirección"
           title="Dashboard directivo"
-          description="Monitorea KPIs globales y resume la operación por tipo de vehículo según la región y delegación filtradas."
+          description="Consulta indicadores globales de la plantilla vehicular y su comportamiento operativo."
         />
 
-        <div className="form-grid director-filter-grid">
-          <label className="field">
-            <span>Región</span>
-            <select
-              value={selectedRegionId}
-              onChange={(event) => {
-                setSelectedRegionId(event.target.value);
+        <section className="query-filter-panel">
+          <div className="query-filter-header">
+            <div>
+              <p className="eyebrow">Filtros de dirección</p>
+              <h3>Consulta directiva</h3>
+            </div>
+
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => {
+                setSelectedRegionId('');
                 setSelectedDelegationId('');
+                setDateFrom('');
+                setDateTo('');
               }}
             >
-              <option value="">Todas las regiones</option>
-              {filters.regions.map((region) => (
-                <option key={region.regionId} value={region.regionId}>
-                  {region.regionName}
-                </option>
-              ))}
-            </select>
-          </label>
+              Limpiar consulta
+            </button>
+          </div>
 
-          <label className="field">
-            <span>Delegación</span>
-            <select
-              value={selectedDelegationId}
-              onChange={(event) => setSelectedDelegationId(event.target.value)}
-            >
-              <option value="">Todas las delegaciones</option>
-              {availableDelegations.map((delegation) => (
-                <option key={delegation.id} value={delegation.id}>
-                  {delegation.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="form-grid director-filter-grid query-filter-grid">
+            <label className="field">
+              <span>Región</span>
+              <select
+                value={selectedRegionId}
+                onChange={(event) => {
+                  setSelectedRegionId(event.target.value);
+                  setSelectedDelegationId('');
+                }}
+              >
+                <option value="">Todas las regiones</option>
+                {filters.regions.map((region) => (
+                  <option key={region.regionId} value={region.regionId}>
+                    {region.regionName}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>Desde</span>
-            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-          </label>
+            <label className="field">
+              <span>Delegación</span>
+              <select
+                value={selectedDelegationId}
+                onChange={(event) => setSelectedDelegationId(event.target.value)}
+              >
+                <option value="">Todas las delegaciones</option>
+                {availableDelegations.map((delegation) => (
+                  <option key={delegation.id} value={delegation.id}>
+                    {delegation.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="field">
-            <span>Hasta</span>
-            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-          </label>
-        </div>
+            <label className="field">
+              <span>Desde</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+              />
+            </label>
+
+            <label className="field">
+              <span>Hasta</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+              />
+            </label>
+          </div>
+        </section>
 
         <StatsGrid
           items={[
@@ -122,7 +152,7 @@ export function DirectorGeneralPage() {
       <section className="panel">
         <StatsGrid
           items={[
-            { label: 'Regiones sin reporte', value: kpis.notReported },
+            { label: 'Regiones sin validación mensual', value: kpis.notReported },
             { label: 'Regiones con reportes pendientes', value: kpis.pendingChanges },
             { label: 'Regiones sin cambios', value: kpis.reportedWithoutChanges },
             { label: 'Regiones con cambios', value: kpis.reportedWithChanges },
@@ -234,3 +264,5 @@ export function DirectorGeneralPage() {
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-import { EmptyState } from '../components/empty-state';
+﻿import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
@@ -23,9 +23,9 @@ export function EnlacePage() {
     <div className="stack-lg">
       <section className="panel">
         <PageIntro
-          eyebrow="Captura operativa"
-          title="Registro de bienes vehiculares"
-          description="Captura la informacion desde tu delegacion con apoyo de catalogos controlados."
+          eyebrow="Captura vehicular"
+          title="Registrar unidad vehicular"
+          description="Captura los datos de la unidad asignada a tu delegación y adjunta evidencia fotográfica cuando corresponda."
         />
 
         <StatsGrid
@@ -38,10 +38,10 @@ export function EnlacePage() {
               helper: latestRecord ? latestRecord.plates : 'Sin registros',
             },
             {
-              label: 'Ultimo reporte',
+              label: 'Última validación',
               value: latestRosterReport
                 ? new Date(latestRosterReport.submittedAt).toLocaleDateString()
-                : 'Sin reporte',
+                : 'Sin validación',
               helper: latestRosterReport
                 ? latestRosterReport.hasChanges
                   ? 'Con cambios'
@@ -70,3 +70,4 @@ export function EnlacePage() {
     </div>
   );
 }
+

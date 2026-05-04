@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
@@ -47,9 +47,9 @@ export function CoordinacionAuditPage() {
     <div className="stack-lg">
       <section className="panel">
         <PageIntro
-          eyebrow="Bitácora"
-          title="Actividad del sistema"
-          description="Consulta movimientos críticos con visibilidad inmediata y orden cronológico."
+          eyebrow="Auditoría"
+          title="Bitácora"
+          description="Consulta movimientos críticos y actividad registrada en el sistema."
         />
 
         <StatsGrid
@@ -136,3 +136,5 @@ export function CoordinacionAuditPage() {
     </div>
   );
 }
+
+

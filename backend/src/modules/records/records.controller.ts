@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -128,7 +128,6 @@ export class RecordsController {
     Role.SuperAdmin,
     Role.DirectorGeneral,
     Role.Coordinacion,
-    Role.DirectorOperativo,
   )
   findRosterReportOverview(@Query("regionId") regionId?: string) {
     return this.recordsService.findRosterReportOverview(regionId);
@@ -157,7 +156,6 @@ export class RecordsController {
     Role.PlantillaVehicular,
     Role.SuperAdmin,
     Role.Coordinacion,
-    Role.DirectorOperativo,
   )
   findAdminView(
     @Query("regionId") regionId?: string,
@@ -179,7 +177,6 @@ export class RecordsController {
     Role.PlantillaVehicular,
     Role.SuperAdmin,
     Role.Coordinacion,
-    Role.DirectorOperativo,
   )
   findDirectorOverview(
     @Query("regionId") regionId?: string,
@@ -189,6 +186,25 @@ export class RecordsController {
   ) {
     return this.recordsService.findDirectorOverview(
       regionId,
+      delegationId,
+      dateFrom,
+      dateTo,
+    );
+  }
+
+  @Get("director/delegations/:delegationId/vehicles")
+  @RequireRoles(
+    Role.DirectorGeneral,
+    Role.PlantillaVehicular,
+    Role.SuperAdmin,
+    Role.Coordinacion,
+  )
+  findDirectorDelegationVehicles(
+    @Param("delegationId") delegationId: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+  ) {
+    return this.recordsService.findDirectorDelegationVehicles(
       delegationId,
       dateFrom,
       dateTo,
@@ -207,7 +223,6 @@ export class RecordsController {
     Role.PlantillaVehicular,
     Role.SuperAdmin,
     Role.Coordinacion,
-    Role.DirectorOperativo,
   )
   update(
     @Param("id") id: string,
@@ -233,3 +248,4 @@ export class RecordsController {
     return this.recordsService.transfer(id, dto, user);
   }
 }
+

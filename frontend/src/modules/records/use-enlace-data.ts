@@ -191,12 +191,12 @@ export function useEnlaceData() {
 
     const confirmation = await Swal.fire({
       icon: 'question',
-      title: 'Enviar reporte de plantilla',
+      title: 'Confirmar plantilla mensual',
       text: 'Se confirmara el estado actual de la plantilla vehicular de tu delegacion.',
       input: 'textarea',
       inputPlaceholder: 'Observaciones opcionales',
       showCancelButton: true,
-      confirmButtonText: 'Enviar reporte',
+      confirmButtonText: 'Confirmar plantilla',
       cancelButtonText: 'Cancelar',
     });
 
@@ -214,14 +214,14 @@ export function useEnlaceData() {
 
       await Swal.fire({
         icon: 'success',
-        title: report.hasChanges ? 'Reporte enviado con cambios' : 'Reporte enviado sin cambios',
-        text: `Movimientos detectados desde el ultimo reporte: ${report.changesSinceLastReport}.`,
+        title: report.hasChanges ? 'Validación mensual enviada con cambios' : 'Validación mensual enviada sin cambios',
+        text: `Movimientos detectados desde la última validación: ${report.changesSinceLastReport}.`,
         confirmButtonText: 'Entendido',
       });
     } catch (requestError) {
       await Swal.fire({
         icon: 'error',
-        title: 'No se pudo enviar el reporte',
+        title: 'No se pudo confirmar la plantilla mensual',
         text: (requestError as Error).message,
         confirmButtonText: 'Entendido',
       });
