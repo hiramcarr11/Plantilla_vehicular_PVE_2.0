@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { formatUserName } from "../lib/format-user-name";
 import { api } from "../lib/api";
@@ -16,18 +16,18 @@ const roleLabels = {
   plantilla_vehicular: "Admin Plantilla vehicular",
   director_general: "Director General",
   superadmin: "Superadministrador",
-  coordinacion: "Coordinación",
+  coordinacion: "CoordinaciÃ³n",
 };
 
 const pageTitles: Record<string, { title: string; description: string }> = {
   [APP_ROUTES.home]: {
     title: "Resumen operativo",
     description:
-      "Consulta tu espacio de trabajo y accede rápido a las acciones principales.",
+      "Consulta tu espacio de trabajo y accede rÃ¡pido a las acciones principales.",
   },
   [APP_ROUTES.workspace]: {
-    title: "Captura de delegación",
-    description: "Registra nuevos bienes vehiculares desde tu delegación.",
+    title: "Captura de delegaciÃ³n",
+    description: "Registra nuevos bienes vehiculares desde tu delegaciÃ³n.",
   },
   [APP_ROUTES.archive]: {
     title: "Todas mis capturas",
@@ -42,17 +42,17 @@ const pageTitles: Record<string, { title: string; description: string }> = {
   [APP_ROUTES.overview]: {
     title: "Vista administrativa",
     description:
-      "Observa la operación completa organizada por región y delegación.",
+      "Observa la operaciÃ³n completa organizada por regiÃ³n y delegaciÃ³n.",
   },
   [APP_ROUTES.insights]: {
     title: "Dashboard directivo",
     description:
-      "Consulta KPIs globales y el desglose por región y delegación.",
+      "Consulta KPIs globales y el desglose por regiÃ³n y delegaciÃ³n.",
   },
   [APP_ROUTES.insightsMap]: {
     title: "Mapa directivo",
     description:
-      "Explora la distribución territorial de vehículos con filtros operativos.",
+      "Explora la distribuciÃ³n territorial de vehÃ­culos con filtros operativos.",
   },
   [APP_ROUTES.control]: {
     title: "Usuarios",
@@ -60,17 +60,17 @@ const pageTitles: Record<string, { title: string; description: string }> = {
       "Administra accesos, perfiles y cobertura operativa del sistema.",
   },
   [APP_ROUTES.controlActivity]: {
-    title: "Bitácora",
+    title: "BitÃ¡cora",
     description:
-      "Supervisa en tiempo real los movimientos críticos del sistema.",
+      "Supervisa en tiempo real los movimientos crÃ­ticos del sistema.",
   },
   [APP_ROUTES.reportsRegional]: {
     title: "Reportes regionales",
-    description: "Consulta el estado de cierre y confirmación por región.",
+    description: "Consulta el estado de cierre y confirmaciÃ³n por regiÃ³n.",
   },
   [APP_ROUTES.reportsDelegations]: {
-    title: "Validación regional",
-    description: "Confirma el cierre mensual de las delegaciones bajo tu región.",
+    title: "ValidaciÃ³n regional",
+    description: "Confirma el cierre mensual de las delegaciones bajo tu regiÃ³n.",
   },
 };
 
@@ -88,10 +88,10 @@ type SidebarSection = {
 
 const sidebarSections: SidebarSection[] = [
   {
-    title: "Operación vehicular",
+    title: "OperaciÃ³n vehicular",
     items: [
       {
-        label: "Capturar vehículo",
+        label: "Capturar vehÃ­culo",
         route: APP_ROUTES.workspace,
         allowedRoles: ROUTE_ROLES.workspace,
         end: true,
@@ -100,17 +100,6 @@ const sidebarSections: SidebarSection[] = [
         label: "Mi plantilla vehicular",
         route: APP_ROUTES.archive,
         allowedRoles: ROUTE_ROLES.archive,
-      },
-    ],
-  },
-  {
-    title: "Supervisión regional",
-    items: [
-      {
-        label: "Delegaciones",
-        route: APP_ROUTES.monitor,
-        allowedRoles: ROUTE_ROLES.monitor,
-        end: true,
       },
       {
         label: "Vista general",
@@ -121,10 +110,21 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    title: "Reportes y dirección",
+    title: "SupervisiÃ³n regional",
     items: [
       {
-        label: "Validación regional",
+        label: "Delegaciones",
+        route: APP_ROUTES.monitor,
+        allowedRoles: ROUTE_ROLES.monitor,
+        end: true,
+      },
+    ],
+  },
+  {
+    title: "Validaciones mensuales",
+    items: [
+      {
+        label: "ValidaciÃ³n regional",
         route: APP_ROUTES.reportsDelegations,
         allowedRoles: ROUTE_ROLES.reportsDelegations,
         end: true,
@@ -135,6 +135,11 @@ const sidebarSections: SidebarSection[] = [
         allowedRoles: ROUTE_ROLES.reportsRegional,
         end: true,
       },
+    ],
+  },
+  {
+    title: "DirecciÃ³n",
+    items: [
       {
         label: "Dashboard directivo",
         route: APP_ROUTES.insights,
@@ -150,7 +155,7 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    title: "Administración",
+    title: "AdministraciÃ³n",
     items: [
       {
         label: "Usuarios",
@@ -159,7 +164,7 @@ const sidebarSections: SidebarSection[] = [
         end: true,
       },
       {
-        label: "Bitácora",
+        label: "BitÃ¡cora",
         route: APP_ROUTES.controlActivity,
         allowedRoles: ROUTE_ROLES.controlActivity,
       },
@@ -270,7 +275,7 @@ export function AppShell() {
         <button
           aria-expanded={isSidebarOpen}
           aria-label={
-            isSidebarOpen ? "Ocultar navegación" : "Mostrar navegación"
+            isSidebarOpen ? "Ocultar navegaciÃ³n" : "Mostrar navegaciÃ³n"
           }
           className="sidebar-toggle"
           type="button"
@@ -332,7 +337,7 @@ export function AppShell() {
               type="button"
               onClick={logoutWithApi}
             >
-              Cerrar sesión
+              Cerrar sesiÃ³n
             </button>
           </div>
         </div>
@@ -380,7 +385,7 @@ export function AppShell() {
             )}
             <div className="live-pill">
               <span className="live-dot" />
-              Sesión activa
+              SesiÃ³n activa
             </div>
           </div>
         </header>
@@ -404,7 +409,7 @@ export function AppShell() {
               type="button"
               onClick={() => setIsMessengerOpen(false)}
             >
-              ×
+              Ã—
             </button>
             <MessengerPanel />
           </div>
@@ -415,3 +420,4 @@ export function AppShell() {
     </div>
   );
 }
+
