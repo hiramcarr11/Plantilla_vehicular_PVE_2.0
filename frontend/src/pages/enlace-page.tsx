@@ -1,4 +1,4 @@
-import { EmptyState } from '../components/empty-state';
+﻿import { EmptyState } from '../components/empty-state';
 import { PageIntro } from '../components/page-intro';
 import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
@@ -70,3 +70,4 @@ export function EnlacePage() {
     </div>
   );
 }
+

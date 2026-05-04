@@ -66,7 +66,7 @@ export function DirectorGeneralPage() {
 
         <div className="form-grid director-filter-grid">
           <label className="field">
-            <span>RegiÃ³n</span>
+            <span>Región</span>
             <select
               value={selectedRegionId}
               onChange={(event) => {
@@ -84,7 +84,7 @@ export function DirectorGeneralPage() {
           </label>
 
           <label className="field">
-            <span>DelegaciÃ³n</span>
+            <span>Delegación</span>
             <select
               value={selectedDelegationId}
               onChange={(event) => setSelectedDelegationId(event.target.value)}
@@ -134,13 +134,13 @@ export function DirectorGeneralPage() {
         <StatsGrid
           items={[
             { label: 'Alcance regional', value: selectedRegionName },
-            { label: 'Alcance por delegaciÃ³n', value: selectedDelegationName },
+            { label: 'Alcance por delegación', value: selectedDelegationName },
             {
               label: 'Corte al',
               value: table.rows.length > 0 ? formatReportDate(table.date) : '-',
             },
             {
-              label: 'VehÃ­culos con estatus OTRO',
+              label: 'Vehículos con estatus OTRO',
               value: table.resume.statusBreakdown.OTRO ?? 0,
             },
           ]}
@@ -197,7 +197,7 @@ export function DirectorGeneralPage() {
           </div>
 
           <section className="director-report-observations">
-            <strong>DESCRIPCIÃ“N OTRO:</strong>
+            <strong>DESCRIPCIÓN OTRO:</strong>
             {table.customStatusDescriptions.length > 0 ? (
               <div className="director-report-observations-list">
                 {table.customStatusDescriptions.map((description, index) => (
@@ -234,4 +234,5 @@ export function DirectorGeneralPage() {
     </div>
   );
 }
+
 

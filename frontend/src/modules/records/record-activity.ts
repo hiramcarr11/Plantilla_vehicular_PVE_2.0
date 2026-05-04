@@ -1,4 +1,4 @@
-import Swal from "sweetalert2";
+﻿import Swal from "sweetalert2";
 import { api } from "../../lib/api";
 import { formatUserName } from "../../lib/format-user-name";
 import { resolveConfiguredNetworkUrl } from "../../lib/resolve-network-url";

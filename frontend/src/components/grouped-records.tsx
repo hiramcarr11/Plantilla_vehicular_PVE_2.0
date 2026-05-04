@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getRecordActivitySummary } from '../modules/records/record-activity';
 import type { GroupedRegionRecords, RecordFieldCatalogMap, VehicleRecord } from '../types';
@@ -380,3 +380,4 @@ export function GroupedRecords({
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type PropsWithChildren, type ReactNode } from 'react';
+﻿import { Component, type ErrorInfo, type PropsWithChildren, type ReactNode } from 'react';
 
 type ErrorBoundaryState = {
   hasError: boolean;
@@ -65,3 +65,4 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return this.props.children;
   }
 }
+

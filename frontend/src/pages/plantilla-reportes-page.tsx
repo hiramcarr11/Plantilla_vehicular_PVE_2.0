@@ -163,7 +163,7 @@ export function PlantillaReportesPage() {
 
         <div className="form-grid director-filter-grid">
           <label className="field">
-            <span>RegiÃ³n</span>
+            <span>Región</span>
             <select
               value={selectedRegionId}
               onChange={(event) => setSelectedRegionId(event.target.value)}
@@ -197,7 +197,7 @@ export function PlantillaReportesPage() {
             <table className="report-overview-table">
               <thead>
                 <tr>
-                  <th>RegiÃ³n</th>
+                  <th>Región</th>
                   <th>Estado de validación</th>
                   <th>Delegaciones sin confirmar</th>
                   <th>Última validación regional</th>
@@ -239,3 +239,4 @@ export function PlantillaReportesPage() {
     </div>
   );
 }
+

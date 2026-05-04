@@ -194,7 +194,7 @@ export function CoordinacionPage() {
             <label className="toolbar-search">
               <span>Buscar usuario</span>
               <input
-                placeholder="Nombre, correo, regiÃ³n o rol"
+                placeholder="Nombre, correo, región o rol"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -222,12 +222,12 @@ export function CoordinacionPage() {
       <section className="panel stack-md">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">AdministraciÃ³n</p>
+            <p className="eyebrow">Administración</p>
             <h2>{isEditing ? 'Modificar usuario' : 'Crear usuario'}</h2>
           </div>
           {isEditing && (
             <button className="secondary-button" type="button" onClick={resetForm}>
-              Cancelar ediciÃ³n
+              Cancelar edición
             </button>
           )}
         </div>
@@ -270,7 +270,7 @@ export function CoordinacionPage() {
             />
           </label>
           <label className="field">
-            <span>{isEditing ? 'ContraseÃ±a nueva (opcional)' : 'ContraseÃ±a'}</span>
+            <span>{isEditing ? 'Contraseña nueva (opcional)' : 'Contraseña'}</span>
             <input
               type="password"
               value={draftUser.password}
@@ -280,7 +280,7 @@ export function CoordinacionPage() {
             />
           </label>
           <label className="field">
-            <span>TelÃ©fono</span>
+            <span>Teléfono</span>
             <input
               value={draftUser.phone}
               onChange={(event) =>
@@ -304,11 +304,11 @@ export function CoordinacionPage() {
               <option value="plantilla_vehicular">Admin Plantilla vehicular</option>
               <option value="director_general">Director General</option>
               <option value="superadmin">Superadministrador</option>
-              <option value="coordinacion">CoordinaciÃ³n</option>
+              <option value="coordinacion">Coordinación</option>
             </select>
           </label>
           <label className="field">
-            <span>RegiÃ³n</span>
+            <span>Región</span>
             <select
               value={draftUser.regionId ?? ''}
               onChange={(event) =>
@@ -319,7 +319,7 @@ export function CoordinacionPage() {
                 }))
               }
             >
-              <option value="">Selecciona una regiÃ³n</option>
+              <option value="">Selecciona una región</option>
               {regions.map((region) => (
                 <option key={region.id} value={region.id}>
                   {region.name}
@@ -328,7 +328,7 @@ export function CoordinacionPage() {
             </select>
           </label>
           <label className="field">
-            <span>DelegaciÃ³n</span>
+            <span>Delegación</span>
             <select
               value={draftUser.delegationId ?? ''}
               onChange={(event) =>
@@ -338,7 +338,7 @@ export function CoordinacionPage() {
                 }))
               }
             >
-              <option value="">Selecciona una delegaciÃ³n</option>
+              <option value="">Selecciona una delegación</option>
               {availableDelegations.map((delegation) => (
                 <option key={delegation.id} value={delegation.id}>
                   {delegation.name}
@@ -366,10 +366,10 @@ export function CoordinacionPage() {
 
             const confirmation = await Swal.fire({
               icon: 'question',
-              title: isEditing ? 'Confirmar modificaciÃ³n' : 'Confirmar alta de usuario',
+              title: isEditing ? 'Confirmar modificación' : 'Confirmar alta de usuario',
               text: isEditing
-                ? 'Se actualizarÃ¡n los datos del usuario seleccionado.'
-                : 'Se crearÃ¡ una nueva cuenta con los datos capturados.',
+                ? 'Se actualizarán los datos del usuario seleccionado.'
+                : 'Se creará una nueva cuenta con los datos capturados.',
               showCancelButton: true,
               confirmButtonText: isEditing ? 'Guardar cambios' : 'Crear usuario',
               cancelButtonText: 'Cancelar',
@@ -394,7 +394,7 @@ export function CoordinacionPage() {
                 title: isEditing ? 'Usuario actualizado' : 'Usuario creado',
                 text: isEditing
                   ? 'Los cambios se guardaron correctamente.'
-                  : 'La cuenta se registrÃ³ correctamente.',
+                  : 'La cuenta se registró correctamente.',
                 confirmButtonText: 'Entendido',
               });
             } catch (requestError) {
@@ -423,7 +423,7 @@ export function CoordinacionPage() {
         {filteredUsers.length === 0 ? (
           <EmptyState
             title="No hay usuarios que coincidan"
-            description="Ajusta la bÃºsqueda o crea una nueva cuenta operativa."
+            description="Ajusta la búsqueda o crea una nueva cuenta operativa."
           />
         ) : (
           <div className="table-wrapper">
@@ -433,9 +433,9 @@ export function CoordinacionPage() {
                   <th>Nombre</th>
                   <th>Grado</th>
                   <th>Correo</th>
-                  <th>TelÃ©fono</th>
-                  <th>RegiÃ³n</th>
-                  <th>DelegaciÃ³n</th>
+                  <th>Teléfono</th>
+                  <th>Región</th>
+                  <th>Delegación</th>
                   <th>Rol</th>
                   <th>Acciones</th>
                 </tr>
@@ -493,7 +493,7 @@ export function CoordinacionPage() {
                             const confirmation = await Swal.fire({
                               icon: 'warning',
                               title: 'Eliminar usuario',
-                              text: `Se eliminarÃ¡ la cuenta de ${user.fullName}.`,
+                              text: `Se eliminará la cuenta de ${user.fullName}.`,
                               showCancelButton: true,
                               confirmButtonText: 'Eliminar',
                               cancelButtonText: 'Cancelar',
@@ -548,7 +548,7 @@ export function CoordinacionPage() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">PaginaciÃ³n</p>
+              <p className="eyebrow">Paginación</p>
               <h2>Usuarios</h2>
             </div>
           </div>
@@ -561,7 +561,7 @@ export function CoordinacionPage() {
             >
               Anterior
             </button>
-            <span>PÃ¡gina {currentPage} de {totalPages}</span>
+            <span>Página {currentPage} de {totalPages}</span>
             <button
               className="secondary-button"
               type="button"
@@ -576,4 +576,5 @@ export function CoordinacionPage() {
     </div>
   );
 }
+
 

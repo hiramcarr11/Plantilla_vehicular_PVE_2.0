@@ -16,7 +16,7 @@ const roleLabels = {
   plantilla_vehicular: "Admin Plantilla vehicular",
   director_general: "Director General",
   superadmin: "Superadministrador",
-  coordinacion: "CoordinaciÃ³n",
+  coordinacion: "Coordinación",
 };
 
 const pageTitles: Record<string, { title: string; description: string }> = {
@@ -60,7 +60,7 @@ const pageTitles: Record<string, { title: string; description: string }> = {
       "Administra accesos, roles y cobertura operativa del sistema.",
   },
   [APP_ROUTES.controlActivity]: {
-    title: "BitÃ¡cora",
+    title: "Bitácora",
     description:
       "Consulta movimientos críticos y actividad registrada en el sistema.",
   },
@@ -88,10 +88,10 @@ type SidebarSection = {
 
 const sidebarSections: SidebarSection[] = [
   {
-    title: "OperaciÃ³n vehicular",
+    title: "Operación vehicular",
     items: [
       {
-        label: "Capturar vehÃ­culo",
+        label: "Capturar vehículo",
         route: APP_ROUTES.workspace,
         allowedRoles: ROUTE_ROLES.workspace,
         end: true,
@@ -110,7 +110,7 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    title: "SupervisiÃ³n regional",
+    title: "Supervisión regional",
     items: [
       {
         label: "Delegaciones",
@@ -138,7 +138,7 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    title: "DirecciÃ³n",
+    title: "Dirección",
     items: [
       {
         label: "Dashboard directivo",
@@ -155,7 +155,7 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    title: "AdministraciÃ³n",
+    title: "Administración",
     items: [
       {
         label: "Usuarios",
@@ -164,7 +164,7 @@ const sidebarSections: SidebarSection[] = [
         end: true,
       },
       {
-        label: "BitÃ¡cora",
+        label: "Bitácora",
         route: APP_ROUTES.controlActivity,
         allowedRoles: ROUTE_ROLES.controlActivity,
       },
@@ -275,7 +275,7 @@ export function AppShell() {
         <button
           aria-expanded={isSidebarOpen}
           aria-label={
-            isSidebarOpen ? "Ocultar navegaciÃ³n" : "Mostrar navegaciÃ³n"
+            isSidebarOpen ? "Ocultar navegación" : "Mostrar navegación"
           }
           className="sidebar-toggle"
           type="button"
@@ -337,7 +337,7 @@ export function AppShell() {
               type="button"
               onClick={logoutWithApi}
             >
-              Cerrar sesiÃ³n
+              Cerrar sesión
             </button>
           </div>
         </div>
@@ -385,7 +385,7 @@ export function AppShell() {
             )}
             <div className="live-pill">
               <span className="live-dot" />
-              SesiÃ³n activa
+              Sesión activa
             </div>
           </div>
         </header>
@@ -409,7 +409,7 @@ export function AppShell() {
               type="button"
               onClick={() => setIsMessengerOpen(false)}
             >
-              Ã—
+              ×
             </button>
             <MessengerPanel />
           </div>
@@ -420,4 +420,5 @@ export function AppShell() {
     </div>
   );
 }
+
 

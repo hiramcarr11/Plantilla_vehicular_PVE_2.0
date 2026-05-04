@@ -50,7 +50,7 @@ export function DirectorGeneralMapPage() {
 
         <div className="form-grid director-filter-grid">
           <label className="field">
-            <span>RegiÃ³n</span>
+            <span>Región</span>
             <select
               value={selectedRegionId}
               onChange={(event) => {
@@ -68,7 +68,7 @@ export function DirectorGeneralMapPage() {
           </label>
 
           <label className="field">
-            <span>DelegaciÃ³n</span>
+            <span>Delegación</span>
             <select
               value={selectedDelegationId}
               onChange={(event) => setSelectedDelegationId(event.target.value)}
@@ -97,8 +97,8 @@ export function DirectorGeneralMapPage() {
           items={[
             { label: 'Regiones visibles', value: selectedRegionName },
             { label: 'Delegaciones visibles', value: selectedDelegationName },
-            { label: 'VehÃ­culos totales', value: kpis.totalRecords },
-            { label: 'VehÃ­culos activos', value: kpis.totalActive },
+            { label: 'Vehículos totales', value: kpis.totalRecords },
+            { label: 'Vehículos activos', value: kpis.totalActive },
           ]}
         />
       </section>
@@ -109,4 +109,5 @@ export function DirectorGeneralMapPage() {
     </div>
   );
 }
+
 
