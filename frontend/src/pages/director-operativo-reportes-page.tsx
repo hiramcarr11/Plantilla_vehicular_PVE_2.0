@@ -1,5 +1,4 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
 import { EmptyState } from '../components/empty-state';
 import { LoadingSpinner } from '../components/loading-spinner';
 import { api } from '../lib/api';
@@ -62,55 +61,6 @@ export function DirectorOperativoReportesPage() {
 
   const latestRegionalReport = regionalReports[0];
 
-  const submitRegionalReport = async () => {
-    if (!session) {
-      return;
-    }
-
-    const confirmation = await Swal.fire({
-      icon: 'question',
-      title: 'Validar cierre regional',
-      text: 'Se confirmaran los reportes capturados por las delegaciones de tu region.',
-      input: 'textarea',
-      inputPlaceholder: 'Observaciones opcionales',
-      showCancelButton: true,
-      confirmButtonText: 'Validar cierre regional',
-      cancelButtonText: 'Cancelar',
-    });
-
-    if (!confirmation.isConfirmed) {
-      return;
-    }
-
-    try {
-      const report = await api.submitRegionalRosterReport(
-        typeof confirmation.value === 'string' ? confirmation.value : '',
-        session.accessToken,
-      );
-      const [loadedDelegationReportOverview, loadedRegionalReports] = await Promise.all([
-        api.getRegionalRosterReportOverview(session.accessToken),
-        api.getMyRegionalRosterReports(session.accessToken),
-      ]);
-
-      setDelegationReportOverview(loadedDelegationReportOverview);
-      setRegionalReports([report, ...loadedRegionalReports.filter((row) => row.id !== report.id)]);
-
-      await Swal.fire({
-        icon: 'success',
-        title: report.hasChanges ? 'Validación regional enviada con cambios' : 'Validación regional enviada sin cambios',
-        text: `Delegaciones confirmadas desde la última validación regional: ${report.confirmedDelegationReports}.`,
-        confirmButtonText: 'Entendido',
-      });
-    } catch (requestError) {
-      await Swal.fire({
-        icon: 'error',
-        title: 'No se pudo enviar la validación regional',
-        text: (requestError as Error).message,
-        confirmButtonText: 'Entendido',
-      });
-    }
-  };
-
   if (!session) {
     return null;
   }
@@ -124,22 +74,17 @@ export function DirectorOperativoReportesPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Validación regional</p>
-            <h2>Confirmación mensual regional</h2>
+            <p className="eyebrow">Seguimiento regional</p>
+            <h2>Confirmaciones mensuales por delegación</h2>
           </div>
-          <div className="panel-actions">
-            <div className="panel-meta">
-              Última validación regional: {latestRegionalReport ? new Date(latestRegionalReport.submittedAt).toLocaleDateString() : 'Sin validación'}
-            </div>
-            <button className="primary-button" type="button" onClick={submitRegionalReport}>
-              Validar cierre regional
-            </button>
+          <div className="panel-meta">
+            Último cierre mensual regional: {latestRegionalReport ? new Date(latestRegionalReport.submittedAt).toLocaleDateString() : 'Sin validación'}
           </div>
         </div>
 
         <p className="validation-help-text">
-          Esta vista permite revisar las confirmaciones mensuales de las delegaciones bajo tu
-          región y registrar el cierre regional correspondiente.
+          Esta vista es solo de consulta para monitorear las confirmaciones mensuales de las
+          delegaciones bajo tu región y el estado del cierre mensual regional.
         </p>
 
         <div className="report-status-grid">
@@ -201,8 +146,8 @@ export function DirectorOperativoReportesPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Validaciones regionales enviadas</p>
-            <h2>Historial de cierre regional</h2>
+            <p className="eyebrow">Cierres regionales registrados</p>
+            <h2>Historial de cierre mensual regional</h2>
           </div>
           <div className="panel-meta">{regionalReports.length} validaciones</div>
         </div>
@@ -210,7 +155,7 @@ export function DirectorOperativoReportesPage() {
         {regionalReports.length === 0 ? (
           <EmptyState
             title="Sin validaciones regionales"
-            description="Cuando confirmes la información de las delegaciones, la validación regional quedará registrada aquí."
+            description="Cuando se registren cierres mensuales de la región, aparecerán aquí."
           />
         ) : (
           <div className="table-wrapper">

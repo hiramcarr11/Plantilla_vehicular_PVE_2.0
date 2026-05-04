@@ -263,10 +263,10 @@ export const api = {
       body: JSON.stringify({ notes }),
     }, token);
   },
-  submitRegionalRosterReport(notes: string, token: string) {
+  submitRegionalRosterReport(regionId: string, notes: string, token: string) {
     return request<VehicleRosterReport>('/records/reports/region', {
       method: 'POST',
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify({ regionId, notes }),
     }, token);
   },
   getMyRosterReports(token: string) {

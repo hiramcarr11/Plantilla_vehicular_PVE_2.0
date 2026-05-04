@@ -66,11 +66,11 @@ const pageTitles: Record<string, { title: string; description: string }> = {
   },
   [APP_ROUTES.reportsRegional]: {
     title: "Validación mensual",
-    description: "Consulta el estado de validación mensual por región.",
+    description: "Administra y confirma el cierre mensual por región.",
   },
   [APP_ROUTES.reportsDelegations]: {
-    title: "Validación regional",
-    description: "Confirma el cierre mensual de las delegaciones bajo tu región.",
+    title: "Seguimiento regional",
+    description: "Consulta el estado mensual de las delegaciones bajo tu región.",
   },
 };
 
@@ -124,7 +124,7 @@ const sidebarSections: SidebarSection[] = [
     title: "Validaciones mensuales",
     items: [
       {
-        label: "Validación regional",
+        label: "Seguimiento regional",
         route: APP_ROUTES.reportsDelegations,
         allowedRoles: ROUTE_ROLES.reportsDelegations,
         end: true,
@@ -420,5 +420,7 @@ export function AppShell() {
     </div>
   );
 }
+
+
 
 
