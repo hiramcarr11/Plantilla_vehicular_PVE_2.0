@@ -125,6 +125,69 @@ export function getRecordActivitySummary(record: VehicleRecord) {
 }
 
 export async function openRecordDetails(record: VehicleRecord) {
+  const vehicleSummarySection = `
+    <div class="activity-item vehicle-detail-summary">
+      <div class="activity-item-head">
+        <strong>Datos del vehículo</strong>
+        <span>${escapeHtml(record.plates || "-")}</span>
+      </div>
+      <div class="vehicle-detail-grid">
+        <div class="vehicle-detail-field">
+          <span>Placas</span>
+          <strong>${escapeHtml(record.plates || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Clase</span>
+          <strong>${escapeHtml(record.vehicleClass || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Uso</span>
+          <strong>${escapeHtml(record.useType || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Marca</span>
+          <strong>${escapeHtml(record.brand || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Tipo</span>
+          <strong>${escapeHtml(record.type || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Modelo</span>
+          <strong>${escapeHtml(record.model || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Número de motor</span>
+          <strong>${escapeHtml(record.engineNumber || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Número de serie</span>
+          <strong>${escapeHtml(record.serialNumber || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Resguardante</span>
+          <strong>${escapeHtml(record.custodian || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Estado físico</span>
+          <strong>${escapeHtml(record.physicalStatus || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Estatus</span>
+          <strong>${escapeHtml(record.status || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Clasificación del bien</span>
+          <strong>${escapeHtml(record.assetClassification || "-")}</strong>
+        </div>
+        <div class="vehicle-detail-field">
+          <span>Delegación actual</span>
+          <strong>${escapeHtml(record.delegation.name || "-")}</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
   const transferHistory =
     record.transferHistory.length > 0
       ? record.transferHistory
@@ -158,6 +221,8 @@ export async function openRecordDetails(record: VehicleRecord) {
     confirmButtonText: "Cerrar",
     html: `
       <div class="activity-list">
+        ${vehicleSummarySection}
+
         <div class="activity-item">
           <div class="activity-item-head">
             <strong>Estado actual</strong>
