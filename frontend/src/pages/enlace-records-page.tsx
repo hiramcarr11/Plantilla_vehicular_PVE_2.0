@@ -74,10 +74,10 @@ export function EnlaceRecordsPage() {
               helper: latestRecord ? latestRecord.plates : 'Sin registros',
             },
             {
-              label: 'Ultimo reporte',
+              label: 'Última validación',
               value: latestRosterReport
                 ? new Date(latestRosterReport.submittedAt).toLocaleDateString()
-                : 'Sin reporte',
+                : 'Sin validación',
               helper: latestRosterReport
                 ? latestRosterReport.hasChanges
                   ? 'Con cambios'
@@ -217,12 +217,12 @@ export function EnlaceRecordsPage() {
             <p className="eyebrow">Validaciones enviadas</p>
             <h2>Historial de confirmaciones mensuales</h2>
           </div>
-          <div className="panel-meta">{rosterReports.length} reportes</div>
+          <div className="panel-meta">{rosterReports.length} validaciones</div>
         </div>
 
         {rosterReports.length === 0 ? (
           <EmptyState
-            title="Sin reportes enviados"
+            title="Sin validaciones enviadas"
             description="El envio de reporte confirma el estado actual de la plantilla."
           />
         ) : (
@@ -230,8 +230,8 @@ export function EnlaceRecordsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Fecha de envio</th>
-                  <th>Resultado</th>
+                  <th>Fecha de validación</th>
+                  <th>Resultado de validación</th>
                   <th>Movimientos detectados</th>
                   <th>Observaciones</th>
                 </tr>

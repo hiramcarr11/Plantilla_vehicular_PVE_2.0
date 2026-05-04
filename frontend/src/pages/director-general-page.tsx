@@ -152,7 +152,7 @@ export function DirectorGeneralPage() {
       <section className="panel">
         <StatsGrid
           items={[
-            { label: 'Regiones sin reporte', value: kpis.notReported },
+            { label: 'Regiones sin validación mensual', value: kpis.notReported },
             { label: 'Regiones con reportes pendientes', value: kpis.pendingChanges },
             { label: 'Regiones sin cambios', value: kpis.reportedWithoutChanges },
             { label: 'Regiones con cambios', value: kpis.reportedWithChanges },

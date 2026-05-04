@@ -48,14 +48,12 @@ function getPendingDelegationText(row: RegionRosterReportOverviewRow) {
     return 'Todas confirmadas';
   }
 
-  return `${row.pendingDelegationReports} pendiente${
-    row.pendingDelegationReports === 1 ? '' : 's'
-  }`;
+  return `${row.pendingDelegationReports} sin confirmar`;
 }
 
 function getLastRegionalReportText(row: RegionRosterReportOverviewRow) {
   if (!row.lastReport) {
-    return 'Sin reporte';
+    return 'Sin validación regional';
   }
 
   return new Date(row.lastReport.submittedAt).toLocaleString();
@@ -124,7 +122,7 @@ export function PlantillaReportesPage() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Cargando reportes regionales..." />;
+    return <LoadingSpinner message="Cargando validación mensual..." />;
   }
 
   return (
@@ -141,22 +139,22 @@ export function PlantillaReportesPage() {
 
         <div className="report-status-grid">
           <div className="report-status-card is-neutral">
-            <span>Sin reporte</span>
+            <span>Sin validación mensual</span>
             <strong>{reportStatusTotals.notReported}</strong>
           </div>
 
           <div className="report-status-card is-warning">
-            <span>Pendientes por cambios</span>
+            <span>Cambios sin validar</span>
             <strong>{reportStatusTotals.pendingChanges}</strong>
           </div>
 
           <div className="report-status-card is-success">
-            <span>Reportadas sin cambios</span>
+            <span>Validadas sin cambios</span>
             <strong>{reportStatusTotals.reportedWithoutChanges}</strong>
           </div>
 
           <div className="report-status-card is-info">
-            <span>Reportadas con cambios</span>
+            <span>Validadas con cambios</span>
             <strong>{reportStatusTotals.reportedWithChanges}</strong>
           </div>
         </div>
@@ -189,8 +187,8 @@ export function PlantillaReportesPage() {
 
         {reportOverview.length === 0 ? (
           <EmptyState
-            title="No hay reportes para mostrar"
-            description="Ajusta los filtros o espera a que las regiones comiencen a enviar reportes."
+            title="No hay validaciones para mostrar"
+            description="Ajusta los filtros o espera a que las regiones comiencen a confirmar su cierre mensual."
           />
         ) : (
           <div className="table-wrapper report-table-wrapper">

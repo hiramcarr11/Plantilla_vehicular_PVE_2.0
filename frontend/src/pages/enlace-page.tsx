@@ -38,10 +38,10 @@ export function EnlacePage() {
               helper: latestRecord ? latestRecord.plates : 'Sin registros',
             },
             {
-              label: 'Ultimo reporte',
+              label: 'Última validación',
               value: latestRosterReport
                 ? new Date(latestRosterReport.submittedAt).toLocaleDateString()
-                : 'Sin reporte',
+                : 'Sin validación',
               helper: latestRosterReport
                 ? latestRosterReport.hasChanges
                   ? 'Con cambios'

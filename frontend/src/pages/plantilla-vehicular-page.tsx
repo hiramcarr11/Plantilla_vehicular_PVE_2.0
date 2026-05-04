@@ -125,7 +125,7 @@ export function PlantillaVehicularPage() {
   }
 
   if (!fieldCatalogs) {
-    return <LoadingSpinner message="Cargando vista administrativa..." />;
+    return <LoadingSpinner message="Cargando vista general vehicular..." />;
   }
 
   return (

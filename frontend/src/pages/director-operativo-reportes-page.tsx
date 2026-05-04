@@ -74,7 +74,7 @@ export function DirectorOperativoReportesPage() {
       input: 'textarea',
       inputPlaceholder: 'Observaciones opcionales',
       showCancelButton: true,
-      confirmButtonText: 'Enviar reporte',
+      confirmButtonText: 'Validar cierre regional',
       cancelButtonText: 'Cancelar',
     });
 
@@ -97,14 +97,14 @@ export function DirectorOperativoReportesPage() {
 
       await Swal.fire({
         icon: 'success',
-        title: report.hasChanges ? 'Reporte regional enviado con cambios' : 'Reporte regional enviado sin cambios',
-        text: `Delegaciones confirmadas desde el ultimo reporte regional: ${report.confirmedDelegationReports}.`,
+        title: report.hasChanges ? 'Validación regional enviada con cambios' : 'Validación regional enviada sin cambios',
+        text: `Delegaciones confirmadas desde la última validación regional: ${report.confirmedDelegationReports}.`,
         confirmButtonText: 'Entendido',
       });
     } catch (requestError) {
       await Swal.fire({
         icon: 'error',
-        title: 'No se pudo enviar el reporte regional',
+        title: 'No se pudo enviar la validación regional',
         text: (requestError as Error).message,
         confirmButtonText: 'Entendido',
       });
@@ -129,7 +129,7 @@ export function DirectorOperativoReportesPage() {
           </div>
           <div className="panel-actions">
             <div className="panel-meta">
-              Ultimo reporte regional: {latestRegionalReport ? new Date(latestRegionalReport.submittedAt).toLocaleDateString() : 'Sin reporte'}
+              Última validación regional: {latestRegionalReport ? new Date(latestRegionalReport.submittedAt).toLocaleDateString() : 'Sin validación'}
             </div>
             <button className="primary-button" type="button" onClick={submitRegionalReport}>
               Validar cierre regional
@@ -182,7 +182,7 @@ export function DirectorOperativoReportesPage() {
                     <td>
                       {row.lastReport
                         ? new Date(row.lastReport.submittedAt).toLocaleString()
-                        : 'Sin reporte'}
+                        : 'Sin validación'}
                     </td>
                     <td>{formatUserName(row.lastReport?.submittedBy)}</td>
                   </tr>
@@ -199,13 +199,13 @@ export function DirectorOperativoReportesPage() {
             <p className="eyebrow">Validaciones regionales enviadas</p>
             <h2>Historial de cierre regional</h2>
           </div>
-          <div className="panel-meta">{regionalReports.length} reportes</div>
+          <div className="panel-meta">{regionalReports.length} validaciones</div>
         </div>
 
         {regionalReports.length === 0 ? (
           <EmptyState
-            title="Sin reportes regionales"
-            description="Cuando confirmes la informacion de las delegaciones, el reporte regional quedara registrado aqui."
+            title="Sin validaciones regionales"
+            description="Cuando confirmes la información de las delegaciones, la validación regional quedará registrada aquí."
           />
         ) : (
           <div className="table-wrapper">
