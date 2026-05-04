@@ -5,9 +5,9 @@ import { resolveConfiguredNetworkUrl } from "../../lib/resolve-network-url";
 import type {
   Region,
   VehicleEditEvent,
+  VehiclePhoto,
   VehicleRecord,
   VehicleTransferEvent,
-  VehiclePhoto,
 } from "../../types";
 
 function resolveApiBaseUrl() {
@@ -15,14 +15,17 @@ function resolveApiBaseUrl() {
     import.meta.env.VITE_API_URL,
     "/api",
   );
+
   if (configuredUrl) {
     return configuredUrl.replace(/\/api$/, "");
   }
+
   if (typeof window === "undefined") {
-    return "http://localhost:3000";
+    return "http://localhost:3101";
   }
+
   const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:3000`;
+  return `${protocol}//${hostname}:3101`;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -40,7 +43,9 @@ function renderTransferLine(transfer: VehicleTransferEvent) {
   return `
     <div class="activity-item">
       <div class="activity-item-head">
-        <strong>${escapeHtml(transfer.fromDelegation.name)} -> ${escapeHtml(transfer.toDelegation.name)}</strong>
+        <strong>${escapeHtml(transfer.fromDelegation.name)} -> ${escapeHtml(
+          transfer.toDelegation.name,
+        )}</strong>
         <span>${new Date(transfer.movedAt).toLocaleString()}</span>
       </div>
       <p>Hecho por ${escapeHtml(formatUserName(transfer.movedBy))}.</p>
@@ -56,7 +61,10 @@ function renderEditLine(edit: VehicleEditEvent) {
           .map((fieldName) => {
             const beforeValue = escapeHtml(edit.before[fieldName] ?? "-");
             const afterValue = escapeHtml(edit.after[fieldName] ?? "-");
-            return `<div><strong>${escapeHtml(fieldName)}</strong>: ${beforeValue} -> ${afterValue}</div>`;
+
+            return `<div><strong>${escapeHtml(
+              fieldName,
+            )}</strong>: ${beforeValue} -> ${afterValue}</div>`;
           })
           .join("")
       : "<div>Sin detalle de cambios.</div>";
@@ -90,7 +98,9 @@ function renderPhotoThumbnail(photo: VehiclePhoto) {
   const photoUrl = escapeHtml(resolvePhotoUrl(photo));
 
   return `
-    <div class="photo-thumb" data-photo-url="${photoUrl}" data-photo-name="${escapeHtml(photo.fileName)}">
+    <div class="photo-thumb" data-photo-url="${photoUrl}" data-photo-name="${escapeHtml(
+      photo.fileName,
+    )}">
       <img src="${photoUrl}" alt="${escapeHtml(photo.fileName)}" />
     </div>
   `;
@@ -121,6 +131,7 @@ export async function openRecordDetails(record: VehicleRecord) {
           .map((transfer) => renderTransferLine(transfer))
           .join("")
       : '<div class="activity-item"><span>Sin traslados registrados.</span></div>';
+
   const editHistory =
     record.editHistory.length > 0
       ? record.editHistory.map((edit) => renderEditLine(edit)).join("")
@@ -142,7 +153,7 @@ export async function openRecordDetails(record: VehicleRecord) {
       : '<div class="activity-item"><span>Sin fotos cargadas.</span></div>';
 
   await Swal.fire({
-    title: `Historial de ${record.plates}`,
+    title: `Historial de ${escapeHtml(record.plates)}`,
     width: 900,
     confirmButtonText: "Cerrar",
     html: `
@@ -150,32 +161,67 @@ export async function openRecordDetails(record: VehicleRecord) {
         <div class="activity-item">
           <div class="activity-item-head">
             <strong>Estado actual</strong>
-            <span>${escapeHtml(record.recordState === "CURRENT" ? "Vigente en la delegacion" : "Trasladado")}</span>
+            <span>${escapeHtml(
+              record.recordState === "CURRENT"
+                ? "Vigente en la delegacion"
+                : "Trasladado",
+            )}</span>
           </div>
           <p>Delegacion visible: ${escapeHtml(record.viewDelegation.name)}</p>
           <span>Delegacion actual: ${escapeHtml(record.delegation.name)}</span>
         </div>
+
         ${photosSection}
-        ${transferHistory}
-        ${editHistory}
+
+        <div class="activity-item">
+          <div class="activity-item-head">
+            <strong>Historial de traslados</strong>
+          </div>
+          <div class="activity-list">
+            ${transferHistory}
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <div class="activity-item-head">
+            <strong>Historial de ediciones</strong>
+          </div>
+          <div class="activity-list">
+            ${editHistory}
+          </div>
+        </div>
       </div>
     `,
-  });
+    didOpen: () => {
+      const popup = Swal.getPopup();
 
-  document.querySelectorAll(".photo-thumb").forEach((thumb) => {
-    thumb.addEventListener("click", async () => {
-      const url = (thumb as HTMLElement).getAttribute("data-photo-url");
-      const name = (thumb as HTMLElement).getAttribute("data-photo-name");
-      if (url) {
-        await Swal.fire({
-          imageUrl: url,
-          imageAlt: name ?? "Foto del vehiculo",
-          showConfirmButton: false,
-          showCloseButton: true,
-          width: "90%",
-        });
+      if (!popup) {
+        return;
       }
-    });
+
+      popup.querySelectorAll(".photo-thumb").forEach((thumb) => {
+        thumb.addEventListener("click", () => {
+          const photoUrl = (thumb as HTMLElement).getAttribute(
+            "data-photo-url",
+          );
+          const photoName = (thumb as HTMLElement).getAttribute(
+            "data-photo-name",
+          );
+
+          if (!photoUrl) {
+            return;
+          }
+
+          void Swal.fire({
+            imageUrl: photoUrl,
+            imageAlt: photoName ?? "Foto del vehiculo",
+            showConfirmButton: false,
+            showCloseButton: true,
+            width: "90%",
+          });
+        });
+      });
+    },
   });
 }
 
@@ -242,5 +288,6 @@ export async function openTransferDialog(params: {
   );
 
   await params.onTransferred();
+
   return true;
 }
