@@ -26,7 +26,6 @@ export const ROUTE_ROLES = {
     "plantilla_vehicular",
     "superadmin",
     "coordinacion",
-    "director_operativo",
   ] as Role[],
   reportsDelegations: ["director_operativo"] as Role[],
   reportsRegional: [
@@ -40,14 +39,12 @@ export const ROUTE_ROLES = {
     "plantilla_vehicular",
     "superadmin",
     "coordinacion",
-    "director_operativo",
   ] as Role[],
   insightsMap: [
     "director_general",
     "plantilla_vehicular",
     "superadmin",
     "coordinacion",
-    "director_operativo",
   ] as Role[],
   control: ["superadmin", "coordinacion"] as Role[],
   controlActivity: ["superadmin", "coordinacion"] as Role[],

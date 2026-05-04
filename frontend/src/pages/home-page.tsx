@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageIntro } from '../components/page-intro';
 import { StatsGrid } from '../components/stats-grid';
@@ -9,34 +9,33 @@ import { useAuth } from '../modules/auth/auth-context';
 import type { VehicleRecord } from '../types';
 
 const roleDescriptions = {
-  enlace: 'Registra información de tu delegación y consulta tus propias capturas.',
-  director_operativo: 'Monitorea en tiempo real las delegaciones asignadas a tu región.',
-  plantilla_vehicular: 'Consulta la operación completa organizada por región y delegación.',
-  director_general: 'Consulta KPIs globales y el comportamiento operativo por región y delegación.',
-  superadmin: 'Administra usuarios y consulta la bitácora en tiempo real.',
-  coordinacion: 'Administra usuarios y consulta la bitácora en tiempo real.',
+  enlace: 'Registra informaciÃ³n de tu delegaciÃ³n y consulta tus propias capturas.',
+  director_operativo: 'Monitorea en tiempo real las delegaciones asignadas a tu regiÃ³n.',
+  plantilla_vehicular: 'Consulta la operaciÃ³n completa organizada por regiÃ³n y delegaciÃ³n.',
+  director_general: 'Consulta KPIs globales y el comportamiento operativo por regiÃ³n y delegaciÃ³n.',
+  superadmin: 'Administra usuarios y consulta la bitÃ¡cora en tiempo real.',
+  coordinacion: 'Administra usuarios y consulta la bitÃ¡cora en tiempo real.',
 };
 
 const quickActions = {
   director_operativo: [
     { label: 'Ver delegaciones', to: APP_ROUTES.monitor, helper: 'Seguimiento en tiempo real' },
-    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Supervisión completa' },
-    { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
+    { label: 'Validación regional', to: APP_ROUTES.reportsDelegations, helper: 'Cierre mensual de delegaciones' },
   ],
   plantilla_vehicular: [
-    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Supervisión completa' },
+    { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'SupervisiÃ³n completa' },
     { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
   ],
   director_general: [
     { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
   ],
   superadmin: [
-    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisión de actividad' },
+    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisiÃ³n de actividad' },
     { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Panorama operativo' },
     { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
   ],
   coordinacion: [
-    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisión de actividad' },
+    { label: 'Administrar usuarios', to: APP_ROUTES.control, helper: 'Altas y supervisiÃ³n de actividad' },
     { label: 'Abrir vista general', to: APP_ROUTES.overview, helper: 'Panorama operativo' },
     { label: 'Abrir dashboard director', to: APP_ROUTES.insights, helper: 'KPIs y desglose global' },
   ],
@@ -94,8 +93,8 @@ export function HomePage() {
           items={[
             { label: 'Rol actual', value: session.user.role },
             { label: 'Grado', value: session.user.grade },
-            { label: 'Región', value: session.user.region?.name ?? '-' },
-            { label: 'Delegación', value: session.user.delegation?.name ?? '-' },
+            { label: 'RegiÃ³n', value: session.user.region?.name ?? '-' },
+            { label: 'DelegaciÃ³n', value: session.user.delegation?.name ?? '-' },
           ]}
         />
       </section>
@@ -113,21 +112,21 @@ export function HomePage() {
             <p>Capturas realizadas durante el mes actual.</p>
           </article>
           <article className="quick-card">
-            <span className="quick-card-label">Última placa capturada</span>
+            <span className="quick-card-label">Ãšltima placa capturada</span>
             <strong>{latestRecord ? latestRecord.plates : '-'}</strong>
-            <p>Última placa capturada en tu historial.</p>
+            <p>Ãšltima placa capturada en tu historial.</p>
           </article>
           <article className="quick-card">
             <span className="quick-card-label">Estatus dominante</span>
             <strong>{topStatus ? topStatus[0] : '-'}</strong>
-            <p>{topStatus ? `${topStatus[1]} capturas con ese estatus.` : 'Sin capturas aún.'}</p>
+            <p>{topStatus ? `${topStatus[1]} capturas con ese estatus.` : 'Sin capturas aÃºn.'}</p>
           </article>
         </section>
       ) : (
         <section className="quick-grid">
           {actions.map((action) => (
             <Link className="quick-card" key={action.to} to={action.to}>
-              <span className="quick-card-label">Acceso rápido</span>
+              <span className="quick-card-label">Acceso rÃ¡pido</span>
               <strong>{action.label}</strong>
               <p>{action.helper}</p>
             </Link>
@@ -137,3 +136,4 @@ export function HomePage() {
     </div>
   );
 }
+
