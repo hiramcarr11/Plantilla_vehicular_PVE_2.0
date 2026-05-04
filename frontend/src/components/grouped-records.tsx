@@ -67,7 +67,6 @@ export function GroupedRecords({
   title,
   description,
   headerFilters,
-  vehicleClassAfterDate = false,
   renderRecordActions,
   onRecordSelect,
 }: GroupedRecordsProps) {
@@ -314,17 +313,9 @@ export function GroupedRecords({
                       <thead>
                         <tr>
                           <th>Fecha</th>
-                          {vehicleClassAfterDate && <th>Clase</th>}
-                          <th>Placas</th>
-                          <th>Marca</th>
-                          <th>Tipo</th>
-                          <th>Uso</th>
-                          {!vehicleClassAfterDate && <th>Clase</th>}
-                          <th>Estado fisico</th>
-                          <th>Estatus</th>
-                          <th>Clasificacion</th>
-                          <th>Modelo</th>
-                          <th>Resguardante</th>
+                          <th>Identificación</th>
+                          <th>Asignación</th>
+                          <th>Estado</th>
                           <th>Actividad</th>
                           {(onRecordSelect || renderRecordActions) && <th>Acciones</th>}
                         </tr>
@@ -333,17 +324,29 @@ export function GroupedRecords({
                         {delegation.records.map((record) => (
                           <tr key={`${delegation.delegationId}-${record.id}`}>
                             <td>{new Date(record.createdAt).toLocaleString()}</td>
-                            {vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
-                            <td>{record.plates}</td>
-                            <td>{record.brand}</td>
-                            <td>{record.type}</td>
-                            <td>{record.useType}</td>
-                            {!vehicleClassAfterDate && <td>{record.vehicleClass}</td>}
-                            <td>{record.physicalStatus}</td>
-                            <td>{record.status}</td>
-                            <td>{record.assetClassification}</td>
-                            <td>{record.model}</td>
-                            <td>{record.custodian}</td>
+                            <td>
+                              <div className="vehicle-main-cell">
+                                <strong>{record.plates}</strong>
+                                <span>{record.vehicleClass} · {record.useType}</span>
+                                <small>{record.brand} {record.type} · Modelo {record.model}</small>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="vehicle-main-cell">
+                                <strong>{record.custodian}</strong>
+                                <span>{record.delegation.name}</span>
+                                {record.recordState === 'TRANSFERRED_OUT' && (
+                                  <small>Registro trasladado</small>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="vehicle-main-cell">
+                                <span className="record-chip is-info">{record.status}</span>
+                                <small>{record.physicalStatus}</small>
+                                <small>{record.assetClassification}</small>
+                              </div>
+                            </td>
                             <td>
                               <div className="record-activity-cell">
                                 {record.recordState === 'TRANSFERRED_OUT' && (

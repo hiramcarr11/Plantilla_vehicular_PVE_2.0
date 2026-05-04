@@ -905,6 +905,24 @@ tbody tr:hover {
   gap: 4px;
 }
 
+.vehicle-main-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.vehicle-main-cell strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.vehicle-main-cell span,
+.vehicle-main-cell small {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .record-chip {
   display: inline-flex;
   align-items: center;
