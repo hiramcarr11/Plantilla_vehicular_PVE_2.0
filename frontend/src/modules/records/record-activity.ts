@@ -103,6 +103,7 @@ function resolvePhotoUrl(photo: VehiclePhoto) {
     }
 
     if (publicUrl.startsWith("/uploads/")) {
+      // Legacy/local files may no longer exist after stateless redeploys.
       return joinUrl(API_BASE_URL, publicUrl);
     }
 
@@ -133,12 +134,12 @@ function resolvePhotoUrl(photo: VehiclePhoto) {
 
 function renderPhotoThumbnail(photo: VehiclePhoto) {
   const photoUrl = escapeHtml(resolvePhotoUrl(photo));
+  const photoName = escapeHtml(photo.fileName);
 
   return `
-    <div class="photo-thumb" data-photo-url="${photoUrl}" data-photo-name="${escapeHtml(
-      photo.fileName,
-    )}">
-      <img src="${photoUrl}" alt="${escapeHtml(photo.fileName)}" />
+    <div class="photo-thumb" data-photo-url="${photoUrl}" data-photo-name="${photoName}">
+      <img src="${photoUrl}" alt="${photoName}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+      <div class="photo-fallback" style="display:none;">Imagen no disponible</div>
     </div>
   `;
 }

@@ -1139,6 +1139,17 @@ tbody tr:hover {
   object-fit: cover;
 }
 
+.photo-fallback {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
 .photo-thumb::after {
   content: "Ver";
   position: absolute;

@@ -18,7 +18,7 @@ export function createStorageConfig(
   const driver = configService.get<string>("STORAGE_DRIVER", "local");
 
   if (driver !== "local" && driver !== "r2") {
-    throw new Error('STORAGE_DRIVER debe ser "local');
+    throw new Error('STORAGE_DRIVER debe ser "local" o "r2".');
   }
 
   return {
