@@ -13,10 +13,10 @@ function resolveApiBaseUrl() {
     return configuredUrl.replace(/\/api$/, "");
   }
   if (typeof window === "undefined") {
-    return "http://localhost:3000";
+    return "http://localhost:3101";
   }
   const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:3000`;
+  return `${protocol}//${hostname}:3101`;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
