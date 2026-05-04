@@ -127,12 +127,9 @@ export function EnlaceRecordsPage() {
               <thead>
                 <tr>
                   <th>Fecha</th>
-                  <th>Placas</th>
-                  <th>Marca</th>
-                  <th>Tipo</th>
-                  <th>Delegacion actual</th>
-                  <th>Resguardante</th>
-                  <th>Estatus</th>
+                  <th>Identificación</th>
+                  <th>Asignación</th>
+                  <th>Estado</th>
                   <th>Actividad</th>
                   <th>Acciones</th>
                 </tr>
@@ -141,12 +138,29 @@ export function EnlaceRecordsPage() {
                 {records.map((record) => (
                   <tr key={`${record.viewDelegation.id}-${record.id}`}>
                     <td>{new Date(record.createdAt).toLocaleString()}</td>
-                    <td>{record.plates}</td>
-                    <td>{record.brand}</td>
-                    <td>{record.type}</td>
-                    <td>{record.delegation.name}</td>
-                    <td>{record.custodian}</td>
-                    <td>{record.status}</td>
+                    <td>
+                      <div className="vehicle-main-cell">
+                        <strong>{record.plates}</strong>
+                        <span>{record.vehicleClass} · {record.useType}</span>
+                        <small>{record.brand} {record.type} · Modelo {record.model}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="vehicle-main-cell">
+                        <strong>{record.custodian}</strong>
+                        <span>{record.delegation.name}</span>
+                        {record.recordState === 'TRANSFERRED_OUT' && (
+                          <small>Registro trasladado</small>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="vehicle-main-cell">
+                        <span className="record-chip is-info">{record.status}</span>
+                        <small>{record.physicalStatus}</small>
+                        <small>{record.assetClassification}</small>
+                      </div>
+                    </td>
                     <td>
                       <div className="record-activity-cell">
                         {record.recordState === 'TRANSFERRED_OUT' && (
