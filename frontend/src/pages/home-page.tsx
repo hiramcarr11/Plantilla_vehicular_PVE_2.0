@@ -17,7 +17,7 @@ type QuickAction = {
 const roleDescriptions: Record<Role, string> = {
   enlace: 'Captura y confirma la plantilla vehicular vigente de tu delegación.',
   director_operativo:
-    'Supervisa las delegaciones de tu región y valida el cierre mensual regional.',
+    'Supervisa las delegaciones de tu región y consulta el cierre mensual regional.',
   plantilla_vehicular:
     'Consulta la operación vehicular general y el seguimiento mensual de regiones.',
   director_general:
@@ -48,9 +48,9 @@ const quickActions: Record<Role, QuickAction[]> = {
       helper: 'Supervisión vehicular de tu región',
     },
     {
-      label: 'Validación regional',
+      label: 'Seguimiento regional',
       to: APP_ROUTES.reportsDelegations,
-      helper: 'Confirmar cierre mensual regional',
+      helper: 'Consultar estado mensual regional',
     },
   ],
   plantilla_vehicular: [
@@ -262,3 +262,5 @@ export function HomePage() {
     </div>
   );
 }
+
+

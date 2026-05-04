@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
+import Swal from 'sweetalert2';
 import { EmptyState } from '../components/empty-state';
 import { LoadingSpinner } from '../components/loading-spinner';
 import { api } from '../lib/api';
@@ -65,6 +66,10 @@ export function PlantillaReportesPage() {
   const [reportOverview, setReportOverview] = useState<RegionRosterReportOverviewRow[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const canSubmitRegionalClosure =
+    session?.user.role === 'plantilla_vehicular' ||
+    session?.user.role === 'superadmin' ||
+    session?.user.role === 'coordinacion';
 
   useEffect(() => {
     if (!session) {
@@ -116,6 +121,82 @@ export function PlantillaReportesPage() {
     }),
     [reportOverview],
   );
+  const latestRegionalReport = useMemo(() => {
+    const rows = selectedRegionId
+      ? reportOverview.filter((row) => row.regionId === selectedRegionId)
+      : reportOverview;
+
+    return rows
+      .map((row) => row.lastReport)
+      .filter((report): report is NonNullable<RegionRosterReportOverviewRow['lastReport']> => Boolean(report))
+      .sort((left, right) => +new Date(right.submittedAt) - +new Date(left.submittedAt))[0] ?? null;
+  }, [reportOverview, selectedRegionId]);
+
+
+
+  const submitRegionalReport = async () => {
+    if (!session) {
+      return;
+    }
+
+    if (!selectedRegionId) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Selecciona una región',
+        text: 'Debes seleccionar una región para confirmar su cierre mensual.',
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
+
+    const selectedRegionName =
+      catalogRegions.find((region) => region.id === selectedRegionId)?.name ??
+      'la región seleccionada';
+
+    const confirmation = await Swal.fire({
+      icon: 'question',
+      title: 'Confirmar cierre mensual por región',
+      text: `Se registrará el cierre mensual de ${selectedRegionName}.`,
+      input: 'textarea',
+      inputPlaceholder: 'Observaciones opcionales',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar cierre mensual',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!confirmation.isConfirmed) {
+      return;
+    }
+
+    try {
+      await api.submitRegionalRosterReport(
+        selectedRegionId,
+        typeof confirmation.value === 'string' ? confirmation.value : '',
+        session.accessToken,
+      );
+
+      const loadedReportOverview = await api.getRosterReportOverview(
+        session.accessToken,
+        selectedRegionId,
+      );
+
+      setReportOverview(loadedReportOverview);
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Cierre mensual registrado',
+        text: 'La validación mensual de la región se registró correctamente.',
+        confirmButtonText: 'Entendido',
+      });
+    } catch (requestError) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'No se pudo registrar el cierre mensual',
+        text: (requestError as Error).message,
+        confirmButtonText: 'Entendido',
+      });
+    }
+  };
 
   if (!session) {
     return null;
@@ -134,7 +215,16 @@ export function PlantillaReportesPage() {
             <h2>Seguimiento mensual por región</h2>
           </div>
 
-          <div className="panel-meta">{reportOverview.length} regiones</div>
+          <div className="panel-actions">
+            <div className="panel-meta">
+              Último cierre mensual: {latestRegionalReport ? new Date(latestRegionalReport.submittedAt).toLocaleDateString() : 'Sin cierre'}
+            </div>
+            {canSubmitRegionalClosure && (
+              <button className="primary-button" type="button" onClick={submitRegionalReport}>
+                Confirmar cierre mensual
+              </button>
+            )}
+          </div>
         </div>
 
         <p className="validation-help-text">
@@ -243,4 +333,5 @@ export function PlantillaReportesPage() {
     </div>
   );
 }
+
 

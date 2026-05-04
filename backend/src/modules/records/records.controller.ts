@@ -114,7 +114,11 @@ export class RecordsController {
   }
 
   @Post("reports/region")
-  @RequireRoles(Role.DirectorOperativo)
+  @RequireRoles(
+    Role.PlantillaVehicular,
+    Role.SuperAdmin,
+    Role.Coordinacion,
+  )
   submitRegionalRosterReport(
     @Body() dto: SubmitRosterReportDto,
     @CurrentUser() user: AuthUser,

@@ -83,7 +83,8 @@ function calculateNetActive(
     totalUnits -
       (statusBreakdown.INCATIVO ?? 0) -
       (statusBreakdown.SINIESTRADO ?? 0) -
-      (statusBreakdown["PARA BAJA"] ?? 0),
+      (statusBreakdown["PARA BAJA"] ?? 0) -
+      (statusBreakdown["OTRO"] ?? 0),
     0,
   );
 }
@@ -485,10 +486,10 @@ export class RecordsService {
     dto: SubmitRosterReportDto,
     authUser: AuthUser,
   ) {
-    const liveAuthUser = await this.resolveLiveAuthUser(authUser);
-
-    if (!liveAuthUser.regionId) {
-      throw new ForbiddenException("El usuario no tiene una region asignada.");
+    if (!dto.regionId) {
+      throw new BadRequestException(
+        "Se requiere regionId para confirmar el cierre mensual por región.",
+      );
     }
 
     const submittedBy = await this.userRepository.findOne({
@@ -498,7 +499,7 @@ export class RecordsService {
     const region = await this.delegationRepository.manager.findOne(
       RegionEntity,
       {
-        where: { id: liveAuthUser.regionId },
+        where: { id: dto.regionId },
       },
     );
 
@@ -510,10 +511,11 @@ export class RecordsService {
       region.id,
       "REGION",
     );
-    const confirmedDelegationReports = await this.countDelegationReportsSince(
+    const delegationProgress = await this.getRegionalDelegationProgress(
       region.id,
       lastReport?.submittedAt ?? null,
     );
+    const confirmedDelegationReports = delegationProgress.confirmedDelegationReports;
     const report = await this.rosterReportRepository.save(
       this.rosterReportRepository.create({
         reportScope: "REGION",
@@ -539,6 +541,7 @@ export class RecordsService {
       metadata: {
         regionId: region.id,
         confirmedDelegationReports,
+        pendingDelegationReports: delegationProgress.pendingDelegationReports,
         reportScope: "REGION",
       },
     });
@@ -1126,18 +1129,40 @@ export class RecordsService {
     return query.getCount();
   }
 
-  private countDelegationReportsSince(regionId: string, since: Date | null) {
+  private async getRegionalDelegationProgress(regionId: string, since: Date | null) {
+    const totalDelegations = await this.delegationRepository.count({
+      where: {
+        region: {
+          id: regionId,
+        },
+      },
+    });
+
     const query = this.rosterReportRepository
       .createQueryBuilder("report")
-      .leftJoin("report.region", "region")
+      .leftJoin("report.delegation", "delegation")
+      .leftJoin("delegation.region", "region")
       .where("report.reportScope = :reportScope", { reportScope: "DELEGATION" })
-      .andWhere("region.id = :regionId", { regionId });
+      .andWhere("region.id = :regionId", { regionId })
+      .select("COUNT(DISTINCT delegation.id)", "confirmedDelegationReports");
 
     if (since) {
       query.andWhere("report.submittedAt > :since", { since });
     }
 
-    return query.getCount();
+    const rawResult = await query.getRawOne<{ confirmedDelegationReports: string }>();
+    const confirmedDelegationReports = Number(
+      rawResult?.confirmedDelegationReports ?? "0",
+    );
+
+    return {
+      totalDelegations,
+      confirmedDelegationReports,
+      pendingDelegationReports: Math.max(
+        totalDelegations - confirmedDelegationReports,
+        0,
+      ),
+    };
   }
 
   private async resolveLiveAuthUser(authUser: AuthUser): Promise<LiveAuthUser> {
@@ -1430,10 +1455,12 @@ export class RecordsService {
         region.id,
         "REGION",
       );
-      const pendingDelegationReports = await this.countDelegationReportsSince(
+      const delegationProgress = await this.getRegionalDelegationProgress(
         region.id,
         lastReport?.submittedAt ?? null,
       );
+      const pendingDelegationReports =
+        delegationProgress.pendingDelegationReports;
 
       rows.push({
         regionId: region.id,
