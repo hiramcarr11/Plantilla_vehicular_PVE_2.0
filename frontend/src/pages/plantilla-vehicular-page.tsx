@@ -18,6 +18,7 @@ import type {
 
 export function PlantillaVehicularPage() {
   const { session } = useAuth();
+  const isSuperAdmin = session?.user.role === "superadmin";
   const [regions, setRegions] = useState<GroupedRegionRecords[]>([]);
   const [catalogRegions, setCatalogRegions] = useState<Region[]>([]);
   const [fieldCatalogs, setFieldCatalogs] =
@@ -120,6 +121,52 @@ export function PlantillaVehicularPage() {
     }
   };
 
+  const deleteRecord = async (record: VehicleRecord) => {
+    if (!session || !isSuperAdmin) {
+      return;
+    }
+
+    const confirmation = await Swal.fire({
+      icon: "warning",
+      title: "Eliminar vehículo",
+      text: "Esta acción ocultará el registro de la plantilla vigente, pero conservará la trazabilidad en bitácora.",
+      showCancelButton: true,
+      confirmButtonText: "Eliminar vehículo",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#b91c1c",
+    });
+
+    if (!confirmation.isConfirmed) {
+      return;
+    }
+
+    try {
+      await api.deleteRecord(record.id, session.accessToken);
+      const loadedRegions = await api.getPlantillaVehicularOverview(
+        session.accessToken,
+        selectedRegionId || undefined,
+        selectedDelegationId || undefined,
+        dateFrom || undefined,
+        dateTo || undefined,
+      );
+      setRegions(loadedRegions);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Vehículo eliminado",
+        text: "El registro fue ocultado de la plantilla vigente.",
+        confirmButtonText: "Entendido",
+      });
+    } catch (requestError) {
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo eliminar el vehículo",
+        text: (requestError as Error).message,
+        confirmButtonText: "Entendido",
+      });
+    }
+  };
+
   if (!session) {
     return null;
   }
@@ -139,13 +186,24 @@ export function PlantillaVehicularPage() {
       onRecordSelect={(record) => void openRecordDetails(record)}
       renderRecordActions={(record) =>
         record.recordState === "CURRENT" ? (
-          <button
-            className="inline-button"
-            type="button"
-            onClick={() => transferRecord(record)}
-          >
-            Trasladar
-          </button>
+          <>
+            <button
+              className="inline-button"
+              type="button"
+              onClick={() => transferRecord(record)}
+            >
+              Trasladar
+            </button>
+            {isSuperAdmin ? (
+              <button
+                className="inline-button"
+                type="button"
+                onClick={() => void deleteRecord(record)}
+              >
+                Eliminar
+              </button>
+            ) : null}
+          </>
         ) : null
       }
       headerFilters={

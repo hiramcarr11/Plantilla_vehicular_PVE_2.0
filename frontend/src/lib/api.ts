@@ -257,6 +257,11 @@ export const api = {
       body: JSON.stringify({ delegationId, reason }),
     }, token);
   },
+  deleteRecord(recordId: string, token: string) {
+    return request<void>(`/records/${recordId}`, {
+      method: 'DELETE',
+    }, token);
+  },
   submitRosterReport(notes: string, token: string) {
     return request<VehicleRosterReport>('/records/reports', {
       method: 'POST',
