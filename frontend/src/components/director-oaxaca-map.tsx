@@ -239,56 +239,6 @@ export function DirectorOaxacaMap({ overview }: DirectorOaxacaMapProps) {
           </MapContainer>
         </div>
       </div>
-
-      <div className="director-map-details">
-        <div className="director-map-details-card">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Detalle territorial</p>
-              <h2>{selectedDelegation?.delegationName ?? 'Delegación'}</h2>
-            </div>
-            <div className="panel-meta">{selectedDelegation?.regionName ?? '-'}</div>
-          </div>
-
-          {selectedDelegation ? (
-            <div className="stack-md">
-              <div className="stats-grid director-map-stats">
-                <article className="stats-card">
-                  <div className="stats-label">Vehículos</div>
-                  <div className="stats-value">{selectedDelegation.totalUnits}</div>
-                </article>
-                <article className="stats-card">
-                  <div className="stats-label">Activos</div>
-                  <div className="stats-value">{selectedDelegation.totalActive}</div>
-                </article>
-              </div>
-
-              <div className="director-map-breakdown">
-                {selectedDelegation.vehicleClasses.map((vehicleClass) => (
-                  <div className="director-map-breakdown-row" key={vehicleClass.vehicleClass}>
-                    <div className="director-map-breakdown-label">
-                      <span
-                        className="director-map-legend-swatch"
-                        style={{ backgroundColor: colorMap[vehicleClass.vehicleClass] }}
-                      />
-                      <strong>{vehicleClass.vehicleClass}</strong>
-                    </div>
-                    <div className="director-map-breakdown-values">
-                      <span>{vehicleClass.totalUnits} unidades</span>
-                      <span>{vehicleClass.totalActive} activas</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <EmptyState
-              title="Selecciona una delegación"
-              description="Haz clic en un marcador del mapa para revisar su composición vehicular."
-            />
-          )}
-        </div>
-      </div>
     </div>
   );
 }

@@ -1172,12 +1172,11 @@ tbody tr:hover {
 
 .director-map-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 
-.director-map-card,
-.director-map-details-card {
+.director-map-card {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
@@ -1186,11 +1185,6 @@ tbody tr:hover {
 
 .director-map-card {
   padding: 16px;
-}
-
-.director-map-details-card {
-  padding: 16px;
-  min-height: 100%;
 }
 
 .director-map-header {
@@ -1325,41 +1319,6 @@ tbody tr:hover {
   gap: 8px;
   align-items: center;
   font-size: 12px;
-}
-
-.director-map-stats {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.director-map-breakdown {
-  display: grid;
-  gap: 10px;
-}
-
-.director-map-breakdown-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #ffffff;
-  padding: 12px;
-}
-
-.director-map-breakdown-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.director-map-breakdown-values {
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .director-report-date {
