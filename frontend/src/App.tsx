@@ -14,6 +14,7 @@ import { DirectorOperativoPage } from "./pages/director-operativo-page";
 import { APP_ROUTES, LEGACY_ROUTE_REDIRECTS } from "./lib/routes";
 import { ALL_ROLES, ROUTE_ROLES } from "./lib/role-access";
 import { PlantillaReportesPage } from "./pages/plantilla-reportes-page";
+import { DirectorOperativoReportesPage } from "./pages/director-operativo-reportes-page";
 
 export function App() {
   return (
@@ -57,6 +58,14 @@ export function App() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ROLES.overview}>
               <PlantillaVehicularPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={APP_ROUTES.reportsDelegations.slice(1)}
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ROLES.reportsDelegations}>
+              <DirectorOperativoReportesPage />
             </ProtectedRoute>
           }
         />

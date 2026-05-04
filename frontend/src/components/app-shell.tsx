@@ -68,6 +68,10 @@ const pageTitles: Record<string, { title: string; description: string }> = {
     title: "Reportes regionales",
     description: "Consulta el estado de cierre y confirmación por región.",
   },
+  [APP_ROUTES.reportsDelegations]: {
+    title: "Validación regional",
+    description: "Confirma el cierre mensual de las delegaciones bajo tu región.",
+  },
 };
 
 type SidebarItem = {
@@ -119,6 +123,12 @@ const sidebarSections: SidebarSection[] = [
   {
     title: "Reportes y dirección",
     items: [
+      {
+        label: "Validación regional",
+        route: APP_ROUTES.reportsDelegations,
+        allowedRoles: ROUTE_ROLES.reportsDelegations,
+        end: true,
+      },
       {
         label: "Reportes regionales",
         route: APP_ROUTES.reportsRegional,
