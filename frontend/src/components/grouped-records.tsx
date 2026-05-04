@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { resolveVehicleStatusTone } from '../lib/vehicle-status';
 import { getRecordActivitySummary } from '../modules/records/record-activity';
 import type { GroupedRegionRecords, RecordFieldCatalogMap, VehicleRecord } from '../types';
 import { EmptyState } from './empty-state';
@@ -354,7 +355,7 @@ export function GroupedRecords({
                             </td>
                             <td>
                               <div className="vehicle-main-cell">
-                                <span className="record-chip is-info">{record.status}</span>
+                                <span className={`record-chip ${resolveVehicleStatusTone(record.status)}`}>{record.status}</span>
                                 <small>{record.physicalStatus}</small>
                                 <small>{record.assetClassification}</small>
                               </div>
@@ -402,4 +403,5 @@ export function GroupedRecords({
     </div>
   );
 }
+
 

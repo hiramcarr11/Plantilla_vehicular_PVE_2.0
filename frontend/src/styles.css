@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
@@ -1011,10 +1011,29 @@ tbody tr:hover {
   background: var(--slate-050);
 }
 
-.record-chip.is-info {
-  border-color: var(--blue-border);
-  background: var(--blue-soft);
-  color: var(--slate-900);
+
+.record-chip.is-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.record-chip.is-danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.record-chip.is-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.record-chip.is-neutral {
+  border-color: var(--slate-300);
+  background: var(--slate-050);
+  color: var(--slate-700);
 }
 
 .record-activity-text {
@@ -2439,3 +2458,4 @@ tbody tr:hover {
   border-radius: 8px;
   font-size: 14px;
 }
+

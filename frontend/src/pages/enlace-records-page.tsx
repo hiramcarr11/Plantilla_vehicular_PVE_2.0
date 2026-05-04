@@ -6,6 +6,7 @@ import { RecordForm } from '../components/record-form';
 import { StatsGrid } from '../components/stats-grid';
 import { getRecordActivitySummary, openRecordDetails } from '../modules/records/record-activity';
 import { useEnlaceData } from '../modules/records/use-enlace-data';
+import { resolveVehicleStatusTone } from '../lib/vehicle-status';
 import type { VehicleRecord } from '../types';
 
 export function EnlaceRecordsPage() {
@@ -156,7 +157,7 @@ export function EnlaceRecordsPage() {
                     </td>
                     <td>
                       <div className="vehicle-main-cell">
-                        <span className="record-chip is-info">{record.status}</span>
+                        <span className={`record-chip ${resolveVehicleStatusTone(record.status)}`}>{record.status}</span>
                         <small>{record.physicalStatus}</small>
                         <small>{record.assetClassification}</small>
                       </div>
@@ -253,4 +254,5 @@ export function EnlaceRecordsPage() {
     </div>
   );
 }
+
 
