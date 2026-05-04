@@ -1,30 +1,90 @@
-import { useEffect, useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
-import { GroupedRecords } from '../components/grouped-records';
-import { LoadingSpinner } from '../components/loading-spinner';
-import { api } from '../lib/api';
-import { formatUserName } from '../lib/format-user-name';
-import { socket } from '../lib/socket';
-import { useAuth } from '../modules/auth/auth-context';
-import { openRecordDetails, openTransferDialog } from '../modules/records/record-activity';
+import { useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
+import { GroupedRecords } from "../components/grouped-records";
+import { LoadingSpinner } from "../components/loading-spinner";
+import { api } from "../lib/api";
+import { formatUserName } from "../lib/format-user-name";
+import { socket } from "../lib/socket";
+import { useAuth } from "../modules/auth/auth-context";
+import {
+  openRecordDetails,
+  openTransferDialog,
+} from "../modules/records/record-activity";
 import type {
   GroupedRegionRecords,
   RecordFieldCatalogMap,
   Region,
   RegionRosterReportOverviewRow,
   VehicleRecord,
-} from '../types';
+} from "../types";
+
+type ReportStatus = RegionRosterReportOverviewRow["status"];
+
+const REPORT_STATUS_UI: Record<
+  ReportStatus,
+  {
+    label: string;
+    description: string;
+    tone: "neutral" | "warning" | "success" | "info";
+  }
+> = {
+  NOT_REPORTED: {
+    label: "Sin reporte",
+    description: "La región aún no ha enviado cierre.",
+    tone: "neutral",
+  },
+  PENDING_CHANGES: {
+    label: "Pendiente por cambios",
+    description: "Existen movimientos posteriores al último cierre.",
+    tone: "warning",
+  },
+  REPORTED_WITH_CHANGES: {
+    label: "Reportado con cambios",
+    description: "La región confirmó movimientos recientes.",
+    tone: "info",
+  },
+  REPORTED_WITHOUT_CHANGES: {
+    label: "Reportado sin cambios",
+    description: "La región confirmó sin movimientos nuevos.",
+    tone: "success",
+  },
+};
+
+function getReportStatusUi(status: ReportStatus) {
+  return REPORT_STATUS_UI[status];
+}
+
+function getPendingDelegationText(row: RegionRosterReportOverviewRow) {
+  if (row.pendingDelegationReports === 0) {
+    return "Sin pendientes";
+  }
+
+  return `${row.pendingDelegationReports} pendiente${
+    row.pendingDelegationReports === 1 ? "" : "s"
+  }`;
+}
+
+function getLastRegionalReportText(row: RegionRosterReportOverviewRow) {
+  if (!row.lastReport) {
+    return "Sin reporte";
+  }
+
+  return new Date(row.lastReport.submittedAt).toLocaleString();
+}
 
 export function PlantillaVehicularPage() {
   const { session } = useAuth();
   const [regions, setRegions] = useState<GroupedRegionRecords[]>([]);
   const [catalogRegions, setCatalogRegions] = useState<Region[]>([]);
-  const [fieldCatalogs, setFieldCatalogs] = useState<RecordFieldCatalogMap | null>(null);
-  const [reportOverview, setReportOverview] = useState<RegionRosterReportOverviewRow[]>([]);
-  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
-  const [selectedDelegationId, setSelectedDelegationId] = useState<string>('');
-  const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
+  const [fieldCatalogs, setFieldCatalogs] =
+    useState<RecordFieldCatalogMap | null>(null);
+  const [reportOverview, setReportOverview] = useState<
+    RegionRosterReportOverviewRow[]
+  >([]);
+  const [selectedRegionId, setSelectedRegionId] = useState<string>("");
+  const [selectedDelegationId, setSelectedDelegationId] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   useEffect(() => {
     if (!session) {
@@ -60,14 +120,14 @@ export function PlantillaVehicularPage() {
     };
 
     void refresh();
-    socket.on('records.created', refresh);
-    socket.on('records.changed', refresh);
-    socket.on('reports.submitted', refresh);
+    socket.on("records.created", refresh);
+    socket.on("records.changed", refresh);
+    socket.on("reports.submitted", refresh);
 
     return () => {
-      socket.off('records.created', refresh);
-      socket.off('records.changed', refresh);
-      socket.off('reports.submitted', refresh);
+      socket.off("records.created", refresh);
+      socket.off("records.changed", refresh);
+      socket.off("reports.submitted", refresh);
     };
   }, [dateFrom, dateTo, selectedDelegationId, selectedRegionId, session]);
 
@@ -76,18 +136,24 @@ export function PlantillaVehicularPage() {
       return catalogRegions.flatMap((region) => region.delegations);
     }
 
-    return catalogRegions.find((region) => region.id === selectedRegionId)?.delegations ?? [];
+    return (
+      catalogRegions.find((region) => region.id === selectedRegionId)
+        ?.delegations ?? []
+    );
   }, [catalogRegions, selectedRegionId]);
 
   const reportStatusTotals = useMemo(
     () => ({
-      notReported: reportOverview.filter((row) => row.status === 'NOT_REPORTED').length,
-      pendingChanges: reportOverview.filter((row) => row.status === 'PENDING_CHANGES').length,
+      notReported: reportOverview.filter((row) => row.status === "NOT_REPORTED")
+        .length,
+      pendingChanges: reportOverview.filter(
+        (row) => row.status === "PENDING_CHANGES",
+      ).length,
       reportedWithoutChanges: reportOverview.filter(
-        (row) => row.status === 'REPORTED_WITHOUT_CHANGES',
+        (row) => row.status === "REPORTED_WITHOUT_CHANGES",
       ).length,
       reportedWithChanges: reportOverview.filter(
-        (row) => row.status === 'REPORTED_WITH_CHANGES',
+        (row) => row.status === "REPORTED_WITH_CHANGES",
       ).length,
     }),
     [reportOverview],
@@ -128,17 +194,17 @@ export function PlantillaVehicularPage() {
       }
 
       await Swal.fire({
-        icon: 'success',
-        title: 'Traslado registrado',
-        text: 'El movimiento quedo registrado en la bitacora.',
-        confirmButtonText: 'Entendido',
+        icon: "success",
+        title: "Traslado registrado",
+        text: "El movimiento quedo registrado en la bitacora.",
+        confirmButtonText: "Entendido",
       });
     } catch (requestError) {
       await Swal.fire({
-        icon: 'error',
-        title: 'No se pudo trasladar el vehiculo',
+        icon: "error",
+        title: "No se pudo trasladar el vehiculo",
         text: (requestError as Error).message,
-        confirmButtonText: 'Entendido',
+        confirmButtonText: "Entendido",
       });
     }
   };
@@ -161,8 +227,12 @@ export function PlantillaVehicularPage() {
       vehicleClassAfterDate
       onRecordSelect={(record) => void openRecordDetails(record)}
       renderRecordActions={(record) =>
-        record.recordState === 'CURRENT' ? (
-          <button className="inline-button" type="button" onClick={() => transferRecord(record)}>
+        record.recordState === "CURRENT" ? (
+          <button
+            className="inline-button"
+            type="button"
+            onClick={() => transferRecord(record)}
+          >
             Trasladar
           </button>
         ) : null
@@ -170,52 +240,82 @@ export function PlantillaVehicularPage() {
       headerFilters={
         <>
           <div className="report-status-grid">
-            <div className="report-status-card">
+            <div className="report-status-card is-neutral">
               <span>Sin reporte</span>
               <strong>{reportStatusTotals.notReported}</strong>
             </div>
-            <div className="report-status-card">
+
+            <div className="report-status-card is-warning">
               <span>Pendientes por cambios</span>
               <strong>{reportStatusTotals.pendingChanges}</strong>
             </div>
-            <div className="report-status-card">
-              <span>Regiones sin cambios</span>
+
+            <div className="report-status-card is-success">
+              <span>Reportadas sin cambios</span>
               <strong>{reportStatusTotals.reportedWithoutChanges}</strong>
             </div>
-            <div className="report-status-card">
-              <span>Regiones con cambios</span>
+
+            <div className="report-status-card is-info">
+              <span>Reportadas con cambios</span>
               <strong>{reportStatusTotals.reportedWithChanges}</strong>
             </div>
           </div>
 
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Region</th>
-                  <th>Estado</th>
-                  <th>Reportes de delegacion pendientes</th>
-                  <th>Ultimo envio regional</th>
-                  <th>Director Operativo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportOverview.map((row) => (
-                  <tr key={row.regionId}>
-                    <td>{row.regionName}</td>
-                    <td>{row.status}</td>
-                    <td>{row.pendingDelegationReports}</td>
-                    <td>
-                      {row.lastReport
-                        ? new Date(row.lastReport.submittedAt).toLocaleString()
-                        : 'Sin reporte'}
-                    </td>
-                    <td>{formatUserName(row.lastReport?.submittedBy)}</td>
+          <section className="report-overview-block">
+            <div className="report-table-header">
+              <div>
+                <p className="eyebrow">Reportes regionales</p>
+                <h3>Seguimiento de cierre por región</h3>
+              </div>
+              <span className="panel-meta">
+                {reportOverview.length} regiones
+              </span>
+            </div>
+
+            <div className="table-wrapper report-table-wrapper">
+              <table className="report-overview-table">
+                <thead>
+                  <tr>
+                    <th>Región</th>
+                    <th>Estado operativo</th>
+                    <th>Delegaciones pendientes</th>
+                    <th>Último envío regional</th>
+                    <th>Director operativo</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {reportOverview.map((row) => {
+                    const statusInfo = getReportStatusUi(row.status);
+
+                    return (
+                      <tr key={row.regionId}>
+                        <td>
+                          <strong>{row.regionName}</strong>
+                        </td>
+                        <td>
+                          <div className="report-status-cell">
+                            <span
+                              className={`report-status-badge is-${statusInfo.tone}`}
+                            >
+                              {statusInfo.label}
+                            </span>
+                            <small>{statusInfo.description}</small>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="report-pending-text">
+                            {getPendingDelegationText(row)}
+                          </span>
+                        </td>
+                        <td>{getLastRegionalReportText(row)}</td>
+                        <td>{formatUserName(row.lastReport?.submittedBy)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
           <div className="form-grid director-filter-grid">
             <label className="field">
@@ -224,7 +324,7 @@ export function PlantillaVehicularPage() {
                 value={selectedRegionId}
                 onChange={(event) => {
                   setSelectedRegionId(event.target.value);
-                  setSelectedDelegationId('');
+                  setSelectedDelegationId("");
                 }}
               >
                 <option value="">Todas las regiones</option>
@@ -240,7 +340,9 @@ export function PlantillaVehicularPage() {
               <span>Delegacion</span>
               <select
                 value={selectedDelegationId}
-                onChange={(event) => setSelectedDelegationId(event.target.value)}
+                onChange={(event) =>
+                  setSelectedDelegationId(event.target.value)
+                }
               >
                 <option value="">Todas las delegaciones</option>
                 {availableDelegations.map((delegation) => (
