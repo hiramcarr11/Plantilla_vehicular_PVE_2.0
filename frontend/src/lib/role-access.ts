@@ -30,7 +30,6 @@ export const ROUTE_ROLES = {
   ] as Role[],
   reportsDelegations: ["director_operativo"] as Role[],
   reportsRegional: [
-    "director_operativo",
     "plantilla_vehicular",
     "director_general",
     "superadmin",
